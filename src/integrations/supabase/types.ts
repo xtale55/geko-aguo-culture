@@ -14,7 +14,278 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      batches: {
+        Row: {
+          arrival_date: string
+          created_at: string | null
+          farm_id: string
+          id: string
+          name: string
+          pl_cost: number
+          pl_size: number
+          status: string | null
+          survival_rate: number | null
+          total_pl_quantity: number
+          updated_at: string | null
+        }
+        Insert: {
+          arrival_date: string
+          created_at?: string | null
+          farm_id: string
+          id?: string
+          name: string
+          pl_cost: number
+          pl_size: number
+          status?: string | null
+          survival_rate?: number | null
+          total_pl_quantity: number
+          updated_at?: string | null
+        }
+        Update: {
+          arrival_date?: string
+          created_at?: string | null
+          farm_id?: string
+          id?: string
+          name?: string
+          pl_cost?: number
+          pl_size?: number
+          status?: string | null
+          survival_rate?: number | null
+          total_pl_quantity?: number
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "batches_farm_id_fkey"
+            columns: ["farm_id"]
+            isOneToOne: false
+            referencedRelation: "farms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      biometrics: {
+        Row: {
+          average_weight: number
+          created_at: string | null
+          id: string
+          measurement_date: string
+          pond_batch_id: string
+          sample_size: number | null
+          uniformity: number | null
+        }
+        Insert: {
+          average_weight: number
+          created_at?: string | null
+          id?: string
+          measurement_date: string
+          pond_batch_id: string
+          sample_size?: number | null
+          uniformity?: number | null
+        }
+        Update: {
+          average_weight?: number
+          created_at?: string | null
+          id?: string
+          measurement_date?: string
+          pond_batch_id?: string
+          sample_size?: number | null
+          uniformity?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "biometrics_pond_batch_id_fkey"
+            columns: ["pond_batch_id"]
+            isOneToOne: false
+            referencedRelation: "pond_batches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      farms: {
+        Row: {
+          created_at: string | null
+          id: string
+          location: string | null
+          name: string
+          total_area: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          location?: string | null
+          name: string
+          total_area?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          location?: string | null
+          name?: string
+          total_area?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      mortality_records: {
+        Row: {
+          created_at: string | null
+          dead_count: number
+          id: string
+          notes: string | null
+          pond_batch_id: string
+          record_date: string
+        }
+        Insert: {
+          created_at?: string | null
+          dead_count: number
+          id?: string
+          notes?: string | null
+          pond_batch_id: string
+          record_date: string
+        }
+        Update: {
+          created_at?: string | null
+          dead_count?: number
+          id?: string
+          notes?: string | null
+          pond_batch_id?: string
+          record_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mortality_records_pond_batch_id_fkey"
+            columns: ["pond_batch_id"]
+            isOneToOne: false
+            referencedRelation: "pond_batches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pond_batches: {
+        Row: {
+          batch_id: string
+          created_at: string | null
+          current_population: number
+          id: string
+          pl_quantity: number
+          pond_id: string
+          preparation_cost: number | null
+          stocking_date: string
+          updated_at: string | null
+        }
+        Insert: {
+          batch_id: string
+          created_at?: string | null
+          current_population: number
+          id?: string
+          pl_quantity: number
+          pond_id: string
+          preparation_cost?: number | null
+          stocking_date: string
+          updated_at?: string | null
+        }
+        Update: {
+          batch_id?: string
+          created_at?: string | null
+          current_population?: number
+          id?: string
+          pl_quantity?: number
+          pond_id?: string
+          preparation_cost?: number | null
+          stocking_date?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pond_batches_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pond_batches_pond_id_fkey"
+            columns: ["pond_id"]
+            isOneToOne: false
+            referencedRelation: "ponds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ponds: {
+        Row: {
+          area: number
+          created_at: string | null
+          depth: number
+          farm_id: string
+          id: string
+          name: string
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          area: number
+          created_at?: string | null
+          depth: number
+          farm_id: string
+          id?: string
+          name: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          area?: number
+          created_at?: string | null
+          depth?: number
+          farm_id?: string
+          id?: string
+          name?: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ponds_farm_id_fkey"
+            columns: ["farm_id"]
+            isOneToOne: false
+            referencedRelation: "farms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string | null
+          full_name: string
+          id: string
+          phone: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          full_name: string
+          id?: string
+          phone?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          full_name?: string
+          id?: string
+          phone?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

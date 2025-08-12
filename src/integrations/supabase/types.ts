@@ -136,6 +136,8 @@ export type Database = {
         Row: {
           created_at: string
           created_by: string
+          default_feed_type_id: string | null
+          default_feed_type_name: string | null
           farm_id: string | null
           feeding_percentage: number
           id: string
@@ -148,6 +150,8 @@ export type Database = {
         Insert: {
           created_at?: string
           created_by: string
+          default_feed_type_id?: string | null
+          default_feed_type_name?: string | null
           farm_id?: string | null
           feeding_percentage: number
           id?: string
@@ -160,6 +164,8 @@ export type Database = {
         Update: {
           created_at?: string
           created_by?: string
+          default_feed_type_id?: string | null
+          default_feed_type_name?: string | null
           farm_id?: string | null
           feeding_percentage?: number
           id?: string
@@ -169,7 +175,15 @@ export type Database = {
           weight_range_max?: number
           weight_range_min?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "feeding_rates_default_feed_type_id_fkey"
+            columns: ["default_feed_type_id"]
+            isOneToOne: false
+            referencedRelation: "inventory"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       feeding_records: {
         Row: {

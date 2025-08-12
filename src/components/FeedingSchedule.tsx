@@ -142,11 +142,35 @@ export function FeedingSchedule({
     }
   };
 
-  const handleEditFeeding = (record: FeedingRecord) => {
+  const handleEditFeeding = async (record: FeedingRecord) => {
     setEditingRecord(record);
     setActualAmount(record.planned_amount.toString()); // Pre-fill with planned amount
     setNotes(record.notes || "");
-    setSelectedFeedType(record.feed_type_id || "");
+    
+    // Try to get default feed type from feeding rates
+    let defaultFeedType = record.feed_type_id || "";
+    
+    if (!defaultFeedType) {
+      try {
+        const { data: rateData } = await supabase
+          .from('feeding_rates')
+          .select('default_feed_type_id')
+          .eq('farm_id', farmId)
+          .is('pond_batch_id', null)
+          .lte('weight_range_min', averageWeight)
+          .gte('weight_range_max', averageWeight)
+          .order('weight_range_min', { ascending: false })
+          .limit(1);
+          
+        if (rateData && rateData.length > 0 && rateData[0].default_feed_type_id) {
+          defaultFeedType = rateData[0].default_feed_type_id;
+        }
+      } catch (error) {
+        console.error('Error getting default feed type:', error);
+      }
+    }
+    
+    setSelectedFeedType(defaultFeedType);
   };
 
   const handleEditFeedingRate = () => {
@@ -475,7 +499,12 @@ export function FeedingSchedule({
                 <div className="flex items-center space-x-3">
                   <Checkbox
                     checked={record.completed}
-                    disabled
+                    onCheckedChange={() => {
+                      if (!record.completed) {
+                        handleEditFeeding(record);
+                      }
+                    }}
+                    className="cursor-pointer"
                   />
                   <div>
                     <div className="font-medium flex items-center gap-2">
@@ -507,6 +536,7 @@ export function FeedingSchedule({
                         onClick={() => handleEditFeeding(record)}
                       >
                         <Edit2 className="w-3 h-3" />
+                        {record.completed ? 'Editar' : 'Registrar'}
                       </Button>
                     </DialogTrigger>
                     <DialogContent className="max-w-md">

@@ -16,6 +16,15 @@ interface FeedingRate {
   weight_range_max: number;
   feeding_percentage: number;
   meals_per_day: number;
+  default_feed_type_id?: string;
+  default_feed_type_name?: string;
+}
+
+interface FeedType {
+  id: string;
+  name: string;
+  quantity: number;
+  unit_price: number;
 }
 
 interface FeedingRateConfigProps {
@@ -25,20 +34,40 @@ interface FeedingRateConfigProps {
 
 export function FeedingRateConfig({ farmId, onRateUpdate }: FeedingRateConfigProps) {
   const [feedingRates, setFeedingRates] = useState<FeedingRate[]>([]);
+  const [availableFeeds, setAvailableFeeds] = useState<FeedType[]>([]);
   const [editingRate, setEditingRate] = useState<FeedingRate | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [formData, setFormData] = useState({
     weight_range_min: '',
     weight_range_max: '',
     feeding_percentage: '',
-    meals_per_day: ''
+    meals_per_day: '',
+    default_feed_type_id: ''
   });
   const { user } = useAuth();
   const { toast } = useToast();
 
   useEffect(() => {
     loadFeedingRates();
+    loadAvailableFeeds();
   }, [farmId]);
+
+  const loadAvailableFeeds = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('inventory')
+        .select('id, name, quantity, unit_price')
+        .eq('farm_id', farmId)
+        .eq('category', 'ração')
+        .gt('quantity', 0)
+        .order('name');
+
+      if (error) throw error;
+      setAvailableFeeds(data || []);
+    } catch (error: any) {
+      console.error('Error loading available feeds:', error);
+    }
+  };
 
   const loadFeedingRates = async () => {
     try {
@@ -78,7 +107,8 @@ export function FeedingRateConfig({ farmId, onRateUpdate }: FeedingRateConfigPro
       weight_range_min: rate.weight_range_min.toString(),
       weight_range_max: rate.weight_range_max.toString(),
       feeding_percentage: rate.feeding_percentage.toString(),
-      meals_per_day: rate.meals_per_day.toString()
+      meals_per_day: rate.meals_per_day.toString(),
+      default_feed_type_id: rate.default_feed_type_id || ''
     });
     setIsCreating(false);
   };
@@ -89,7 +119,8 @@ export function FeedingRateConfig({ farmId, onRateUpdate }: FeedingRateConfigPro
       weight_range_min: '',
       weight_range_max: '',
       feeding_percentage: '',
-      meals_per_day: ''
+      meals_per_day: '',
+      default_feed_type_id: ''
     });
     setIsCreating(true);
   };
@@ -102,7 +133,7 @@ export function FeedingRateConfig({ farmId, onRateUpdate }: FeedingRateConfigPro
         toast({
           variant: "destructive",
           title: "Erro de validação",
-          description: "Todos os campos são obrigatórios"
+          description: "Todos os campos obrigatórios devem ser preenchidos"
         });
         return;
       }
@@ -131,6 +162,10 @@ export function FeedingRateConfig({ farmId, onRateUpdate }: FeedingRateConfigPro
         return;
       }
 
+      // Get selected feed details
+      const selectedFeed = formData.default_feed_type_id ? 
+        availableFeeds.find(feed => feed.id === formData.default_feed_type_id) : null;
+
       const rateData = {
         farm_id: farmId,
         pond_batch_id: null, // null for farm templates
@@ -138,6 +173,8 @@ export function FeedingRateConfig({ farmId, onRateUpdate }: FeedingRateConfigPro
         weight_range_max: weightMax,
         feeding_percentage: feedingPercentage,
         meals_per_day: mealsPerDay,
+        default_feed_type_id: formData.default_feed_type_id || null,
+        default_feed_type_name: selectedFeed?.name || null,
         created_by: user?.id
       };
 
@@ -166,6 +203,7 @@ export function FeedingRateConfig({ farmId, onRateUpdate }: FeedingRateConfigPro
       setEditingRate(null);
       setIsCreating(false);
       loadFeedingRates();
+      loadAvailableFeeds();
       onRateUpdate();
     } catch (error: any) {
       toast({
@@ -272,8 +310,26 @@ export function FeedingRateConfig({ farmId, onRateUpdate }: FeedingRateConfigPro
                       placeholder="Ex: 3"
                       required
                     />
+                    </div>
+                    <div>
+                      <Label>Tipo de Ração Padrão</Label>
+                      <select
+                        className="w-full p-2 border border-border rounded-md bg-background"
+                        value={formData.default_feed_type_id}
+                        onChange={(e) => setFormData(prev => ({...prev, default_feed_type_id: e.target.value}))}
+                      >
+                        <option value="">Selecione o tipo de ração...</option>
+                        {availableFeeds.map((feed) => (
+                          <option key={feed.id} value={feed.id}>
+                            {feed.name} - {feed.quantity}kg disponível
+                          </option>
+                        ))}
+                      </select>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Tipo de ração que será pré-selecionado para animais nesta faixa de peso
+                      </p>
+                    </div>
                   </div>
-                </div>
                 <div className="flex gap-2">
                   <Button 
                     onClick={handleSaveRate}
@@ -336,6 +392,9 @@ export function FeedingRateConfig({ farmId, onRateUpdate }: FeedingRateConfigPro
                     </div>
                     <div className="text-muted-foreground">
                       {rate.feeding_percentage}% • {rate.meals_per_day}x/dia
+                      {rate.default_feed_type_name && (
+                        <span className="block text-xs">Ração: {rate.default_feed_type_name}</span>
+                      )}
                     </div>
                   </div>
                   <div className="flex gap-1">

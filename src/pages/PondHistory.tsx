@@ -3,12 +3,14 @@ import { Layout } from "@/components/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate, useParams } from "react-router-dom";
 import { 
   ArrowLeft, Calendar, DollarSign, Scale, TrendingUp, 
-  Package, Droplets, Skull, Fish 
+  Package, Droplets, Skull, Fish, Edit2 
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -65,6 +67,8 @@ export default function PondHistory() {
   const [mortalityRecords, setMortalityRecords] = useState<MortalityRecord[]>([]);
   const [waterQualityRecords, setWaterQualityRecords] = useState<WaterQualityRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editingBatch, setEditingBatch] = useState<string | null>(null);
+  const [newPlCost, setNewPlCost] = useState<string>("");
   const { pondId: cycleId } = useParams(); // Actually receiving cycle_id
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -229,6 +233,39 @@ export default function PondHistory() {
     }
   };
 
+  const handleEditPlCost = (batchId: string, currentCost: number) => {
+    setEditingBatch(batchId);
+    setNewPlCost((currentCost / 1000).toString()); // Convert back to per thousand for editing
+  };
+
+  const handleSavePlCost = async () => {
+    if (!editingBatch || !newPlCost) return;
+
+    try {
+      const { error } = await supabase
+        .from('batches')
+        .update({ pl_cost: parseFloat(newPlCost) })
+        .eq('id', editingBatch);
+
+      if (error) throw error;
+
+      toast({
+        title: "Sucesso",
+        description: "Custo de pós-larvas atualizado com sucesso!"
+      });
+
+      setEditingBatch(null);
+      setNewPlCost("");
+      loadPondHistory(); // Reload data
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: error.message
+      });
+    }
+  };
+
   if (loading) {
     return (
       <Layout>
@@ -367,7 +404,57 @@ export default function PondHistory() {
                   <h4 className="font-medium mb-2">Detalhamento de Custos</h4>
                   <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-sm">
                     <div>
-                      <p className="text-muted-foreground">Pós-Larvas</p>
+                      <div className="flex items-center justify-between">
+                        <p className="text-muted-foreground">Pós-Larvas</p>
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              onClick={() => {
+                                const batch = cycles.find(c => c.cycle_id === cycle.cycle_id);
+                                if (batch) {
+                                  // Find the batch data to get the original pl_cost
+                                  handleEditPlCost(cycle.cycle_id, cycle.costs.pl_cost);
+                                }
+                              }}
+                            >
+                              <Edit2 className="w-3 h-3" />
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Editar Custo de Pós-Larvas</DialogTitle>
+                            </DialogHeader>
+                            <div className="space-y-4">
+                              <div>
+                                <label className="text-sm font-medium">Custo por mil pós-larvas (R$)</label>
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  value={newPlCost}
+                                  onChange={(e) => setNewPlCost(e.target.value)}
+                                  placeholder="Ex: 0.50"
+                                />
+                              </div>
+                              <div className="flex gap-2">
+                                <Button onClick={handleSavePlCost} disabled={!newPlCost}>
+                                  Salvar
+                                </Button>
+                                <Button 
+                                  variant="outline" 
+                                  onClick={() => {
+                                    setEditingBatch(null);
+                                    setNewPlCost("");
+                                  }}
+                                >
+                                  Cancelar
+                                </Button>
+                              </div>
+                            </div>
+                          </DialogContent>
+                        </Dialog>
+                      </div>
                       <p className="font-medium">R$ {cycle.costs.pl_cost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
                     </div>
                     <div>

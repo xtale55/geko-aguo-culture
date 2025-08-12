@@ -18,8 +18,7 @@ interface CostBreakdown {
   pl_cost: number;
   preparation_cost: number;
   feed_cost: number;
-  labor_cost: number;
-  inventory_cost: number;
+  operational_cost: number;
   total_cost: number;
 }
 
@@ -133,22 +132,17 @@ export default function PondHistory() {
           )
           .order('feeding_date', { ascending: false });
 
-        // Get inventory costs for this farm
-        const { data: farmData } = await supabase
-          .from('ponds')
-          .select('farm_id')
-          .eq('id', actualPondId)
-          .single();
-
-        let inventoryCosts = 0;
-        if (farmData) {
-          const { data: inventory } = await supabase
-            .from('inventory')
-            .select('total_value, category')
-            .eq('farm_id', farmData.farm_id);
-          
-          inventoryCosts = inventory?.reduce((sum, item) => sum + item.total_value, 0) || 0;
-        }
+        // Get operational costs for each cycle
+        const { data: operationalCostsData } = await supabase
+          .from('operational_costs')
+          .select('amount, pond_batch_id')
+          .in('pond_batch_id', 
+            await supabase
+              .from('pond_batches')
+              .select('id')
+              .eq('pond_id', actualPondId)
+              .then(({ data }) => data?.map(pb => pb.id) || [])
+          );
 
         // Process cycles
       const processedCycles: PondCycleHistory[] = [];
@@ -209,11 +203,18 @@ export default function PondHistory() {
           // Calculate detailed costs
           const plCostTotal = (cycle.batches?.pl_cost || 0) * (cycle.pl_quantity / 1000);
           const preparationCost = cycle.preparation_cost || 0;
-          const estimatedFeedCost = biomass * 1.5 * 7; // 1.5 FCR * R$7/kg
-          const laborCost = doc * 50; // R$50/day estimated labor
-          const inventoryCostPerCycle = inventoryCosts / Math.max(cyclesData.length, 1);
           
-          const totalCost = plCostTotal + preparationCost + estimatedFeedCost + laborCost + inventoryCostPerCycle;
+          // Calculate real feed cost from feeding records
+          const realFeedCost = feedingData
+            ?.filter(feed => feed.pond_batch_id === cycle.id)
+            ?.reduce((sum, feed) => sum + (feed.actual_amount * (feed.unit_cost || 0)), 0) || 0;
+          
+          // Calculate operational costs for this specific cycle
+          const operationalCost = operationalCostsData
+            ?.filter(cost => cost.pond_batch_id === cycle.id)
+            ?.reduce((sum, cost) => sum + cost.amount, 0) || 0;
+          
+          const totalCost = plCostTotal + preparationCost + realFeedCost + operationalCost;
           const estimatedRevenue = biomass * 25; // R$25/kg
           const profitMargin = estimatedRevenue > 0 ? ((estimatedRevenue - totalCost) / estimatedRevenue) * 100 : 0;
 
@@ -230,9 +231,8 @@ export default function PondHistory() {
             costs: {
               pl_cost: plCostTotal,
               preparation_cost: preparationCost,
-              feed_cost: estimatedFeedCost,
-              labor_cost: laborCost,
-              inventory_cost: inventoryCostPerCycle,
+              feed_cost: realFeedCost,
+              operational_cost: operationalCost,
               total_cost: totalCost
             },
             estimated_revenue: estimatedRevenue,
@@ -599,22 +599,13 @@ export default function PondHistory() {
                       <p className="font-medium">R$ {cycle.costs.feed_cost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
                     </div>
                     
-                    {/* Mão de Obra */}
+                    {/* Custos Operacionais */}
                     <div>
                       <div className="flex items-center justify-between">
-                        <p className="text-muted-foreground">Mão de Obra</p>
-                        <span className="text-xs text-muted-foreground">(Calculado)</span>
+                        <p className="text-muted-foreground">Custos Operacionais</p>
+                        <span className="text-xs text-muted-foreground">(Registrados)</span>
                       </div>
-                      <p className="font-medium">R$ {cycle.costs.labor_cost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
-                    </div>
-                    
-                    {/* Outros */}
-                    <div>
-                      <div className="flex items-center justify-between">
-                        <p className="text-muted-foreground">Outros</p>
-                        <span className="text-xs text-muted-foreground">(Inventário)</span>
-                      </div>
-                      <p className="font-medium">R$ {cycle.costs.inventory_cost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                      <p className="font-medium">R$ {cycle.costs.operational_cost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
                     </div>
                   </div>
                 </div>

@@ -9,7 +9,7 @@ const Index = () => {
 
   useEffect(() => {
     if (!loading && !user) {
-      navigate('/auth');
+      navigate('/home');
     }
   }, [user, loading, navigate]);
 

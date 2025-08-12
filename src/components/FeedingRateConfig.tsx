@@ -96,12 +96,47 @@ export function FeedingRateConfig({ pondBatchId, currentWeight, onRateUpdate }: 
 
   const handleSaveRate = async () => {
     try {
+      // Validate all fields are filled
+      if (!formData.weight_range_min || !formData.weight_range_max || 
+          !formData.feeding_percentage || !formData.meals_per_day) {
+        toast({
+          variant: "destructive",
+          title: "Erro de validação",
+          description: "Todos os campos são obrigatórios"
+        });
+        return;
+      }
+
+      // Parse and validate numeric values
+      const weightMin = parseFloat(formData.weight_range_min);
+      const weightMax = parseFloat(formData.weight_range_max);
+      const feedingPercentage = parseFloat(formData.feeding_percentage);
+      const mealsPerDay = parseInt(formData.meals_per_day);
+
+      if (isNaN(weightMin) || isNaN(weightMax) || isNaN(feedingPercentage) || isNaN(mealsPerDay)) {
+        toast({
+          variant: "destructive",
+          title: "Erro de validação",
+          description: "Por favor, insira valores numéricos válidos"
+        });
+        return;
+      }
+
+      if (weightMin >= weightMax) {
+        toast({
+          variant: "destructive",
+          title: "Erro de validação",
+          description: "O peso máximo deve ser maior que o peso mínimo"
+        });
+        return;
+      }
+
       const rateData = {
         pond_batch_id: pondBatchId,
-        weight_range_min: parseFloat(formData.weight_range_min),
-        weight_range_max: parseFloat(formData.weight_range_max),
-        feeding_percentage: parseFloat(formData.feeding_percentage),
-        meals_per_day: parseInt(formData.meals_per_day),
+        weight_range_min: weightMin,
+        weight_range_max: weightMax,
+        feeding_percentage: feedingPercentage,
+        meals_per_day: mealsPerDay,
         created_by: user?.id
       };
 
@@ -191,45 +226,59 @@ export function FeedingRateConfig({ pondBatchId, currentWeight, onRateUpdate }: 
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label>Peso Mínimo (g)</Label>
+                    <Label>Peso Mínimo (g) *</Label>
                     <Input
                       type="number"
                       step="0.1"
                       value={formData.weight_range_min}
                       onChange={(e) => setFormData(prev => ({...prev, weight_range_min: e.target.value}))}
+                      placeholder="Ex: 0"
+                      required
                     />
                   </div>
                   <div>
-                    <Label>Peso Máximo (g)</Label>
+                    <Label>Peso Máximo (g) *</Label>
                     <Input
                       type="number"
                       step="0.1"
                       value={formData.weight_range_max}
                       onChange={(e) => setFormData(prev => ({...prev, weight_range_max: e.target.value}))}
+                      placeholder="Ex: 10"
+                      required
                     />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label>% da Biomassa</Label>
+                    <Label>% da Biomassa *</Label>
                     <Input
                       type="number"
                       step="0.1"
                       value={formData.feeding_percentage}
                       onChange={(e) => setFormData(prev => ({...prev, feeding_percentage: e.target.value}))}
+                      placeholder="Ex: 5.0"
+                      required
                     />
                   </div>
                   <div>
-                    <Label>Refeições/Dia</Label>
+                    <Label>Refeições/Dia *</Label>
                     <Input
                       type="number"
+                      min="1"
+                      max="10"
                       value={formData.meals_per_day}
                       onChange={(e) => setFormData(prev => ({...prev, meals_per_day: e.target.value}))}
+                      placeholder="Ex: 3"
+                      required
                     />
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <Button onClick={handleSaveRate}>
+                  <Button 
+                    onClick={handleSaveRate}
+                    disabled={!formData.weight_range_min || !formData.weight_range_max || 
+                             !formData.feeding_percentage || !formData.meals_per_day}
+                  >
                     Salvar
                   </Button>
                   <Button 

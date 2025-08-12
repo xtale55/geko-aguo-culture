@@ -132,6 +132,51 @@ export type Database = {
         }
         Relationships: []
       }
+      inventory: {
+        Row: {
+          brand: string | null
+          category: string
+          created_at: string
+          entry_date: string
+          farm_id: string
+          id: string
+          name: string
+          quantity: number
+          supplier: string | null
+          total_value: number
+          unit_price: number
+          updated_at: string
+        }
+        Insert: {
+          brand?: string | null
+          category: string
+          created_at?: string
+          entry_date: string
+          farm_id: string
+          id?: string
+          name: string
+          quantity?: number
+          supplier?: string | null
+          total_value?: number
+          unit_price?: number
+          updated_at?: string
+        }
+        Update: {
+          brand?: string | null
+          category?: string
+          created_at?: string
+          entry_date?: string
+          farm_id?: string
+          id?: string
+          name?: string
+          quantity?: number
+          supplier?: string | null
+          total_value?: number
+          unit_price?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       mortality_records: {
         Row: {
           created_at: string | null
@@ -283,6 +328,54 @@ export type Database = {
           phone?: string | null
           updated_at?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      water_quality: {
+        Row: {
+          alkalinity: number | null
+          ammonia: number | null
+          created_at: string
+          hardness: number | null
+          id: string
+          measurement_date: string
+          notes: string | null
+          oxygen_level: number | null
+          ph_level: number | null
+          pond_id: string
+          temperature: number | null
+          turbidity: number | null
+          updated_at: string
+        }
+        Insert: {
+          alkalinity?: number | null
+          ammonia?: number | null
+          created_at?: string
+          hardness?: number | null
+          id?: string
+          measurement_date: string
+          notes?: string | null
+          oxygen_level?: number | null
+          ph_level?: number | null
+          pond_id: string
+          temperature?: number | null
+          turbidity?: number | null
+          updated_at?: string
+        }
+        Update: {
+          alkalinity?: number | null
+          ammonia?: number | null
+          created_at?: string
+          hardness?: number | null
+          id?: string
+          measurement_date?: string
+          notes?: string | null
+          oxygen_level?: number | null
+          ph_level?: number | null
+          pond_id?: string
+          temperature?: number | null
+          turbidity?: number | null
+          updated_at?: string
         }
         Relationships: []
       }

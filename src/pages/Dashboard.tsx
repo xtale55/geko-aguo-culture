@@ -325,12 +325,12 @@ export default function Dashboard() {
               <Button 
                 variant="outline" 
                 className="h-auto p-4 justify-start"
-                onClick={() => navigate('/feeding')}
+                onClick={() => navigate('/water-quality')}
               >
                 <Fish className="w-5 h-5 mr-3" />
                 <div className="text-left">
-                  <div className="font-medium">Arraçoamento</div>
-                  <div className="text-sm text-muted-foreground">Plano de alimentação</div>
+                  <div className="font-medium">Qualidade da Água</div>
+                  <div className="text-sm text-muted-foreground">Monitorar parâmetros</div>
                 </div>
               </Button>
             </div>

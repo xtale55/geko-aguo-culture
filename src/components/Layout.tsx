@@ -1,6 +1,6 @@
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { Fish, LogOut, Settings, Home, Waves, Scale, Skull, Utensils, Package } from 'lucide-react';
+import { Fish, LogOut, Settings, Home, Waves, Scale, Skull, Utensils, Droplets } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 interface LayoutProps {
@@ -40,7 +40,7 @@ export function Layout({ children }: LayoutProps) {
             </div>
           </div>
 
-          <nav className="hidden lg:flex items-center space-x-2">
+          <nav className="hidden xl:flex items-center space-x-2">
             <Button
               variant={isActive('/dashboard') ? 'default' : 'ghost'}
               size="sm"
@@ -74,6 +74,14 @@ export function Layout({ children }: LayoutProps) {
               Ração
             </Button>
             <Button 
+              variant={isActive('/water-quality') ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => navigate('/water-quality')}
+            >
+              <Droplets className="w-4 h-4 mr-2" />
+              Água
+            </Button>
+            <Button 
               variant={isActive('/mortality') ? 'default' : 'ghost'}
               size="sm"
               onClick={() => navigate('/mortality')}
@@ -100,7 +108,7 @@ export function Layout({ children }: LayoutProps) {
       </main>
 
       {/* Mobile Bottom Navigation */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-card border-t border-border overflow-x-auto">
+      <div className="xl:hidden fixed bottom-0 left-0 right-0 bg-card border-t border-border overflow-x-auto">
         <div className="flex min-w-max">
           <Button
             variant={isActive('/dashboard') ? 'default' : 'ghost'}
@@ -137,6 +145,15 @@ export function Layout({ children }: LayoutProps) {
           >
             <Utensils className="w-4 h-4" />
             <span className="text-xs">Ração</span>
+          </Button>
+          <Button
+            variant={isActive('/water-quality') ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => navigate('/water-quality')}
+            className="flex flex-col items-center space-y-1 h-16 min-w-16 px-3"
+          >
+            <Droplets className="w-4 h-4" />
+            <span className="text-xs">Água</span>
           </Button>
           <Button
             variant={isActive('/mortality') ? 'default' : 'ghost'}

@@ -54,7 +54,7 @@ const Home = () => {
           </div>
           <Button 
             onClick={() => navigate('/auth')}
-            className="bg-white/20 hover:bg-white/30 text-white border border-white/30"
+            className="bg-white/20 hover:bg-white/30 text-white border border-white/30 rounded-2xl"
           >
             Entrar
           </Button>
@@ -63,7 +63,7 @@ const Home = () => {
 
       {/* Hero Section */}
       <section className="container mx-auto px-4 py-20 text-center relative">
-        <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
+        <div className="absolute inset-0 bg-white/10 backdrop-blur-sm rounded-2xl"></div>
         <div className="relative z-10">
           <div className="max-w-4xl mx-auto">
             <h2 className="text-5xl md:text-6xl font-bold text-white mb-6 leading-tight">
@@ -76,21 +76,14 @@ const Home = () => {
               Gerencie sua fazenda aquícola com tecnologia de ponta. Monitore tanques, 
               controle qualidade da água, acompanhe crescimento e maximize seus resultados.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <div className="flex justify-center">
               <Button 
                 size="lg"
                 onClick={() => navigate('/auth')}
-                className="text-primary-foreground px-8 py-4 text-lg shadow-lg border-0"
+                className="text-primary-foreground px-8 py-4 text-lg shadow-lg border-0 rounded-2xl"
                 style={{ background: 'linear-gradient(135deg, hsl(175 70% 85%), hsl(150 80% 60%))' }}
               >
                 Começar Agora
-              </Button>
-              <Button 
-                size="lg"
-                variant="outline"
-                className="border-white/30 text-white hover:bg-white/10 px-8 py-4 text-lg"
-              >
-                Saiba Mais
               </Button>
             </div>
           </div>
@@ -98,7 +91,7 @@ const Home = () => {
       </section>
 
       {/* Features Section */}
-      <section className="container mx-auto px-4 py-20 bg-white/95 backdrop-blur-sm">
+      <section className="container mx-auto px-4 py-20 bg-white/95 backdrop-blur-sm rounded-2xl">
         <div className="text-center mb-16">
           <h3 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
             Tudo que Você Precisa em Um Lugar
@@ -111,7 +104,7 @@ const Home = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {features.map((feature, index) => (
-            <Card key={index} className="group hover:shadow-xl transition-all duration-300 border-0 bg-card/80 backdrop-blur-sm">
+            <Card key={index} className="group hover:shadow-xl transition-all duration-300 border-0 bg-card/80 backdrop-blur-sm rounded-2xl">
               <CardContent className="p-8 text-center">
                 <div 
                   className="inline-flex items-center justify-center w-16 h-16 rounded-full mb-6 group-hover:scale-110 transition-transform duration-300"
@@ -140,7 +133,7 @@ const Home = () => {
           <Button 
             size="lg"
             onClick={() => navigate('/auth')}
-            className="bg-white text-primary hover:bg-white/90 px-8 py-4 text-lg font-semibold shadow-xl"
+            className="bg-white text-primary hover:bg-white/90 px-8 py-4 text-lg font-semibold shadow-xl rounded-2xl"
           >
             Criar Conta Gratuita
           </Button>

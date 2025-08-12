@@ -53,6 +53,14 @@ interface MortalityRecord {
   notes: string;
 }
 
+interface FeedingRecord {
+  feeding_date: string;
+  feeding_time: string;
+  actual_amount: number;
+  unit_cost: number;
+  feed_type_name: string;
+}
+
 interface WaterQualityRecord {
   measurement_date: string;
   oxygen_level: number;
@@ -65,6 +73,7 @@ export default function PondHistory() {
   const [cycles, setCycles] = useState<PondCycleHistory[]>([]);
   const [biometryRecords, setBiometryRecords] = useState<BiometryRecord[]>([]);
   const [mortalityRecords, setMortalityRecords] = useState<MortalityRecord[]>([]);
+  const [feedingRecords, setFeedingRecords] = useState<FeedingRecord[]>([]);
   const [waterQualityRecords, setWaterQualityRecords] = useState<WaterQualityRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingCost, setEditingCost] = useState<{ cycleId: string, costType: string } | null>(null);
@@ -111,12 +120,18 @@ export default function PondHistory() {
           .eq('pond_id', actualPondId)
           .order('stocking_date', { ascending: false });
 
-        // Get water quality records
-        const { data: waterData } = await supabase
-          .from('water_quality')
-          .select('measurement_date, oxygen_level, temperature, ph_level')
-          .eq('pond_id', actualPondId)
-          .order('measurement_date', { ascending: false });
+         // Get feeding records for this pond separately
+        const { data: feedingData } = await supabase
+          .from('feeding_records')
+          .select('actual_amount, unit_cost, feeding_date, feeding_time, feed_type_name, pond_batch_id')
+          .in('pond_batch_id', 
+            await supabase
+              .from('pond_batches')
+              .select('id')
+              .eq('pond_id', actualPondId)
+              .then(({ data }) => data?.map(pb => pb.id) || [])
+          )
+          .order('feeding_date', { ascending: false });
 
         // Get inventory costs for this farm
         const { data: farmData } = await supabase
@@ -139,6 +154,7 @@ export default function PondHistory() {
       const processedCycles: PondCycleHistory[] = [];
       const allBiometry: BiometryRecord[] = [];
       const allMortality: MortalityRecord[] = [];
+      const allFeeding: FeedingRecord[] = [];
 
       cyclesData?.forEach(cycle => {
         const stocking = new Date(cycle.stocking_date);
@@ -167,6 +183,21 @@ export default function PondHistory() {
             notes: mort.notes || ''
           });
         });
+
+        // Add all feeding records from separate query
+        if (feedingData) {
+          feedingData
+            .filter(feed => cyclesData.some(c => c.id === feed.pond_batch_id))
+            .forEach(feed => {
+              allFeeding.push({
+                feeding_date: feed.feeding_date,
+                feeding_time: feed.feeding_time,
+                actual_amount: feed.actual_amount,
+                unit_cost: feed.unit_cost || 0,
+                feed_type_name: feed.feed_type_name || 'N/A'
+              });
+            });
+        }
 
         if (latestBiometry) {
           const survivalRate = cycle.pl_quantity > 0 
@@ -218,7 +249,18 @@ export default function PondHistory() {
       setMortalityRecords(allMortality.sort((a, b) => 
         new Date(b.record_date).getTime() - new Date(a.record_date).getTime()
       ));
-        setWaterQualityRecords(waterData || []);
+      setFeedingRecords(allFeeding.sort((a, b) => 
+        new Date(b.feeding_date).getTime() - new Date(a.feeding_date).getTime()
+      ));
+      
+      // Get water quality records
+      const { data: waterData } = await supabase
+        .from('water_quality')
+        .select('measurement_date, oxygen_level, temperature, ph_level')
+        .eq('pond_id', actualPondId)
+        .order('measurement_date', { ascending: false });
+        
+      setWaterQualityRecords(waterData || []);
       } else {
         throw new Error('Ciclo não encontrado');
       }
@@ -582,7 +624,7 @@ export default function PondHistory() {
         </Card>
 
         {/* Performance Records */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           {/* Biometry Records */}
           <Card>
             <CardHeader>
@@ -630,6 +672,39 @@ export default function PondHistory() {
                   )}
                 </div>
               ))}
+            </CardContent>
+          </Card>
+
+          {/* Feeding Records */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Fish className="w-4 h-4" />
+                Alimentação Recente
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {feedingRecords.slice(0, 5).map((record, index) => (
+                <div key={index} className="text-sm">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <p className="font-medium">{record.actual_amount.toFixed(1)}kg</p>
+                      <p className="text-muted-foreground">
+                        {new Date(record.feeding_date).toLocaleDateString('pt-BR')} • {record.feeding_time}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <Badge variant="outline">{record.feed_type_name}</Badge>
+                      <p className="text-muted-foreground text-xs mt-1">
+                        R$ {(record.actual_amount * record.unit_cost).toFixed(2)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {feedingRecords.length === 0 && (
+                <p className="text-muted-foreground text-sm">Nenhum registro de alimentação encontrado.</p>
+              )}
             </CardContent>
           </Card>
 

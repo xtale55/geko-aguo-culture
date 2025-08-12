@@ -226,9 +226,13 @@ export default function Reports() {
           const biomass = (cycle.current_population * latestBiometry.average_weight) / 1000;
           totalProduction += biomass;
           
-          // Calculate real feed consumption
+          // Calculate real feed consumption and cost
           const totalFeedConsumed = Array.isArray(cycle.feeding_records)
             ? cycle.feeding_records.reduce((sum, fr) => sum + fr.actual_amount, 0)
+            : 0;
+            
+          const realFeedCost = Array.isArray(cycle.feeding_records)
+            ? cycle.feeding_records.reduce((sum, fr) => sum + (fr.actual_amount * (fr.unit_cost || 7)), 0)
             : 0;
           
           // Calculate real FCA if we have feed data and weight growth
@@ -259,13 +263,14 @@ export default function Reports() {
             }
           }
           
-          // Calculate costs (PL cost + preparation + real feed cost)
+          // Calculate costs (PL cost + preparation + real feed cost + operational costs)
           const plCost = cycle.batches?.pl_cost || 0;
           const preparationCost = cycle.preparation_cost || 0;
-          const realFeedCost = Array.isArray(cycle.feeding_records)
-            ? cycle.feeding_records.reduce((sum, fr) => sum + (fr.actual_amount * (fr.unit_cost || 7)), 0)
-            : (biomass * 1.5 * 7);
-          const cycleCost = (plCost * cycle.pl_quantity) + preparationCost + realFeedCost;
+          
+          // Use real feed cost if available, otherwise estimate
+          const feedCost = realFeedCost > 0 ? realFeedCost : (biomass * 1.5 * 7);
+          
+          const cycleCost = (plCost * cycle.pl_quantity / 1000) + preparationCost + feedCost;
           totalCosts += cycleCost;
 
           // Estimate revenue (R$25/kg average)

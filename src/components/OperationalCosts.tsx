@@ -23,6 +23,12 @@ interface OperationalCost {
   updated_at: string;
 }
 
+interface PondBatch {
+  id: string;
+  pond_name: string;
+  batch_name: string;
+}
+
 interface CostSummary {
   labor: number;
   energy: number;
@@ -33,6 +39,7 @@ interface CostSummary {
 
 export function OperationalCosts() {
   const [costs, setCosts] = useState<OperationalCost[]>([]);
+  const [pondBatches, setPondBatches] = useState<PondBatch[]>([]);
   const [costSummary, setCostSummary] = useState<CostSummary>({
     labor: 0,
     energy: 0,
@@ -46,7 +53,8 @@ export function OperationalCosts() {
     category: '',
     amount: '',
     cost_date: new Date().toISOString().split('T')[0],
-    description: ''
+    description: '',
+    pond_batch_id: ''
   });
   const { user } = useAuth();
   const { toast } = useToast();
@@ -72,7 +80,33 @@ export function OperationalCosts() {
         return;
       }
 
-      const farmId = farms[0].id;
+      const farmIds = farms.map(f => f.id);
+
+      // Get pond batches for dropdown
+      const { data: pondBatchesData } = await supabase
+        .from('pond_batches')
+        .select(`
+          id,
+          ponds(name),
+          batches(name)
+        `)
+        .in('pond_id', 
+          await supabase
+            .from('ponds')
+            .select('id')
+            .in('farm_id', farmIds)
+            .then(({ data }) => data?.map(p => p.id) || [])
+        )
+        .gte('current_population', 1);
+
+      if (pondBatchesData) {
+        const formattedPondBatches = pondBatchesData.map(pb => ({
+          id: pb.id,
+          pond_name: pb.ponds?.name || 'N/A',
+          batch_name: pb.batches?.name || 'N/A'
+        }));
+        setPondBatches(formattedPondBatches);
+      }
 
       // Get costs from last 30 days
       const thirtyDaysAgo = new Date();
@@ -81,7 +115,7 @@ export function OperationalCosts() {
       const { data: operationalCosts } = await supabase
         .from('operational_costs')
         .select('*')
-        .eq('farm_id', farmId)
+        .in('farm_id', farmIds)
         .gte('cost_date', thirtyDaysAgo.toISOString().split('T')[0])
         .order('cost_date', { ascending: false });
 
@@ -148,15 +182,21 @@ export function OperationalCosts() {
         return;
       }
 
+      const costData: any = {
+        farm_id: farms[0].id,
+        category: newCost.category as 'labor' | 'energy' | 'fuel' | 'other',
+        amount: parseFloat(newCost.amount),
+        cost_date: newCost.cost_date,
+        description: newCost.description
+      };
+
+      if (newCost.pond_batch_id) {
+        costData.pond_batch_id = newCost.pond_batch_id;
+      }
+
       const { error } = await supabase
         .from('operational_costs')
-        .insert({
-          farm_id: farms[0].id,
-          category: newCost.category as 'labor' | 'energy' | 'fuel' | 'other',
-          amount: parseFloat(newCost.amount),
-          cost_date: newCost.cost_date,
-          description: newCost.description
-        });
+        .insert(costData);
 
       if (error) throw error;
 
@@ -170,7 +210,8 @@ export function OperationalCosts() {
         category: '',
         amount: '',
         cost_date: new Date().toISOString().split('T')[0],
-        description: ''
+        description: '',
+        pond_batch_id: ''
       });
       loadOperationalCosts();
 
@@ -333,6 +374,23 @@ export function OperationalCosts() {
                 />
               </div>
               
+              <div>
+                <Label htmlFor="pond_batch">Viveiro (Opcional)</Label>
+                <Select value={newCost.pond_batch_id} onValueChange={(value) => setNewCost({...newCost, pond_batch_id: value})}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o viveiro (opcional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Geral (todos os viveiros)</SelectItem>
+                    {pondBatches.map(pb => (
+                      <SelectItem key={pb.id} value={pb.id}>
+                        {pb.pond_name} - {pb.batch_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
               <Button onClick={handleAddCost} className="w-full">
                 Registrar Custo
               </Button>
@@ -401,6 +459,14 @@ export function OperationalCosts() {
                         </Badge>
                         <span>•</span>
                         <span>{new Date(cost.cost_date).toLocaleDateString('pt-BR')}</span>
+                        {cost.pond_batch_id && (
+                          <>
+                            <span>•</span>
+                            <Badge variant="secondary" className="text-xs">
+                              {pondBatches.find(pb => pb.id === cost.pond_batch_id)?.pond_name || 'Viveiro'}
+                            </Badge>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>

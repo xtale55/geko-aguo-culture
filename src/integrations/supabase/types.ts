@@ -140,7 +140,7 @@ export type Database = {
           feeding_percentage: number
           id: string
           meals_per_day: number
-          pond_batch_id: string
+          pond_batch_id: string | null
           updated_at: string
           weight_range_max: number
           weight_range_min: number
@@ -152,7 +152,7 @@ export type Database = {
           feeding_percentage: number
           id?: string
           meals_per_day: number
-          pond_batch_id: string
+          pond_batch_id?: string | null
           updated_at?: string
           weight_range_max: number
           weight_range_min: number
@@ -164,7 +164,7 @@ export type Database = {
           feeding_percentage?: number
           id?: string
           meals_per_day?: number
-          pond_batch_id?: string
+          pond_batch_id?: string | null
           updated_at?: string
           weight_range_max?: number
           weight_range_min?: number

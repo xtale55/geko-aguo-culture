@@ -88,7 +88,7 @@ export default function Dashboard() {
             pond_batches(
               *,
               batches(name),
-              biometrics(average_weight, measurement_date),
+              biometrics(average_weight, measurement_date, created_at),
               mortality_records(dead_count, record_date)
             )
           `)
@@ -129,7 +129,7 @@ export default function Dashboard() {
               
               // Get latest biometry
               const latestBiometry = batch.biometrics
-                ?.sort((a, b) => new Date(b.measurement_date).getTime() - new Date(a.measurement_date).getTime())[0];
+                ?.sort((a, b) => new Date(b.created_at || b.measurement_date).getTime() - new Date(a.created_at || a.measurement_date).getTime())[0];
               
               if (latestBiometry) {
                 totalWeight += latestBiometry.average_weight;

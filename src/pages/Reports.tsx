@@ -153,7 +153,7 @@ export default function Reports() {
         .from('biometrics')
         .select('*')
         .in('pond_batch_id', pondBatchIds)
-        .order('measurement_date', { ascending: false });
+        .order('created_at', { ascending: false });
 
       // Get mortality records
       const { data: mortality } = await supabase
@@ -210,7 +210,7 @@ export default function Reports() {
         
         // Get latest biometry
         const latestBiometry = cycle.biometrics
-          ?.sort((a, b) => new Date(b.measurement_date).getTime() - new Date(a.measurement_date).getTime())[0];
+          ?.sort((a, b) => new Date(b.created_at || b.measurement_date).getTime() - new Date(a.created_at || a.measurement_date).getTime())[0];
 
         // Calculate mortality
         const totalMortality = cycle.mortality_records
@@ -241,7 +241,7 @@ export default function Reports() {
           
           let realFCA = 1.5; // Default fallback
           if (firstBiometry && totalFeedConsumed > 0) {
-            const initialBiomass = (cycle.pl_quantity * firstBiometry.average_weight) / 1000;
+            const initialBiomass = (cycle.current_population * firstBiometry.average_weight) / 1000;
             const biomassGain = biomass - initialBiomass;
             realFCA = biomassGain > 0 ? totalFeedConsumed / biomassGain : 1.5;
           }

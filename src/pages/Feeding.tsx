@@ -25,6 +25,7 @@ interface PondWithBatch {
     latest_biometry?: {
       average_weight: number;
       measurement_date: string;
+      created_at?: string;
     };
   };
 }
@@ -86,7 +87,8 @@ export default function Feeding() {
               batches!inner(name),
               biometrics(
                 average_weight,
-                measurement_date
+                measurement_date,
+                created_at
               )
             )
           `)
@@ -105,7 +107,7 @@ export default function Feeding() {
             stocking_date: pond.pond_batches[0].stocking_date,
             current_population: pond.pond_batches[0].current_population,
             latest_biometry: pond.pond_batches[0].biometrics
-              .sort((a, b) => new Date(b.measurement_date).getTime() - new Date(a.measurement_date).getTime())[0] || null
+              .sort((a, b) => new Date(b.created_at || b.measurement_date).getTime() - new Date(a.created_at || a.measurement_date).getTime())[0] || null
           } : undefined
         })) || [];
 
@@ -129,8 +131,17 @@ export default function Feeding() {
 
               // Calculate total feed consumed and FCA
               const totalFeedConsumed = await getTotalFeedConsumed(batch.id);
-              const weightGain = biometry.average_weight - 0.001; // Assuming PL starting weight of 0.001g
-              const fca = weightGain > 0 ? totalFeedConsumed / (batch.current_population * weightGain / 1000) : 0;
+              
+              // Get first biometry to calculate real FCA
+              const firstBiometry = await getFirstBiometry(batch.id);
+              let fca = 1.5; // Default fallback
+              
+              if (firstBiometry && totalFeedConsumed > 0) {
+                const initialBiomass = (batch.current_population * firstBiometry.average_weight) / 1000;
+                const currentBiomass = (batch.current_population * biometry.average_weight) / 1000;
+                const biomassGain = currentBiomass - initialBiomass;
+                fca = biomassGain > 0 ? totalFeedConsumed / biomassGain : 1.5;
+              }
 
               return {
                 pond_id: pond.id,
@@ -266,6 +277,22 @@ export default function Feeding() {
     } catch (error) {
       console.error('Error getting total feed consumed:', error);
       return 0;
+    }
+  };
+
+  const getFirstBiometry = async (pondBatchId: string) => {
+    try {
+      const { data } = await supabase
+        .from('biometrics')
+        .select('average_weight, measurement_date')
+        .eq('pond_batch_id', pondBatchId)
+        .order('measurement_date', { ascending: true })
+        .limit(1);
+
+      return data?.[0] || null;
+    } catch (error) {
+      console.error('Error getting first biometry:', error);
+      return null;
     }
   };
 

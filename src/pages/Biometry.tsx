@@ -26,6 +26,7 @@ interface PondWithBatch {
       average_weight: number;
       measurement_date: string;
       uniformity: number;
+      created_at?: string;
     };
   };
 }
@@ -78,7 +79,8 @@ export default function Biometry() {
               biometrics(
                 average_weight,
                 measurement_date,
-                uniformity
+                uniformity,
+                created_at
               )
             )
           `)
@@ -97,7 +99,7 @@ export default function Biometry() {
             stocking_date: pond.pond_batches[0].stocking_date,
             current_population: pond.pond_batches[0].current_population,
             latest_biometry: pond.pond_batches[0].biometrics
-              .sort((a, b) => new Date(b.measurement_date).getTime() - new Date(a.measurement_date).getTime())[0] || null
+              .sort((a, b) => new Date(b.created_at || b.measurement_date).getTime() - new Date(a.created_at || a.measurement_date).getTime())[0] || null
           } : undefined
         })) || [];
 

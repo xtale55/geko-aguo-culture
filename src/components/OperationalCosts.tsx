@@ -190,7 +190,7 @@ export function OperationalCosts() {
         description: newCost.description
       };
 
-      if (newCost.pond_batch_id) {
+      if (newCost.pond_batch_id && newCost.pond_batch_id !== "general") {
         costData.pond_batch_id = newCost.pond_batch_id;
       }
 
@@ -381,7 +381,7 @@ export function OperationalCosts() {
                     <SelectValue placeholder="Selecione o viveiro (opcional)" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Geral (todos os viveiros)</SelectItem>
+                    <SelectItem value="general">Geral (todos os viveiros)</SelectItem>
                     {pondBatches.map(pb => (
                       <SelectItem key={pb.id} value={pb.id}>
                         {pb.pond_name} - {pb.batch_name}

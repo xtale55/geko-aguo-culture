@@ -171,6 +171,36 @@ export function FeedingSchedule({
     }
     
     setSelectedFeedType(defaultFeedType);
+    // Reload feeds to get latest inventory
+    loadAvailableFeeds();
+  };
+
+  const handleRemoveFeeding = async (record: FeedingRecord) => {
+    if (!record.id) return;
+    
+    try {
+      const { error } = await supabase
+        .from('feeding_records')
+        .delete()
+        .eq('id', record.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Alimentação desmarcada",
+        description: "Registro removido com sucesso"
+      });
+
+      loadFeedingRecords();
+      loadAvailableFeeds(); // Reload to update stock
+      onFeedingUpdate();
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: error.message
+      });
+    }
   };
 
   const handleEditFeedingRate = () => {
@@ -499,9 +529,13 @@ export function FeedingSchedule({
                 <div className="flex items-center space-x-3">
                   <Checkbox
                     checked={record.completed}
-                    onCheckedChange={() => {
-                      if (!record.completed) {
+                    onCheckedChange={(checked) => {
+                      // Toggle completed status
+                      if (checked) {
                         handleEditFeeding(record);
+                      } else {
+                        // Mark as uncompleted - remove the feeding record
+                        handleRemoveFeeding(record);
                       }
                     }}
                     className="cursor-pointer"

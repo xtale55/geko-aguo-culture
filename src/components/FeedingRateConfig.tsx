@@ -433,25 +433,40 @@ export function FeedingRateConfig({ farmId, onRateUpdate }: FeedingRateConfigPro
                               />
                             </div>
                           </div>
-                          <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <Label>% da Biomassa</Label>
-                              <Input
-                                type="number"
-                                step="0.1"
-                                value={formData.feeding_percentage}
-                                onChange={(e) => setFormData(prev => ({...prev, feeding_percentage: e.target.value}))}
-                              />
-                            </div>
-                            <div>
-                              <Label>Refeições/Dia</Label>
-                              <Input
-                                type="number"
-                                value={formData.meals_per_day}
-                                onChange={(e) => setFormData(prev => ({...prev, meals_per_day: e.target.value}))}
-                              />
-                            </div>
-                          </div>
+                           <div className="grid grid-cols-2 gap-4">
+                             <div>
+                               <Label>% da Biomassa</Label>
+                               <Input
+                                 type="number"
+                                 step="0.1"
+                                 value={formData.feeding_percentage}
+                                 onChange={(e) => setFormData(prev => ({...prev, feeding_percentage: e.target.value}))}
+                               />
+                             </div>
+                             <div>
+                               <Label>Refeições/Dia</Label>
+                               <Input
+                                 type="number"
+                                 value={formData.meals_per_day}
+                                 onChange={(e) => setFormData(prev => ({...prev, meals_per_day: e.target.value}))}
+                               />
+                             </div>
+                           </div>
+                           <div>
+                             <Label>Tipo de Ração Padrão</Label>
+                             <select
+                               className="w-full p-2 border border-border rounded-md bg-background"
+                               value={formData.default_feed_type_id}
+                               onChange={(e) => setFormData(prev => ({...prev, default_feed_type_id: e.target.value}))}
+                             >
+                               <option value="">Selecione o tipo de ração...</option>
+                               {availableFeeds.map((feed) => (
+                                 <option key={feed.id} value={feed.id}>
+                                   {feed.name} - {feed.quantity}kg disponível
+                                 </option>
+                               ))}
+                             </select>
+                           </div>
                           <div className="flex gap-2">
                             <Button onClick={handleSaveRate}>
                               Salvar

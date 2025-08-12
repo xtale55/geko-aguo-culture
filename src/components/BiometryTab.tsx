@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { Scale, History, Edit2 } from 'lucide-react';
+import { Scale, History, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface PondWithBatch {
@@ -57,9 +57,9 @@ export function BiometryTab() {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [showDialog, setShowDialog] = useState(false);
-  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedPond, setSelectedPond] = useState<PondWithBatch | null>(null);
-  const [editingBiometry, setEditingBiometry] = useState<BiometryRecord | null>(null);
+  const [recordToDelete, setRecordToDelete] = useState<BiometryRecord | null>(null);
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -238,40 +238,31 @@ export function BiometryTab() {
     setShowDialog(true);
   };
 
-  const openEditDialog = (biometry: BiometryRecord) => {
-    setEditingBiometry(biometry);
-    setShowEditDialog(true);
+  const openDeleteDialog = (biometry: BiometryRecord) => {
+    setRecordToDelete(biometry);
+    setShowDeleteDialog(true);
   };
 
-  const handleEditSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!editingBiometry) return;
+  const handleDeleteRecord = async () => {
+    if (!recordToDelete) return;
 
-    const formData = new FormData(e.currentTarget);
     setSubmitting(true);
 
     try {
-      const updatedData = {
-        measurement_date: formData.get('measurement_date') as string,
-        average_weight: parseFloat(formData.get('average_weight') as string),
-        uniformity: parseFloat(formData.get('uniformity') as string) || 0,
-        sample_size: parseInt(formData.get('sample_size') as string) || 0
-      };
-
       const { error } = await supabase
         .from('biometrics')
-        .update(updatedData)
-        .eq('id', editingBiometry.id);
+        .delete()
+        .eq('id', recordToDelete.id);
 
       if (error) throw error;
 
       toast({
-        title: "Biometria atualizada!",
-        description: `Registro de ${editingBiometry.pond_name} foi atualizado com sucesso.`
+        title: "Biometria excluída!",
+        description: `Registro de ${recordToDelete.pond_name} foi excluído com sucesso.`
       });
 
-      setShowEditDialog(false);
-      setEditingBiometry(null);
+      setShowDeleteDialog(false);
+      setRecordToDelete(null);
       loadActivePonds();
       loadBiometryHistory();
     } catch (error: any) {
@@ -460,9 +451,9 @@ export function BiometryTab() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => openEditDialog(record)}
+                            onClick={() => openDeleteDialog(record)}
                           >
-                            <Edit2 className="w-4 h-4" />
+                            <Trash2 className="w-4 h-4" />
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -545,75 +536,42 @@ export function BiometryTab() {
         </DialogContent>
       </Dialog>
 
-      {/* Edit Biometry Dialog */}
-      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>
-              Editar Biometria - {editingBiometry?.pond_name}
-            </DialogTitle>
+            <DialogTitle>Confirmar Exclusão</DialogTitle>
           </DialogHeader>
-          {editingBiometry && (
-            <form onSubmit={handleEditSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="edit_measurement_date">Data da Medição</Label>
-                <Input
-                  id="edit_measurement_date"
-                  name="measurement_date"
-                  type="date"
-                  defaultValue={editingBiometry.measurement_date}
-                  required
-                />
+          <div className="space-y-4">
+            <p>Tem certeza que deseja excluir esta biometria?</p>
+            {recordToDelete && (
+              <div className="bg-muted p-4 rounded-md space-y-2">
+                <p><strong>Viveiro:</strong> {recordToDelete.pond_name}</p>
+                <p><strong>Lote:</strong> {recordToDelete.batch_name}</p>
+                <p><strong>Data:</strong> {new Date(recordToDelete.measurement_date).toLocaleDateString('pt-BR')}</p>
+                <p><strong>Peso Médio:</strong> {recordToDelete.average_weight}g</p>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit_average_weight">Peso Médio (g)</Label>
-                <Input
-                  id="edit_average_weight"
-                  name="average_weight"
-                  type="number"
-                  step="0.01"
-                  defaultValue={editingBiometry.average_weight}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit_uniformity">Uniformidade (%)</Label>
-                <Input
-                  id="edit_uniformity"
-                  name="uniformity"
-                  type="number"
-                  step="0.1"
-                  defaultValue={editingBiometry.uniformity || ''}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit_sample_size">Tamanho da Amostra</Label>
-                <Input
-                  id="edit_sample_size"
-                  name="sample_size"
-                  type="number"
-                  defaultValue={editingBiometry.sample_size || ''}
-                />
-              </div>
-              <div className="flex gap-2 pt-4">
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => setShowEditDialog(false)}
-                  className="flex-1"
-                >
-                  Cancelar
-                </Button>
-                <Button 
-                  type="submit" 
-                  disabled={submitting}
-                  className="flex-1"
-                >
-                  {submitting ? 'Salvando...' : 'Salvar Alterações'}
-                </Button>
-              </div>
-            </form>
-          )}
+            )}
+            <p className="text-sm text-muted-foreground">Esta ação não pode ser desfeita.</p>
+          </div>
+          <div className="flex gap-2 pt-4">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => setShowDeleteDialog(false)}
+              className="flex-1"
+            >
+              Cancelar
+            </Button>
+            <Button 
+              variant="destructive"
+              onClick={handleDeleteRecord}
+              disabled={submitting}
+              className="flex-1"
+            >
+              {submitting ? 'Excluindo...' : 'Excluir'}
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

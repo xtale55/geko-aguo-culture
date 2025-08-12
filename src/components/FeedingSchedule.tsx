@@ -58,6 +58,7 @@ export function FeedingSchedule({
   const [editingRecord, setEditingRecord] = useState<FeedingRecord | null>(null);
   const [editingRate, setEditingRate] = useState(false);
   const [newFeedingRate, setNewFeedingRate] = useState<string>("");
+  const [newMealsPerDay, setNewMealsPerDay] = useState<string>("");
   const [actualAmount, setActualAmount] = useState<string>("");
   const [notes, setNotes] = useState<string>("");
   const { toast } = useToast();
@@ -115,17 +116,28 @@ export function FeedingSchedule({
   const handleEditFeedingRate = () => {
     setEditingRate(true);
     setNewFeedingRate(feedingRate.toString());
+    setNewMealsPerDay(mealsPerDay.toString());
   };
 
   const handleSaveFeedingRate = async () => {
     try {
       const newRate = parseFloat(newFeedingRate);
+      const newMeals = parseInt(newMealsPerDay);
       
       if (isNaN(newRate) || newRate <= 0) {
         toast({
           variant: "destructive",
           title: "Erro",
           description: "Por favor, insira um percentual válido"
+        });
+        return;
+      }
+
+      if (isNaN(newMeals) || newMeals < 1 || newMeals > 10) {
+        toast({
+          variant: "destructive",
+          title: "Erro",
+          description: "Por favor, insira um número válido de refeições (1-10)"
         });
         return;
       }
@@ -142,7 +154,10 @@ export function FeedingSchedule({
         // Update existing rate
         const { error } = await supabase
           .from('feeding_rates')
-          .update({ feeding_percentage: newRate })
+          .update({ 
+            feeding_percentage: newRate,
+            meals_per_day: newMeals
+          })
           .eq('id', existingRates[0].id);
 
         if (error) throw error;
@@ -155,7 +170,7 @@ export function FeedingSchedule({
             weight_range_min: Math.max(0, averageWeight - 1),
             weight_range_max: averageWeight + 10,
             feeding_percentage: newRate,
-            meals_per_day: mealsPerDay,
+            meals_per_day: newMeals,
             created_by: user?.id
           });
 
@@ -164,11 +179,12 @@ export function FeedingSchedule({
 
       toast({
         title: "Taxa atualizada",
-        description: `Nova taxa: ${newRate}% da biomassa`
+        description: `Nova taxa: ${newRate}% da biomassa • ${newMeals}x/dia`
       });
 
       setEditingRate(false);
       setNewFeedingRate("");
+      setNewMealsPerDay("");
       onRateUpdate();
     } catch (error: any) {
       toast({
@@ -265,21 +281,34 @@ export function FeedingSchedule({
                   <DialogTitle>Editar Taxa de Alimentação - {pondName}</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4">
-                  <div>
-                    <Label>Percentual da Biomassa (%)</Label>
-                    <Input
-                      type="number"
-                      step="0.1"
-                      value={newFeedingRate}
-                      onChange={(e) => setNewFeedingRate(e.target.value)}
-                      placeholder="Ex: 5.0"
-                    />
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Peso atual dos animais: {averageWeight}g
-                    </p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label>Percentual da Biomassa (%)</Label>
+                      <Input
+                        type="number"
+                        step="0.1"
+                        value={newFeedingRate}
+                        onChange={(e) => setNewFeedingRate(e.target.value)}
+                        placeholder="Ex: 5.0"
+                      />
+                    </div>
+                    <div>
+                      <Label>Refeições por Dia</Label>
+                      <Input
+                        type="number"
+                        min="1"
+                        max="10"
+                        value={newMealsPerDay}
+                        onChange={(e) => setNewMealsPerDay(e.target.value)}
+                        placeholder="Ex: 3"
+                      />
+                    </div>
                   </div>
+                  <p className="text-xs text-muted-foreground">
+                    Peso atual dos animais: {averageWeight}g
+                  </p>
                   <div className="flex gap-2">
-                    <Button onClick={handleSaveFeedingRate} disabled={!newFeedingRate}>
+                    <Button onClick={handleSaveFeedingRate} disabled={!newFeedingRate || !newMealsPerDay}>
                       Salvar
                     </Button>
                     <Button 
@@ -287,6 +316,7 @@ export function FeedingSchedule({
                       onClick={() => {
                         setEditingRate(false);
                         setNewFeedingRate("");
+                        setNewMealsPerDay("");
                       }}
                     >
                       Cancelar

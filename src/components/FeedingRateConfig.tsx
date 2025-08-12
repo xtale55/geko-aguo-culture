@@ -58,7 +58,7 @@ export function FeedingRateConfig({ farmId, onRateUpdate }: FeedingRateConfigPro
         .from('inventory')
         .select('id, name, quantity, unit_price')
         .eq('farm_id', farmId)
-        .eq('category', 'ração')
+        .eq('category', 'Ração')
         .gt('quantity', 0)
         .order('name');
 

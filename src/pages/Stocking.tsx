@@ -469,13 +469,36 @@ export default function Stocking() {
               >
                 Voltar
               </Button>
-              <Button 
-                onClick={handleStocking}
-                disabled={!canProceed() || submitting}
-                className="flex-1"
-              >
-                {submitting ? 'Processando...' : 'Finalizar Povoamento'}
-              </Button>
+              
+              {/* Debug info para ajudar o usuário */}
+              {!canProceed() && (
+                <div className="flex-1 text-center">
+                  <div className="text-sm text-muted-foreground mb-2">
+                    {getRemainingPL() !== 0 
+                      ? `Ainda restam ${getRemainingPL().toLocaleString()} PL para distribuir`
+                      : !allocations.some(alloc => alloc.pl_quantity > 0)
+                      ? "Você precisa alocar PL em pelo menos um viveiro"
+                      : "Preencha os campos necessários"
+                    }
+                  </div>
+                  <Button 
+                    disabled
+                    className="w-full"
+                  >
+                    Finalizar Povoamento
+                  </Button>
+                </div>
+              )}
+              
+              {canProceed() && (
+                <Button 
+                  onClick={handleStocking}
+                  disabled={submitting}
+                  className="flex-1"
+                >
+                  {submitting ? 'Processando...' : 'Finalizar Povoamento'}
+                </Button>
+              )}
             </div>
           </div>
         )}

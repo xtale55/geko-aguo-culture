@@ -1,6 +1,6 @@
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { Fish, LogOut, Settings, Home, Waves, Scale, Skull, Utensils, Droplets } from 'lucide-react';
+import { Fish, LogOut, Settings, Home, Waves, Scale, Skull, Utensils, Droplets, Package } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 interface LayoutProps {
@@ -82,6 +82,14 @@ export function Layout({ children }: LayoutProps) {
               Água
             </Button>
             <Button 
+              variant={isActive('/inventory') ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => navigate('/inventory')}
+            >
+              <Package className="w-4 h-4 mr-2" />
+              Estoque
+            </Button>
+            <Button 
               variant={isActive('/mortality') ? 'default' : 'ghost'}
               size="sm"
               onClick={() => navigate('/mortality')}
@@ -154,6 +162,15 @@ export function Layout({ children }: LayoutProps) {
           >
             <Droplets className="w-4 h-4" />
             <span className="text-xs">Água</span>
+          </Button>
+          <Button
+            variant={isActive('/inventory') ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => navigate('/inventory')}
+            className="flex flex-col items-center space-y-1 h-16 min-w-16 px-3"
+          >
+            <Package className="w-4 h-4" />
+            <span className="text-xs">Estoque</span>
           </Button>
           <Button
             variant={isActive('/mortality') ? 'default' : 'ghost'}

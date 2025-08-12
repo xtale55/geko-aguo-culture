@@ -12,6 +12,7 @@ import Biometry from "./pages/Biometry";
 import Mortality from "./pages/Mortality";
 import Feeding from "./pages/Feeding";
 import WaterQuality from "./pages/WaterQuality";
+import Inventory from "./pages/Inventory";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,6 +33,7 @@ const App = () => (
           <Route path="/mortality" element={<Mortality />} />
           <Route path="/feeding" element={<Feeding />} />
           <Route path="/water-quality" element={<WaterQuality />} />
+          <Route path="/inventory" element={<Inventory />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

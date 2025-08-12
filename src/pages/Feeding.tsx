@@ -47,11 +47,11 @@ interface FeedingTask {
 }
 
 export default function Feeding() {
+  const [farms, setFarms] = useState<{ id: string; name: string }[]>([]);
   const [ponds, setPonds] = useState<PondWithBatch[]>([]);
   const [feedingTasks, setFeedingTasks] = useState<FeedingTask[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
-  const [selectedPond, setSelectedPond] = useState<string | null>(null);
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -67,10 +67,11 @@ export default function Feeding() {
       // Load farms first
       const { data: farmsData, error: farmsError } = await supabase
         .from('farms')
-        .select('id')
+        .select('id, name')
         .eq('user_id', user?.id);
 
       if (farmsError) throw farmsError;
+      setFarms(farmsData || []);
 
       if (farmsData && farmsData.length > 0) {
         // Load active ponds with batch and biometry data
@@ -121,8 +122,8 @@ export default function Feeding() {
               const biomass = (batch.current_population * biometry.average_weight) / 1000; // kg
 
               // Get custom feeding rate or use default
-              const feedingRate = await getFeedingRate(batch.id, biometry.average_weight);
-              const mealsPerDay = await getMealsPerDay(batch.id, biometry.average_weight);
+              const feedingRate = await getFeedingRate(batch.id, biometry.average_weight, farmsData[0].id);
+              const mealsPerDay = await getMealsPerDay(batch.id, biometry.average_weight, farmsData[0].id);
               const dailyFeed = biomass * (feedingRate / 100);
               const feedPerMeal = dailyFeed / mealsPerDay;
 
@@ -170,9 +171,10 @@ export default function Feeding() {
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   };
 
-  const getFeedingRate = async (pondBatchId: string, weight: number): Promise<number> => {
+  const getFeedingRate = async (pondBatchId: string, weight: number, farmId: string): Promise<number> => {
     try {
-      const { data } = await supabase
+      // First check for pond-specific rates
+      const { data: pondSpecific } = await supabase
         .from('feeding_rates')
         .select('feeding_percentage')
         .eq('pond_batch_id', pondBatchId)
@@ -181,8 +183,23 @@ export default function Feeding() {
         .order('weight_range_min', { ascending: false })
         .limit(1);
 
-      if (data && data.length > 0) {
-        return data[0].feeding_percentage;
+      if (pondSpecific && pondSpecific.length > 0) {
+        return pondSpecific[0].feeding_percentage;
+      }
+
+      // Then check for farm templates
+      const { data: farmTemplate } = await supabase
+        .from('feeding_rates')
+        .select('feeding_percentage')
+        .eq('farm_id', farmId)
+        .is('pond_batch_id', null)
+        .lte('weight_range_min', weight)
+        .gte('weight_range_max', weight)
+        .order('weight_range_min', { ascending: false })
+        .limit(1);
+
+      if (farmTemplate && farmTemplate.length > 0) {
+        return farmTemplate[0].feeding_percentage;
       }
     } catch (error) {
       console.error('Error getting feeding rate:', error);
@@ -197,9 +214,10 @@ export default function Feeding() {
     return 3;
   };
 
-  const getMealsPerDay = async (pondBatchId: string, weight: number): Promise<number> => {
+  const getMealsPerDay = async (pondBatchId: string, weight: number, farmId: string): Promise<number> => {
     try {
-      const { data } = await supabase
+      // First check for pond-specific rates
+      const { data: pondSpecific } = await supabase
         .from('feeding_rates')
         .select('meals_per_day')
         .eq('pond_batch_id', pondBatchId)
@@ -208,8 +226,23 @@ export default function Feeding() {
         .order('weight_range_min', { ascending: false })
         .limit(1);
 
-      if (data && data.length > 0) {
-        return data[0].meals_per_day;
+      if (pondSpecific && pondSpecific.length > 0) {
+        return pondSpecific[0].meals_per_day;
+      }
+
+      // Then check for farm templates
+      const { data: farmTemplate } = await supabase
+        .from('feeding_rates')
+        .select('meals_per_day')
+        .eq('farm_id', farmId)
+        .is('pond_batch_id', null)
+        .lte('weight_range_min', weight)
+        .gte('weight_range_max', weight)
+        .order('weight_range_min', { ascending: false })
+        .limit(1);
+
+      if (farmTemplate && farmTemplate.length > 0) {
+        return farmTemplate[0].meals_per_day;
       }
     } catch (error) {
       console.error('Error getting meals per day:', error);
@@ -372,21 +405,15 @@ export default function Feeding() {
         </div>
 
         {/* Feeding Rate Configuration */}
-        {selectedPond && (
-          <FeedingRateConfig
-            pondBatchId={selectedPond}
-            currentWeight={feedingTasks.find(t => t.pond_batch_id === selectedPond)?.average_weight || 0}
-            onRateUpdate={loadFeedingData}
-          />
-        )}
+        <FeedingRateConfig
+          farmId={farms[0]?.id}
+          onRateUpdate={loadFeedingData}
+        />
 
         {/* Feeding Tasks */}
         <div>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-2xl font-semibold">Controle de Alimentação</h2>
-            <div className="text-sm text-muted-foreground">
-              Clique em um viveiro para configurar taxas personalizadas
-            </div>
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {feedingTasks.map((task) => (

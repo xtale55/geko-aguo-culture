@@ -19,12 +19,11 @@ interface FeedingRate {
 }
 
 interface FeedingRateConfigProps {
-  pondBatchId: string;
-  currentWeight: number;
+  farmId: string;
   onRateUpdate: () => void;
 }
 
-export function FeedingRateConfig({ pondBatchId, currentWeight, onRateUpdate }: FeedingRateConfigProps) {
+export function FeedingRateConfig({ farmId, onRateUpdate }: FeedingRateConfigProps) {
   const [feedingRates, setFeedingRates] = useState<FeedingRate[]>([]);
   const [editingRate, setEditingRate] = useState<FeedingRate | null>(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -39,14 +38,15 @@ export function FeedingRateConfig({ pondBatchId, currentWeight, onRateUpdate }: 
 
   useEffect(() => {
     loadFeedingRates();
-  }, [pondBatchId]);
+  }, [farmId]);
 
   const loadFeedingRates = async () => {
     try {
       const { data, error } = await supabase
         .from('feeding_rates')
         .select('*')
-        .eq('pond_batch_id', pondBatchId)
+        .eq('farm_id', farmId)
+        .is('pond_batch_id', null)
         .order('weight_range_min');
 
       if (error) throw error;
@@ -56,9 +56,9 @@ export function FeedingRateConfig({ pondBatchId, currentWeight, onRateUpdate }: 
     }
   };
 
-  const getCurrentRate = () => {
+  const getCurrentRate = (weight: number) => {
     return feedingRates.find(rate => 
-      currentWeight >= rate.weight_range_min && currentWeight <= rate.weight_range_max
+      weight >= rate.weight_range_min && weight <= rate.weight_range_max
     );
   };
 
@@ -132,7 +132,8 @@ export function FeedingRateConfig({ pondBatchId, currentWeight, onRateUpdate }: 
       }
 
       const rateData = {
-        pond_batch_id: pondBatchId,
+        farm_id: farmId,
+        pond_batch_id: null, // null for farm templates
         weight_range_min: weightMin,
         weight_range_max: weightMax,
         feeding_percentage: feedingPercentage,
@@ -158,8 +159,8 @@ export function FeedingRateConfig({ pondBatchId, currentWeight, onRateUpdate }: 
       }
 
       toast({
-        title: "Taxa de alimentação salva",
-        description: "Configuração atualizada com sucesso"
+        title: "Padrão de alimentação salvo",
+        description: "Configuração aplicada para toda a fazenda"
       });
 
       setEditingRate(null);
@@ -185,8 +186,8 @@ export function FeedingRateConfig({ pondBatchId, currentWeight, onRateUpdate }: 
       if (error) throw error;
 
       toast({
-        title: "Taxa removida",
-        description: "Configuração removida com sucesso"
+        title: "Padrão removido",
+        description: "Configuração removida da fazenda"
       });
 
       loadFeedingRates();
@@ -200,27 +201,27 @@ export function FeedingRateConfig({ pondBatchId, currentWeight, onRateUpdate }: 
     }
   };
 
-  const currentRate = getCurrentRate() || getDefaultRate(currentWeight);
+  const currentRate = getCurrentRate(5); // Show example for 5g fish
 
   return (
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <Settings className="w-4 h-4" />
-            Configuração de Alimentação
-          </CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Settings className="w-4 h-4" />
+              Padrões da Fazenda
+            </CardTitle>
           <Dialog>
             <DialogTrigger asChild>
               <Button variant="outline" size="sm" onClick={handleCreateRate}>
                 <Plus className="w-3 h-3 mr-1" />
-                Nova Taxa
+                Novo Padrão
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>
-                  {isCreating ? 'Nova Taxa de Alimentação' : 'Editar Taxa de Alimentação'}
+                  {isCreating ? 'Novo Padrão de Alimentação' : 'Editar Padrão de Alimentação'}
                 </DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
@@ -297,30 +298,35 @@ export function FeedingRateConfig({ pondBatchId, currentWeight, onRateUpdate }: 
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Current Rate Display */}
-        <div className="bg-primary/10 rounded-lg p-3">
-          <div className="text-sm font-medium mb-2">Taxa Atual (Peso: {currentWeight}g)</div>
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <span className="text-muted-foreground">% da Biomassa:</span>
-              <span className="font-medium ml-1">{currentRate.feeding_percentage}%</span>
-            </div>
-            <div>
-              <span className="text-muted-foreground">Refeições/Dia:</span>
-              <span className="font-medium ml-1">{currentRate.meals_per_day}</span>
-            </div>
-          </div>
-          {!getCurrentRate() && (
-            <Badge variant="outline" className="mt-2">
-              Taxa padrão
-            </Badge>
-          )}
+        {/* Description */}
+        <div className="bg-muted/50 rounded-lg p-3">
+          <p className="text-sm text-muted-foreground">
+            Configure padrões de alimentação para toda a fazenda. Estes padrões serão aplicados automaticamente 
+            aos viveiros baseado no peso médio dos animais na última biometria.
+          </p>
         </div>
 
-        {/* Custom Rates List */}
+        {/* Current Rate Example */}
+        {currentRate && (
+          <div className="bg-primary/10 rounded-lg p-3">
+            <div className="text-sm font-medium mb-2">Exemplo - Peixe de 5g:</div>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <span className="text-muted-foreground">% da Biomassa:</span>
+                <span className="font-medium ml-1">{currentRate.feeding_percentage}%</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Refeições/Dia:</span>
+                <span className="font-medium ml-1">{currentRate.meals_per_day}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Farm Templates List */}
         {feedingRates.length > 0 && (
           <div>
-            <div className="text-sm font-medium mb-2">Taxas Personalizadas</div>
+            <div className="text-sm font-medium mb-2">Padrões Configurados</div>
             <div className="space-y-2">
               {feedingRates.map((rate) => (
                 <div key={rate.id} className="flex items-center justify-between p-2 border rounded">
@@ -345,7 +351,7 @@ export function FeedingRateConfig({ pondBatchId, currentWeight, onRateUpdate }: 
                       </DialogTrigger>
                       <DialogContent>
                         <DialogHeader>
-                          <DialogTitle>Editar Taxa de Alimentação</DialogTitle>
+                          <DialogTitle>Editar Padrão de Alimentação</DialogTitle>
                         </DialogHeader>
                         <div className="space-y-4">
                           <div className="grid grid-cols-2 gap-4">

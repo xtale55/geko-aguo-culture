@@ -350,13 +350,13 @@ export default function Stocking() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="pl_cost">Custo das PL (R$)</Label>
+                    <Label htmlFor="pl_cost">Valor por Milheiro (R$)</Label>
                     <Input
                       id="pl_cost"
                       name="pl_cost"
                       type="number"
                       step="0.01"
-                      placeholder="Ex: 25000.00"
+                      placeholder="Ex: 0.50"
                       required
                     />
                   </div>
@@ -461,44 +461,46 @@ export default function Stocking() {
             </Card>
 
             {/* Action Buttons */}
-            <div className="flex gap-4">
-              <Button 
-                variant="outline" 
-                onClick={() => setStep(1)}
-                className="flex-1"
-              >
-                Voltar
-              </Button>
-              
-              {/* Debug info para ajudar o usuário */}
-              {!canProceed() && (
-                <div className="flex-1 text-center">
-                  <div className="text-sm text-muted-foreground mb-2">
-                    {getRemainingPL() !== 0 
-                      ? `Ainda restam ${getRemainingPL().toLocaleString()} PL para distribuir`
-                      : !allocations.some(alloc => alloc.pl_quantity > 0)
-                      ? "Você precisa alocar PL em pelo menos um viveiro"
-                      : "Preencha os campos necessários"
-                    }
-                  </div>
-                  <Button 
-                    disabled
-                    className="w-full"
-                  >
-                    Finalizar Povoamento
-                  </Button>
-                </div>
-              )}
-              
-              {canProceed() && (
+            <div className="sticky bottom-4 bg-background/95 backdrop-blur-sm border rounded-lg p-4 shadow-lg">
+              <div className="flex gap-4">
                 <Button 
-                  onClick={handleStocking}
-                  disabled={submitting}
+                  variant="outline" 
+                  onClick={() => setStep(1)}
                   className="flex-1"
                 >
-                  {submitting ? 'Processando...' : 'Finalizar Povoamento'}
+                  Voltar
                 </Button>
-              )}
+                
+                {/* Debug info para ajudar o usuário */}
+                {!canProceed() && (
+                  <div className="flex-1">
+                    <div className="text-sm text-muted-foreground mb-2 text-center">
+                      {getRemainingPL() !== 0 
+                        ? `Ainda restam ${getRemainingPL().toLocaleString()} PL para distribuir`
+                        : !allocations.some(alloc => alloc.pl_quantity > 0)
+                        ? "Você precisa alocar PL em pelo menos um viveiro"
+                        : "Preencha os campos necessários"
+                      }
+                    </div>
+                    <Button 
+                      disabled
+                      className="w-full"
+                    >
+                      Finalizar Povoamento
+                    </Button>
+                  </div>
+                )}
+                
+                {canProceed() && (
+                  <Button 
+                    onClick={handleStocking}
+                    disabled={submitting}
+                    className="flex-1"
+                  >
+                    {submitting ? 'Processando...' : 'Finalizar Povoamento'}
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
         )}

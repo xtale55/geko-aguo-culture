@@ -40,7 +40,7 @@ const Home = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-primary/10">
+    <div className="min-h-screen" style={{ background: 'linear-gradient(135deg, hsl(210 85% 25%) 0%, hsl(195 70% 30%) 40%, hsl(160 60% 25%) 100%)' }}>
       {/* Header */}
       <header className="container mx-auto px-4 py-6">
         <div className="flex items-center justify-between">
@@ -50,11 +50,11 @@ const Home = () => {
               alt="AquaHub Logo" 
               className="h-12 w-auto"
             />
-            <h1 className="text-2xl font-bold text-primary">AquaHub</h1>
+            <h1 className="text-2xl font-bold text-white">AquaHub</h1>
           </div>
           <Button 
             onClick={() => navigate('/auth')}
-            className="bg-primary hover:bg-primary-hover text-primary-foreground"
+            className="bg-white/20 hover:bg-white/30 text-white border border-white/30"
           >
             Entrar
           </Button>
@@ -62,39 +62,43 @@ const Home = () => {
       </header>
 
       {/* Hero Section */}
-      <section className="container mx-auto px-4 py-20 text-center">
-        <div className="max-w-4xl mx-auto">
-          <h2 className="text-5xl md:text-6xl font-bold text-foreground mb-6 leading-tight">
-            O Futuro da
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent"> Aquicultura</span>
-            <br />
-            Está Aqui
-          </h2>
-          <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto leading-relaxed">
-            Gerencie sua fazenda aquícola com tecnologia de ponta. Monitore tanques, 
-            controle qualidade da água, acompanhe crescimento e maximize seus resultados.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button 
-              size="lg"
-              onClick={() => navigate('/auth')}
-              className="bg-primary hover:bg-primary-hover text-primary-foreground px-8 py-4 text-lg shadow-lg shadow-primary/25"
-            >
-              Começar Agora
-            </Button>
-            <Button 
-              size="lg"
-              variant="outline"
-              className="border-primary text-primary hover:bg-primary/10 px-8 py-4 text-lg"
-            >
-              Saiba Mais
-            </Button>
+      <section className="container mx-auto px-4 py-20 text-center relative">
+        <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
+        <div className="relative z-10">
+          <div className="max-w-4xl mx-auto">
+            <h2 className="text-5xl md:text-6xl font-bold text-white mb-6 leading-tight">
+              O Futuro da
+              <span className="text-transparent bg-clip-text" style={{ backgroundImage: 'linear-gradient(135deg, hsl(175 70% 85%), hsl(150 80% 60%))' }}> Aquicultura</span>
+              <br />
+              Está Aqui
+            </h2>
+            <p className="text-xl text-white/90 mb-8 max-w-2xl mx-auto leading-relaxed">
+              Gerencie sua fazenda aquícola com tecnologia de ponta. Monitore tanques, 
+              controle qualidade da água, acompanhe crescimento e maximize seus resultados.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Button 
+                size="lg"
+                onClick={() => navigate('/auth')}
+                className="text-primary-foreground px-8 py-4 text-lg shadow-lg border-0"
+                style={{ background: 'linear-gradient(135deg, hsl(175 70% 85%), hsl(150 80% 60%))' }}
+              >
+                Começar Agora
+              </Button>
+              <Button 
+                size="lg"
+                variant="outline"
+                className="border-white/30 text-white hover:bg-white/10 px-8 py-4 text-lg"
+              >
+                Saiba Mais
+              </Button>
+            </div>
           </div>
         </div>
       </section>
 
       {/* Features Section */}
-      <section className="container mx-auto px-4 py-20">
+      <section className="container mx-auto px-4 py-20 bg-white/95 backdrop-blur-sm">
         <div className="text-center mb-16">
           <h3 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
             Tudo que Você Precisa em Um Lugar
@@ -109,7 +113,10 @@ const Home = () => {
           {features.map((feature, index) => (
             <Card key={index} className="group hover:shadow-xl transition-all duration-300 border-0 bg-card/80 backdrop-blur-sm">
               <CardContent className="p-8 text-center">
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-primary to-accent rounded-full mb-6 group-hover:scale-110 transition-transform duration-300">
+                <div 
+                  className="inline-flex items-center justify-center w-16 h-16 rounded-full mb-6 group-hover:scale-110 transition-transform duration-300"
+                  style={{ background: 'linear-gradient(135deg, hsl(210 85% 25%), hsl(150 70% 30%))' }}
+                >
                   <feature.icon className="h-8 w-8 text-white" />
                 </div>
                 <h4 className="text-xl font-semibold text-foreground mb-4">{feature.title}</h4>
@@ -121,7 +128,7 @@ const Home = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="bg-gradient-to-r from-primary to-accent py-20">
+      <section className="py-20" style={{ background: 'linear-gradient(135deg, hsl(210 85% 25%), hsl(150 70% 25%))' }}>
         <div className="container mx-auto px-4 text-center">
           <h3 className="text-3xl md:text-4xl font-bold text-white mb-6">
             Pronto para Revolucionar sua Aquicultura?
@@ -141,7 +148,7 @@ const Home = () => {
       </section>
 
       {/* Footer */}
-      <footer className="bg-foreground/5 py-12">
+      <footer className="bg-white/10 backdrop-blur-sm py-12">
         <div className="container mx-auto px-4 text-center">
           <div className="flex items-center justify-center space-x-3 mb-4">
             <img 
@@ -149,9 +156,9 @@ const Home = () => {
               alt="AquaHub Logo" 
               className="h-8 w-auto"
             />
-            <span className="text-lg font-semibold text-foreground">AquaHub</span>
+            <span className="text-lg font-semibold text-white">AquaHub</span>
           </div>
-          <p className="text-muted-foreground">
+          <p className="text-white/80">
             © 2024 AquaHub. Transformando a aquicultura através da tecnologia.
           </p>
         </div>

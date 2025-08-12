@@ -132,6 +132,81 @@ export type Database = {
         }
         Relationships: []
       }
+      feeding_rates: {
+        Row: {
+          created_at: string
+          created_by: string
+          feeding_percentage: number
+          id: string
+          meals_per_day: number
+          pond_batch_id: string
+          updated_at: string
+          weight_range_max: number
+          weight_range_min: number
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          feeding_percentage: number
+          id?: string
+          meals_per_day: number
+          pond_batch_id: string
+          updated_at?: string
+          weight_range_max: number
+          weight_range_min: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          feeding_percentage?: number
+          id?: string
+          meals_per_day?: number
+          pond_batch_id?: string
+          updated_at?: string
+          weight_range_max?: number
+          weight_range_min?: number
+        }
+        Relationships: []
+      }
+      feeding_records: {
+        Row: {
+          actual_amount: number
+          created_at: string
+          feeding_date: string
+          feeding_rate_percentage: number
+          feeding_time: string
+          id: string
+          notes: string | null
+          planned_amount: number
+          pond_batch_id: string
+          updated_at: string
+        }
+        Insert: {
+          actual_amount?: number
+          created_at?: string
+          feeding_date: string
+          feeding_rate_percentage?: number
+          feeding_time: string
+          id?: string
+          notes?: string | null
+          planned_amount?: number
+          pond_batch_id: string
+          updated_at?: string
+        }
+        Update: {
+          actual_amount?: number
+          created_at?: string
+          feeding_date?: string
+          feeding_rate_percentage?: number
+          feeding_time?: string
+          id?: string
+          notes?: string | null
+          planned_amount?: number
+          pond_batch_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       inventory: {
         Row: {
           brand: string | null

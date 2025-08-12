@@ -4,13 +4,12 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Badge } from '@/components/ui/badge';
-import { Checkbox } from '@/components/ui/checkbox';
+import { FeedingSchedule } from '@/components/FeedingSchedule';
+import { FeedingRateConfig } from '@/components/FeedingRateConfig';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
-import { Utensils, Clock, ArrowLeft, Plus, Check, AlertCircle } from 'lucide-react';
+import { Utensils, Calculator, ArrowLeft, BarChart3 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface PondWithBatch {
@@ -33,6 +32,7 @@ interface PondWithBatch {
 interface FeedingTask {
   pond_id: string;
   pond_name: string;
+  pond_batch_id: string;
   batch_name: string;
   current_population: number;
   average_weight: number;
@@ -42,25 +42,19 @@ interface FeedingTask {
   meals_per_day: number;
   feed_per_meal: number;
   doc: number;
-}
-
-interface FeedingSchedule {
-  time: string;
-  completed: boolean;
+  total_feed_consumed: number;
+  fca: number;
 }
 
 export default function Feeding() {
   const [ponds, setPonds] = useState<PondWithBatch[]>([]);
   const [feedingTasks, setFeedingTasks] = useState<FeedingTask[]>([]);
   const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
-  const [feedingSchedules, setFeedingSchedules] = useState<Record<string, FeedingSchedule[]>>({});
+  const [selectedPond, setSelectedPond] = useState<string | null>(null);
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
-
-  const defaultSchedule = ['06:00', '10:00', '14:00', '18:00', '22:00'];
 
   useEffect(() => {
     if (user) {
@@ -117,44 +111,46 @@ export default function Feeding() {
         setPonds(processedPonds);
 
         // Generate feeding tasks
-        const tasks = processedPonds
-          .filter(pond => pond.current_batch?.latest_biometry)
-          .map(pond => {
-            const batch = pond.current_batch!;
-            const biometry = batch.latest_biometry!;
-            const doc = calculateDOC(batch.stocking_date);
-            const biomass = (batch.current_population * biometry.average_weight) / 1000; // kg
-            const feedingRate = getFeedingRate(biometry.average_weight);
-            const dailyFeed = biomass * (feedingRate / 100);
-            const mealsPerDay = getMealsPerDay(biometry.average_weight);
-            const feedPerMeal = dailyFeed / mealsPerDay;
+        const tasks = await Promise.all(
+          processedPonds
+            .filter(pond => pond.current_batch?.latest_biometry)
+            .map(async (pond) => {
+              const batch = pond.current_batch!;
+              const biometry = batch.latest_biometry!;
+              const doc = calculateDOC(batch.stocking_date);
+              const biomass = (batch.current_population * biometry.average_weight) / 1000; // kg
 
-            return {
-              pond_id: pond.id,
-              pond_name: pond.name,
-              batch_name: batch.batch_name,
-              current_population: batch.current_population,
-              average_weight: biometry.average_weight,
-              biomass,
-              feeding_rate: feedingRate,
-              daily_feed: dailyFeed,
-              meals_per_day: mealsPerDay,
-              feed_per_meal: feedPerMeal,
-              doc
-            };
-          });
+              // Get custom feeding rate or use default
+              const feedingRate = await getFeedingRate(batch.id, biometry.average_weight);
+              const mealsPerDay = await getMealsPerDay(batch.id, biometry.average_weight);
+              const dailyFeed = biomass * (feedingRate / 100);
+              const feedPerMeal = dailyFeed / mealsPerDay;
+
+              // Calculate total feed consumed and FCA
+              const totalFeedConsumed = await getTotalFeedConsumed(batch.id);
+              const weightGain = biometry.average_weight - 0.001; // Assuming PL starting weight of 0.001g
+              const fca = weightGain > 0 ? totalFeedConsumed / (batch.current_population * weightGain / 1000) : 0;
+
+              return {
+                pond_id: pond.id,
+                pond_name: pond.name,
+                pond_batch_id: batch.id,
+                batch_name: batch.batch_name,
+                current_population: batch.current_population,
+                average_weight: biometry.average_weight,
+                biomass,
+                feeding_rate: feedingRate,
+                daily_feed: dailyFeed,
+                meals_per_day: mealsPerDay,
+                feed_per_meal: feedPerMeal,
+                doc,
+                total_feed_consumed: totalFeedConsumed,
+                fca
+              };
+            })
+        );
 
         setFeedingTasks(tasks);
-
-        // Initialize feeding schedules
-        const schedules: Record<string, FeedingSchedule[]> = {};
-        tasks.forEach(task => {
-          schedules[task.pond_id] = defaultSchedule.slice(0, task.meals_per_day).map(time => ({
-            time,
-            completed: false
-          }));
-        });
-        setFeedingSchedules(schedules);
       }
     } catch (error: any) {
       toast({
@@ -174,8 +170,25 @@ export default function Feeding() {
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   };
 
-  const getFeedingRate = (weight: number) => {
-    // Feeding rate based on weight (percentage of biomass)
+  const getFeedingRate = async (pondBatchId: string, weight: number): Promise<number> => {
+    try {
+      const { data } = await supabase
+        .from('feeding_rates')
+        .select('feeding_percentage')
+        .eq('pond_batch_id', pondBatchId)
+        .lte('weight_range_min', weight)
+        .gte('weight_range_max', weight)
+        .order('weight_range_min', { ascending: false })
+        .limit(1);
+
+      if (data && data.length > 0) {
+        return data[0].feeding_percentage;
+      }
+    } catch (error) {
+      console.error('Error getting feeding rate:', error);
+    }
+
+    // Default feeding rate based on weight
     if (weight < 1) return 8;
     if (weight < 3) return 6;
     if (weight < 5) return 5;
@@ -184,41 +197,57 @@ export default function Feeding() {
     return 3;
   };
 
-  const getMealsPerDay = (weight: number) => {
-    // Number of meals per day based on weight
+  const getMealsPerDay = async (pondBatchId: string, weight: number): Promise<number> => {
+    try {
+      const { data } = await supabase
+        .from('feeding_rates')
+        .select('meals_per_day')
+        .eq('pond_batch_id', pondBatchId)
+        .lte('weight_range_min', weight)
+        .gte('weight_range_max', weight)
+        .order('weight_range_min', { ascending: false })
+        .limit(1);
+
+      if (data && data.length > 0) {
+        return data[0].meals_per_day;
+      }
+    } catch (error) {
+      console.error('Error getting meals per day:', error);
+    }
+
+    // Default meals per day based on weight
     if (weight < 1) return 5;
     if (weight < 3) return 4;
     if (weight < 10) return 3;
     return 2;
   };
 
-  const toggleMealCompletion = (pondId: string, mealIndex: number) => {
-    setFeedingSchedules(prev => ({
-      ...prev,
-      [pondId]: prev[pondId]?.map((meal, index) => 
-        index === mealIndex 
-          ? { ...meal, completed: !meal.completed }
-          : meal
-      ) || []
-    }));
-  };
+  const getTotalFeedConsumed = async (pondBatchId: string): Promise<number> => {
+    try {
+      const { data } = await supabase
+        .from('feeding_records')
+        .select('actual_amount')
+        .eq('pond_batch_id', pondBatchId);
 
-  const getCompletionRate = (pondId: string) => {
-    const schedule = feedingSchedules[pondId] || [];
-    const completed = schedule.filter(meal => meal.completed).length;
-    return schedule.length > 0 ? (completed / schedule.length) * 100 : 0;
+      return data?.reduce((sum, record) => sum + record.actual_amount, 0) || 0;
+    } catch (error) {
+      console.error('Error getting total feed consumed:', error);
+      return 0;
+    }
   };
 
   const getTotalDailyFeed = () => {
     return feedingTasks.reduce((sum, task) => sum + task.daily_feed, 0);
   };
 
-  const getOverallCompletion = () => {
-    const totalMeals = Object.values(feedingSchedules).reduce((sum, schedule) => sum + schedule.length, 0);
-    const completedMeals = Object.values(feedingSchedules).reduce(
-      (sum, schedule) => sum + schedule.filter(meal => meal.completed).length, 0
-    );
-    return totalMeals > 0 ? (completedMeals / totalMeals) * 100 : 0;
+  const getAverageFCA = () => {
+    if (feedingTasks.length === 0) return 0;
+    const totalFCA = feedingTasks.reduce((sum, task) => sum + task.fca, 0);
+    return totalFCA / feedingTasks.length;
+  };
+
+  const getTotalFeedConsumedAll = () => {
+    return feedingTasks.reduce((sum, task) => sum + task.total_feed_consumed, 0);
   };
 
   if (loading) {
@@ -234,7 +263,7 @@ export default function Feeding() {
         </div>
       </Layout>
     );
-  }
+  };
 
   if (feedingTasks.length === 0) {
     return (
@@ -253,8 +282,6 @@ export default function Feeding() {
     );
   }
 
-  const overallCompletion = getOverallCompletion();
-
   return (
     <Layout>
       <div className="space-y-6">
@@ -270,9 +297,9 @@ export default function Feeding() {
               <ArrowLeft className="w-4 h-4 mr-2" />
               Voltar
             </Button>
-            <h1 className="text-3xl font-bold text-foreground">Arraçoamento</h1>
+            <h1 className="text-3xl font-bold text-foreground">Arraçoamento Inteligente</h1>
             <p className="text-muted-foreground">
-              Plano de alimentação calculado automaticamente
+              Sistema avançado de controle de alimentação com FCA
             </p>
           </div>
           <div className="text-right">
@@ -288,12 +315,12 @@ export default function Feeding() {
         </div>
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Total de Ração</p>
+                  <p className="text-sm font-medium text-muted-foreground">Ração Diária</p>
                   <p className="text-2xl font-bold text-primary">
                     {getTotalDailyFeed().toFixed(1)} kg
                   </p>
@@ -307,12 +334,12 @@ export default function Feeding() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Progresso Diário</p>
+                  <p className="text-sm font-medium text-muted-foreground">Total Consumido</p>
                   <p className="text-2xl font-bold text-success">
-                    {overallCompletion.toFixed(0)}%
+                    {getTotalFeedConsumedAll().toFixed(1)} kg
                   </p>
                 </div>
-                <Clock className="w-8 h-8 text-success/70" />
+                <Calculator className="w-8 h-8 text-success/70" />
               </div>
             </CardContent>
           </Card>
@@ -321,104 +348,66 @@ export default function Feeding() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Viveiros Ativos</p>
-                  <p className="text-2xl font-bold text-accent-hover">{feedingTasks.length}</p>
+                  <p className="text-sm font-medium text-muted-foreground">FCA Médio</p>
+                  <p className="text-2xl font-bold text-accent-hover">
+                    {getAverageFCA().toFixed(2)}
+                  </p>
                 </div>
-                <Check className="w-8 h-8 text-accent/70" />
+                <BarChart3 className="w-8 h-8 text-accent/70" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-orange-500/10 to-orange-500/5 border-orange-500/20">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Viveiros Ativos</p>
+                  <p className="text-2xl font-bold text-orange-600">{feedingTasks.length}</p>
+                </div>
+                <Utensils className="w-8 h-8 text-orange-500/70" />
               </div>
             </CardContent>
           </Card>
         </div>
 
+        {/* Feeding Rate Configuration */}
+        {selectedPond && (
+          <FeedingRateConfig
+            pondBatchId={selectedPond}
+            currentWeight={feedingTasks.find(t => t.pond_batch_id === selectedPond)?.average_weight || 0}
+            onRateUpdate={loadFeedingData}
+          />
+        )}
+
         {/* Feeding Tasks */}
         <div>
-          <h2 className="text-2xl font-semibold mb-4">Plano de Alimentação</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-2xl font-semibold">Controle de Alimentação</h2>
+            <div className="text-sm text-muted-foreground">
+              Clique em um viveiro para configurar taxas personalizadas
+            </div>
+          </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {feedingTasks.map((task) => {
-              const completionRate = getCompletionRate(task.pond_id);
-              const schedule = feedingSchedules[task.pond_id] || [];
-
-              return (
-                <Card key={task.pond_id} className="shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-ocean)] transition-shadow">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-lg">{task.pond_name}</CardTitle>
-                      <Badge 
-                        variant={completionRate === 100 ? "default" : completionRate > 0 ? "secondary" : "outline"}
-                        className={completionRate === 100 ? "bg-success" : ""}
-                      >
-                        {completionRate.toFixed(0)}% concluído
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {/* Task Summary */}
-                    <div className="bg-muted/50 rounded-lg p-3 space-y-2">
-                      <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div>
-                          <span className="text-muted-foreground">Lote:</span>
-                          <span className="font-medium ml-1">{task.batch_name}</span>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">DOC:</span>
-                          <span className="font-medium ml-1">{task.doc} dias</span>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">Biomassa:</span>
-                          <span className="font-medium ml-1">{task.biomass.toFixed(1)} kg</span>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">Peso médio:</span>
-                          <span className="font-medium ml-1">{task.average_weight}g</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Daily Feed Summary */}
-                    <div className="border-l-4 border-primary pl-4">
-                      <div className="text-sm text-muted-foreground">Total diário</div>
-                      <div className="text-xl font-bold text-primary">{task.daily_feed.toFixed(1)} kg</div>
-                      <div className="text-xs text-muted-foreground">
-                        {task.feeding_rate}% da biomassa • {task.meals_per_day}x por dia
-                      </div>
-                    </div>
-
-                    {/* Feeding Schedule */}
-                    <div className="space-y-2">
-                      <div className="text-sm font-medium">Horários de Alimentação</div>
-                      <div className="space-y-2">
-                        {schedule.map((meal, index) => (
-                          <div key={index} className="flex items-center justify-between p-2 border border-border rounded">
-                            <div className="flex items-center space-x-3">
-                              <Checkbox
-                                checked={meal.completed}
-                                onCheckedChange={() => toggleMealCompletion(task.pond_id, index)}
-                              />
-                              <div>
-                                <div className="font-medium">{meal.time}</div>
-                                <div className="text-xs text-muted-foreground">
-                                  {task.feed_per_meal.toFixed(1)} kg
-                                </div>
-                              </div>
-                            </div>
-                            {meal.completed && (
-                              <Check className="w-4 h-4 text-success" />
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {completionRate < 100 && (
-                      <div className="flex items-center space-x-2 text-sm text-amber-600">
-                        <AlertCircle className="w-4 h-4" />
-                        <span>Pendente: {(schedule.length - schedule.filter(m => m.completed).length)} refeições</span>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              );
-            })}
+            {feedingTasks.map((task) => (
+              <div key={task.pond_id} onClick={() => setSelectedPond(task.pond_batch_id)}>
+                <FeedingSchedule
+                  pondId={task.pond_id}
+                  pondName={task.pond_name}
+                  batchName={task.batch_name}
+                  pondBatchId={task.pond_batch_id}
+                  biomass={task.biomass}
+                  feedingRate={task.feeding_rate}
+                  mealsPerDay={task.meals_per_day}
+                  dailyFeed={task.daily_feed}
+                  doc={task.doc}
+                  selectedDate={selectedDate}
+                  currentPopulation={task.current_population}
+                  averageWeight={task.average_weight}
+                  onFeedingUpdate={loadFeedingData}
+                />
+              </div>
+            ))}
           </div>
         </div>
       </div>

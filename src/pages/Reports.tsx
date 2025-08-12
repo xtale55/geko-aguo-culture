@@ -39,8 +39,8 @@ interface CycleAnalysis {
   survival_rate: number;
   average_weight: number;
   biomass: number;
-  feed_conversion: number;
-  real_fca?: number;
+  feed_conversion: number | null;
+  real_fca?: number | null;
   total_feed_consumed?: number;
   estimated_revenue: number;
   cycle_cost: number;
@@ -58,7 +58,7 @@ interface PondCardData {
   survival_rate: number;
   current_weight: number;
   biomass: number;
-  real_fca: number;
+  real_fca: number | null;
   weekly_growth: number;
   performance_score: 'excellent' | 'good' | 'average' | 'poor';
   estimated_revenue: number;
@@ -239,11 +239,13 @@ export default function Reports() {
           const firstBiometry = cycle.biometrics
             ?.sort((a, b) => new Date(a.measurement_date).getTime() - new Date(b.measurement_date).getTime())[0];
           
-          let realFCA = 1.5; // Default fallback
+          let realFCA: number | null = null;
           if (firstBiometry && totalFeedConsumed > 0) {
             const initialBiomass = (cycle.current_population * firstBiometry.average_weight) / 1000;
             const biomassGain = biomass - initialBiomass;
-            realFCA = biomassGain > 0 ? totalFeedConsumed / biomassGain : 1.5;
+            if (biomassGain > 0) {
+              realFCA = totalFeedConsumed / biomassGain;
+            }
           }
           
           // Calculate weekly growth
@@ -268,7 +270,7 @@ export default function Reports() {
           const preparationCost = cycle.preparation_cost || 0;
           
           // Use real feed cost if available, otherwise estimate
-          const feedCost = realFeedCost > 0 ? realFeedCost : (biomass * 1.5 * 7);
+          const feedCost = realFeedCost > 0 ? realFeedCost : (biomass * (realFCA || 1.5) * 7);
           
           const cycleCost = (plCost * cycle.pl_quantity / 1000) + preparationCost + feedCost;
           totalCosts += cycleCost;
@@ -279,11 +281,11 @@ export default function Reports() {
 
           // Calculate performance score
           let performanceScore: 'excellent' | 'good' | 'average' | 'poor' = 'poor';
-          if (survivalRate >= 90 && realFCA <= 1.3 && weeklyGrowth >= 1.5) {
+          if (survivalRate >= 90 && realFCA && realFCA <= 1.3 && weeklyGrowth >= 1.5) {
             performanceScore = 'excellent';
-          } else if (survivalRate >= 80 && realFCA <= 1.5 && weeklyGrowth >= 1.0) {
+          } else if (survivalRate >= 80 && realFCA && realFCA <= 1.5 && weeklyGrowth >= 1.0) {
             performanceScore = 'good';
-          } else if (survivalRate >= 70 && realFCA <= 1.8) {
+          } else if (survivalRate >= 70 && realFCA && realFCA <= 1.8) {
             performanceScore = 'average';
           }
 
@@ -298,7 +300,7 @@ export default function Reports() {
             survival_rate: survivalRate,
             average_weight: latestBiometry.average_weight,
             biomass,
-            feed_conversion: realFCA,
+            feed_conversion: realFCA || 0,
             real_fca: realFCA,
             total_feed_consumed: totalFeedConsumed,
             estimated_revenue: estimatedRevenue,
@@ -589,12 +591,16 @@ export default function Reports() {
                             <p className="text-muted-foreground">Biomassa</p>
                             <p className="font-medium">{pond.biomass.toFixed(1)} kg</p>
                           </div>
-                          <div>
-                            <p className="text-muted-foreground">FCA Real</p>
-                            <p className={`font-medium ${pond.real_fca <= 1.3 ? 'text-success' : pond.real_fca <= 1.6 ? 'text-warning' : 'text-destructive'}`}>
-                              {pond.real_fca.toFixed(2)}
-                            </p>
-                          </div>
+                           <div>
+                             <p className="text-muted-foreground">FCA Real</p>
+                             <p className={`font-medium ${
+                               !pond.real_fca ? 'text-muted-foreground' :
+                               pond.real_fca <= 1.3 ? 'text-success' : 
+                               pond.real_fca <= 1.6 ? 'text-warning' : 'text-destructive'
+                             }`}>
+                               {pond.real_fca ? pond.real_fca.toFixed(2) : '-'}
+                             </p>
+                           </div>
                           <div>
                             <p className="text-muted-foreground">Crescimento Semanal</p>
                             <p className={`font-medium ${pond.weekly_growth >= 1.5 ? 'text-success' : pond.weekly_growth >= 1.0 ? 'text-warning' : 'text-destructive'}`}>

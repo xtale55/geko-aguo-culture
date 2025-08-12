@@ -1,6 +1,6 @@
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { Fish, LogOut, Settings, Home, Waves, Scale, Skull } from 'lucide-react';
+import { Fish, LogOut, Settings, Home, Waves, Scale, Skull, Utensils } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 interface LayoutProps {
@@ -40,7 +40,7 @@ export function Layout({ children }: LayoutProps) {
             </div>
           </div>
 
-          <nav className="hidden md:flex items-center space-x-2">
+          <nav className="hidden lg:flex items-center space-x-2">
             <Button
               variant={isActive('/dashboard') ? 'default' : 'ghost'}
               size="sm"
@@ -64,6 +64,14 @@ export function Layout({ children }: LayoutProps) {
             >
               <Scale className="w-4 h-4 mr-2" />
               Biometria
+            </Button>
+            <Button 
+              variant={isActive('/feeding') ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => navigate('/feeding')}
+            >
+              <Utensils className="w-4 h-4 mr-2" />
+              Ração
             </Button>
             <Button 
               variant={isActive('/mortality') ? 'default' : 'ghost'}
@@ -92,8 +100,8 @@ export function Layout({ children }: LayoutProps) {
       </main>
 
       {/* Mobile Bottom Navigation */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-card border-t border-border">
-        <div className="grid grid-cols-4 gap-1 p-2">
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-card border-t border-border">
+        <div className="grid grid-cols-5 gap-1 p-2">
           <Button
             variant={isActive('/dashboard') ? 'default' : 'ghost'}
             size="sm"
@@ -101,7 +109,7 @@ export function Layout({ children }: LayoutProps) {
             className="flex flex-col items-center space-y-1 h-12"
           >
             <Home className="w-4 h-4" />
-            <span className="text-xs">Dashboard</span>
+            <span className="text-xs">Home</span>
           </Button>
           <Button
             variant={isActive('/farm') ? 'default' : 'ghost'}
@@ -120,6 +128,15 @@ export function Layout({ children }: LayoutProps) {
           >
             <Scale className="w-4 h-4" />
             <span className="text-xs">Biometria</span>
+          </Button>
+          <Button
+            variant={isActive('/feeding') ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => navigate('/feeding')}
+            className="flex flex-col items-center space-y-1 h-12"
+          >
+            <Utensils className="w-4 h-4" />
+            <span className="text-xs">Ração</span>
           </Button>
           <Button
             variant={isActive('/mortality') ? 'default' : 'ghost'}

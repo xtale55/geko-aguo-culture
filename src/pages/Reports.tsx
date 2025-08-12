@@ -205,18 +205,18 @@ export default function Reports() {
         .in('farm_id', farmIds);
 
       // Calculate operational costs
-      const opCosts = operationalCosts?.reduce((sum, cost) => sum + cost.amount, 0) || 0;
+      const calculatedOpCosts = operationalCosts?.reduce((sum, cost) => sum + cost.amount, 0) || 0;
       
       // Calculate consumed materials costs
-      const feedConsumedCosts = feeding?.reduce((sum, feed) => {
+      const calculatedFeedConsumed = feeding?.reduce((sum, feed) => {
         return sum + (feed.actual_amount * (feed.unit_cost || 0));
       }, 0) || 0;
       
-      const inputsConsumedCosts = inputApplications?.reduce((sum, input) => {
+      const calculatedInputsConsumed = inputApplications?.reduce((sum, input) => {
         return sum + (input.total_cost || 0);
       }, 0) || 0;
       
-      const totalMaterialsConsumed = feedConsumedCosts + inputsConsumedCosts;
+      const calculatedMaterialsConsumed = calculatedFeedConsumed + calculatedInputsConsumed;
 
       // Process cycles for analysis
       const processedCycles: CycleAnalysis[] = [];
@@ -352,7 +352,7 @@ export default function Reports() {
         }
       });
 
-      const totalOperationalCosts = totalCosts + opCosts + totalMaterialsConsumed;
+      const totalOperationalCosts = totalCosts + calculatedOpCosts + calculatedMaterialsConsumed;
 
       // Calculate overall metrics
       const totalRevenue = totalProduction * 25; // R$25/kg average
@@ -380,8 +380,8 @@ export default function Reports() {
         profitMargin: overallProfitMargin
       });
 
-      setOperationalCosts(opCosts);
-      setMaterialsConsumed(totalMaterialsConsumed);
+      setOperationalCosts(calculatedOpCosts);
+      setMaterialsConsumed(calculatedMaterialsConsumed);
 
       setCycleAnalyses(processedCycles.sort((a, b) => b.doc - a.doc));
       setPondCards(processedPondCards.sort((a, b) => a.pond_name.localeCompare(b.pond_name)));

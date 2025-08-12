@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { 
   TrendingUp, Download, Calendar, DollarSign, Scale, 
-  Activity, BarChart3, PieChart, LineChart, FileText
+  Activity, BarChart3, PieChart, LineChart, FileText, Fish
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { FeedingHistoryPanel } from "@/components/FeedingHistoryPanel";
@@ -47,6 +47,25 @@ interface CycleAnalysis {
   profit_margin: number;
 }
 
+interface PondCardData {
+  pond_batch_id: string;
+  pond_name: string;
+  batch_name: string;
+  stocking_date: string;
+  doc: number;
+  current_population: number;
+  initial_population: number;
+  survival_rate: number;
+  current_weight: number;
+  biomass: number;
+  real_fca: number;
+  weekly_growth: number;
+  performance_score: 'excellent' | 'good' | 'average' | 'poor';
+  estimated_revenue: number;
+  total_cost: number;
+  profit_margin: number;
+}
+
 export default function Reports() {
   const [productionReport, setProductionReport] = useState<ProductionReport>({
     totalCycles: 0,
@@ -60,6 +79,8 @@ export default function Reports() {
     profitMargin: 0,
   });
   const [cycleAnalyses, setCycleAnalyses] = useState<CycleAnalysis[]>([]);
+  const [pondCards, setPondCards] = useState<PondCardData[]>([]);
+  const [farmArea, setFarmArea] = useState<number>(1);
   const [loading, setLoading] = useState(true);
   const [selectedPeriod, setSelectedPeriod] = useState('last_30_days');
   const { user } = useAuth();
@@ -88,7 +109,8 @@ export default function Reports() {
       }
 
       const farmId = farms[0].id;
-      const farmArea = farms[0].total_area || 1;
+      const currentFarmArea = farms[0].total_area || 1;
+      setFarmArea(currentFarmArea);
 
       // Get comprehensive cycle data
       const { data: cycles } = await supabase
@@ -123,6 +145,7 @@ export default function Reports() {
 
       // Process cycles for analysis
       const processedCycles: CycleAnalysis[] = [];
+      const processedPondCards: PondCardData[] = [];
       let totalProduction = 0;
       let totalCosts = 0;
       let activeCycles = 0;
@@ -166,6 +189,23 @@ export default function Reports() {
             realFCA = biomassGain > 0 ? totalFeedConsumed / biomassGain : 1.5;
           }
           
+          // Calculate weekly growth
+          let weeklyGrowth = 0;
+          if (cycle.biometrics && cycle.biometrics.length >= 2) {
+            const sortedBio = cycle.biometrics.sort((a, b) => 
+              new Date(a.measurement_date).getTime() - new Date(b.measurement_date).getTime()
+            );
+            const recent = sortedBio[sortedBio.length - 1];
+            const previous = sortedBio[sortedBio.length - 2];
+            const daysDiff = Math.ceil(
+              (new Date(recent.measurement_date).getTime() - new Date(previous.measurement_date).getTime()) 
+              / (1000 * 60 * 60 * 24)
+            );
+            if (daysDiff > 0) {
+              weeklyGrowth = ((recent.average_weight - previous.average_weight) / daysDiff) * 7;
+            }
+          }
+          
           // Calculate costs (PL cost + preparation + real feed cost)
           const plCost = cycle.batches?.pl_cost || 0;
           const preparationCost = cycle.preparation_cost || 0;
@@ -178,6 +218,16 @@ export default function Reports() {
           // Estimate revenue (R$25/kg average)
           const estimatedRevenue = biomass * 25;
           const profitMargin = ((estimatedRevenue - cycleCost) / estimatedRevenue) * 100;
+
+          // Calculate performance score
+          let performanceScore: 'excellent' | 'good' | 'average' | 'poor' = 'poor';
+          if (survivalRate >= 90 && realFCA <= 1.3 && weeklyGrowth >= 1.5) {
+            performanceScore = 'excellent';
+          } else if (survivalRate >= 80 && realFCA <= 1.5 && weeklyGrowth >= 1.0) {
+            performanceScore = 'good';
+          } else if (survivalRate >= 70 && realFCA <= 1.8) {
+            performanceScore = 'average';
+          }
 
           processedCycles.push({
             cycle_id: cycle.id,
@@ -195,6 +245,26 @@ export default function Reports() {
             total_feed_consumed: totalFeedConsumed,
             estimated_revenue: estimatedRevenue,
             cycle_cost: cycleCost,
+            profit_margin: profitMargin
+          });
+
+          // Create pond card data
+          processedPondCards.push({
+            pond_batch_id: cycle.id,
+            pond_name: cycle.ponds?.name || '',
+            batch_name: cycle.batches?.name || '',
+            stocking_date: cycle.stocking_date,
+            doc,
+            current_population: cycle.current_population,
+            initial_population: cycle.pl_quantity,
+            survival_rate: survivalRate,
+            current_weight: latestBiometry.average_weight,
+            biomass,
+            real_fca: realFCA,
+            weekly_growth: weeklyGrowth,
+            performance_score: performanceScore,
+            estimated_revenue: estimatedRevenue,
+            total_cost: cycleCost,
             profit_margin: profitMargin
           });
         }
@@ -225,13 +295,14 @@ export default function Reports() {
         totalProduction,
         averageWeight,
         survivalRate: averageSurvival,
-        productivityPerHa: totalProduction / farmArea,
+        productivityPerHa: totalProduction / currentFarmArea,
         totalRevenue,
         operationalCosts: totalOperationalCosts,
         profitMargin: overallProfitMargin
       });
 
       setCycleAnalyses(processedCycles.sort((a, b) => b.doc - a.doc));
+      setPondCards(processedPondCards.sort((a, b) => b.doc - a.doc));
       
     } catch (error: any) {
       toast({
@@ -400,94 +471,129 @@ export default function Reports() {
         </div>
 
         {/* Detailed Analysis */}
-        <Tabs defaultValue="cycles" className="w-full">
-          <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="cycles">Análise por Ciclo</TabsTrigger>
-            <TabsTrigger value="growth">Crescimento</TabsTrigger>
-            <TabsTrigger value="feeding">Alimentação</TabsTrigger>
-            <TabsTrigger value="costs">Custos</TabsTrigger>
+        <Tabs defaultValue="overview" className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="overview">Visão Geral</TabsTrigger>
+            <TabsTrigger value="costs">Custos Operacionais</TabsTrigger>
             <TabsTrigger value="financial">Análise Financeira</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="cycles" className="space-y-4">
+          <TabsContent value="overview" className="space-y-4">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <LineChart className="w-5 h-5" />
-                  Performance por Ciclo
+                  <Fish className="w-5 h-5" />
+                  Viveiros Ativos
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {cycleAnalyses.map((cycle) => (
-                    <div 
-                      key={cycle.cycle_id} 
-                      className="border rounded-lg p-4 space-y-3 hover:shadow-md transition-shadow cursor-pointer"
-                      onClick={() => {
-                        // Extract pond ID from the cycle data - we need to get it from the database
-                        // For now, we'll navigate to a pond details page
-                        const pondName = cycle.pond_name.replace(/\s+/g, '-').toLowerCase();
-                        navigate(`/pond-history/${cycle.cycle_id}?pond=${pondName}`);
-                      }}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {pondCards.map((pond) => (
+                    <Card 
+                      key={pond.pond_batch_id}
+                      className="hover:shadow-lg transition-shadow cursor-pointer border-l-4 border-l-primary"
+                      onClick={() => navigate(`/pond-history/${pond.pond_batch_id}`)}
                     >
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <h3 className="font-semibold">{cycle.batch_name} - {cycle.pond_name}</h3>
-                          <p className="text-sm text-muted-foreground">
-                            DOC {cycle.doc} • Iniciado em {new Date(cycle.stocking_date).toLocaleDateString('pt-BR')}
-                          </p>
-                          <p className="text-xs text-primary hover:underline">
-                            Clique para ver histórico completo →
-                          </p>
+                      <CardHeader className="pb-3">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <CardTitle className="text-lg">{pond.pond_name}</CardTitle>
+                            <p className="text-sm text-muted-foreground">{pond.batch_name}</p>
+                          </div>
+                          <Badge 
+                            variant={
+                              pond.performance_score === 'excellent' ? 'default' :
+                              pond.performance_score === 'good' ? 'secondary' :
+                              pond.performance_score === 'average' ? 'outline' : 'destructive'
+                            }
+                          >
+                            DOC {pond.doc}
+                          </Badge>
                         </div>
-                        <Badge variant={cycle.profit_margin > 20 ? "default" : cycle.profit_margin > 0 ? "secondary" : "destructive"}>
-                          {cycle.profit_margin.toFixed(1)}% margem
-                        </Badge>
-                      </div>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <p className="text-muted-foreground">População</p>
+                            <p className="font-medium">{pond.current_population.toLocaleString()}</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">Sobrevivência</p>
+                            <p className={`font-medium ${pond.survival_rate >= 85 ? 'text-success' : pond.survival_rate >= 75 ? 'text-warning' : 'text-destructive'}`}>
+                              {pond.survival_rate.toFixed(1)}%
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">Peso Atual</p>
+                            <p className="font-medium text-primary">{pond.current_weight.toFixed(1)}g</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">Biomassa</p>
+                            <p className="font-medium">{pond.biomass.toFixed(1)} kg</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">FCA Real</p>
+                            <p className={`font-medium ${pond.real_fca <= 1.3 ? 'text-success' : pond.real_fca <= 1.6 ? 'text-warning' : 'text-destructive'}`}>
+                              {pond.real_fca.toFixed(2)}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">Crescimento Semanal</p>
+                            <p className={`font-medium ${pond.weekly_growth >= 1.5 ? 'text-success' : pond.weekly_growth >= 1.0 ? 'text-warning' : 'text-destructive'}`}>
+                              {pond.weekly_growth.toFixed(1)}g
+                            </p>
+                          </div>
+                        </div>
+                        
+                        <div className="pt-3 border-t border-border space-y-2">
+                          <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">Receita Estimada:</span>
+                            <span className="font-medium text-success">
+                              R$ {pond.estimated_revenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                            </span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">Margem:</span>
+                            <span className={`font-medium ${pond.profit_margin > 0 ? 'text-success' : 'text-destructive'}`}>
+                              {pond.profit_margin.toFixed(1)}%
+                            </span>
+                          </div>
+                        </div>
 
-                      <div className="grid grid-cols-2 md:grid-cols-6 gap-4 text-sm">
-                        <div>
-                          <p className="text-muted-foreground">Sobrevivência</p>
-                          <p className="font-medium">{cycle.survival_rate.toFixed(1)}%</p>
+                        <div className="pt-2">
+                          <Badge 
+                            variant="outline" 
+                            className={`w-full justify-center ${
+                              pond.performance_score === 'excellent' ? 'border-success text-success' :
+                              pond.performance_score === 'good' ? 'border-primary text-primary' :
+                              pond.performance_score === 'average' ? 'border-warning text-warning' : 
+                              'border-destructive text-destructive'
+                            }`}
+                          >
+                            Performance: {
+                              pond.performance_score === 'excellent' ? 'Excelente' :
+                              pond.performance_score === 'good' ? 'Boa' :
+                              pond.performance_score === 'average' ? 'Média' : 'Baixa'
+                            }
+                          </Badge>
                         </div>
-                        <div>
-                          <p className="text-muted-foreground">Peso Médio</p>
-                          <p className="font-medium">{cycle.average_weight}g</p>
+
+                        <div className="text-xs text-muted-foreground text-center pt-2">
+                          Clique para ver histórico completo →
                         </div>
-                        <div>
-                          <p className="text-muted-foreground">Biomassa</p>
-                          <p className="font-medium">{cycle.biomass.toFixed(1)} kg</p>
-                        </div>
-                        <div>
-                          <p className="text-muted-foreground">FCA Real</p>
-                          <p className="font-medium text-accent">{cycle.real_fca?.toFixed(2) || '1.50'}</p>
-                        </div>
-                        <div>
-                          <p className="text-muted-foreground">Receita Est.</p>
-                          <p className="font-medium text-success">
-                            R$ {cycle.estimated_revenue.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-muted-foreground">Custo do Ciclo</p>
-                          <p className="font-medium text-destructive">
-                            R$ {cycle.cycle_cost.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
+                      </CardContent>
+                    </Card>
                   ))}
                 </div>
+                
+                {pondCards.length === 0 && (
+                  <div className="text-center py-8">
+                    <Fish className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-muted-foreground">Nenhum viveiro ativo encontrado</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
-          </TabsContent>
-
-          <TabsContent value="growth" className="space-y-4">
-            <GrowthAnalysis />
-          </TabsContent>
-
-          <TabsContent value="feeding" className="space-y-4">
-            <FeedingHistoryPanel />
           </TabsContent>
 
           <TabsContent value="costs" className="space-y-4">
@@ -498,29 +604,30 @@ export default function Reports() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Receitas vs Custos</CardTitle>
+                  <CardTitle className="flex items-center gap-2">
+                    <DollarSign className="w-5 h-5" />
+                    Receitas vs Custos
+                  </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span>Receita Total Estimada</span>
-                      <span className="font-bold text-success">
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center p-3 bg-success/10 rounded">
+                      <span className="text-muted-foreground">Receita Total Estimada:</span>
+                      <span className="font-bold text-success text-lg">
                         R$ {productionReport.totalRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                       </span>
                     </div>
-                    <div className="flex justify-between">
-                      <span>Custos Operacionais</span>
-                      <span className="font-bold text-destructive">
+                    <div className="flex justify-between items-center p-3 bg-destructive/10 rounded">
+                      <span className="text-muted-foreground">Custos Operacionais:</span>
+                      <span className="font-bold text-destructive text-lg">
                         R$ {productionReport.operationalCosts.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                       </span>
                     </div>
-                    <div className="border-t pt-2">
-                      <div className="flex justify-between text-lg">
-                        <span className="font-semibold">Lucro Estimado</span>
-                        <span className={`font-bold ${productionReport.profitMargin > 0 ? 'text-success' : 'text-destructive'}`}>
-                          R$ {(productionReport.totalRevenue - productionReport.operationalCosts).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                        </span>
-                      </div>
+                    <div className="flex justify-between items-center p-3 bg-primary/10 rounded">
+                      <span className="text-muted-foreground">Lucro Líquido:</span>
+                      <span className={`font-bold text-lg ${(productionReport.totalRevenue - productionReport.operationalCosts) > 0 ? 'text-success' : 'text-destructive'}`}>
+                        R$ {(productionReport.totalRevenue - productionReport.operationalCosts).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      </span>
                     </div>
                   </div>
                 </CardContent>
@@ -528,37 +635,38 @@ export default function Reports() {
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Métricas de Eficiência</CardTitle>
+                  <CardTitle className="flex items-center gap-2">
+                    <BarChart3 className="w-5 h-5" />
+                    Métricas de Eficiência
+                  </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-3">
-                    <div className="flex justify-between">
-                      <span>Custo por kg produzido</span>
-                      <span className="font-medium">
-                        R$ {productionReport.totalProduction > 0 
-                          ? (productionReport.operationalCosts / productionReport.totalProduction).toFixed(2) 
-                          : '0.00'}
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground">ROI Estimado:</span>
+                      <span className={`font-medium ${productionReport.profitMargin > 0 ? 'text-success' : 'text-destructive'}`}>
+                        {((productionReport.totalRevenue - productionReport.operationalCosts) / productionReport.operationalCosts * 100).toFixed(1)}%
                       </span>
                     </div>
-                    <div className="flex justify-between">
-                      <span>Receita por kg</span>
-                      <span className="font-medium">R$ 25.00</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>ROI por ciclo</span>
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground">Custo por kg produzido:</span>
                       <span className="font-medium">
-                        {productionReport.operationalCosts > 0 
-                          ? ((productionReport.totalRevenue / productionReport.operationalCosts - 1) * 100).toFixed(1) 
-                          : '0.0'}%
+                        R$ {productionReport.totalProduction > 0 ? (productionReport.operationalCosts / productionReport.totalProduction).toFixed(2) : '0.00'}
                       </span>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-        </Tabs>
-      </div>
-    </Layout>
-  );
-}
+                    <div className="flex justify-between items-center">
+                       <span className="text-muted-foreground">Receita por hectare:</span>
+                       <span className="font-medium text-success">
+                         R$ {productionReport.totalRevenue && farmArea ? (productionReport.totalRevenue / farmArea).toLocaleString('pt-BR', { minimumFractionDigits: 0 }) : '0'}
+                       </span>
+                     </div>
+                   </div>
+                 </CardContent>
+               </Card>
+             </div>
+           </TabsContent>
+         </Tabs>
+       </div>
+     </Layout>
+   );
+ }

@@ -57,13 +57,21 @@ export function Layout({ children }: LayoutProps) {
               <Waves className="w-4 h-4 mr-2" />
               Fazenda
             </Button>
-            <Button 
-              variant={isActive('/biometry') ? 'default' : 'ghost'}
+            <Button
+              variant={isActive('/stocking') ? 'default' : 'ghost'}
               size="sm"
-              onClick={() => navigate('/biometry')}
+              onClick={() => navigate('/stocking')}
             >
-              <Scale className="w-4 h-4 mr-2" />
-              Biometria
+              <Waves className="w-4 h-4 mr-2" />
+              Povoamento
+            </Button>
+            <Button 
+              variant={isActive('/insumos') ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => navigate('/insumos')}
+            >
+              <Fish className="w-4 h-4 mr-2" />
+              Insumos
             </Button>
             <Button 
               variant={isActive('/feeding') ? 'default' : 'ghost'}
@@ -72,14 +80,6 @@ export function Layout({ children }: LayoutProps) {
             >
               <Utensils className="w-4 h-4 mr-2" />
               Ração
-            </Button>
-            <Button 
-              variant={isActive('/water-quality') ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => navigate('/water-quality')}
-            >
-              <Droplets className="w-4 h-4 mr-2" />
-              Água
             </Button>
             <Button 
               variant={isActive('/inventory') ? 'default' : 'ghost'}
@@ -96,14 +96,6 @@ export function Layout({ children }: LayoutProps) {
             >
               <BarChart3 className="w-4 h-4 mr-2" />
               Relatórios
-            </Button>
-            <Button 
-              variant={isActive('/mortality') ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => navigate('/mortality')}
-            >
-              <Skull className="w-4 h-4 mr-2" />
-              Mortalidade
             </Button>
           </nav>
 
@@ -145,13 +137,22 @@ export function Layout({ children }: LayoutProps) {
             <span className="text-xs">Fazenda</span>
           </Button>
           <Button
-            variant={isActive('/biometry') ? 'default' : 'ghost'}
+            variant={isActive('/stocking') ? 'default' : 'ghost'}
             size="sm"
-            onClick={() => navigate('/biometry')}
+            onClick={() => navigate('/stocking')}
             className="flex flex-col items-center space-y-1 h-16 min-w-16 px-3"
           >
-            <Scale className="w-4 h-4" />
-            <span className="text-xs">Biometria</span>
+            <Waves className="w-4 h-4" />
+            <span className="text-xs">Povoamento</span>
+          </Button>
+          <Button
+            variant={isActive('/insumos') ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => navigate('/insumos')}
+            className="flex flex-col items-center space-y-1 h-16 min-w-16 px-3"
+          >
+            <Fish className="w-4 h-4" />
+            <span className="text-xs">Insumos</span>
           </Button>
           <Button
             variant={isActive('/feeding') ? 'default' : 'ghost'}
@@ -161,15 +162,6 @@ export function Layout({ children }: LayoutProps) {
           >
             <Utensils className="w-4 h-4" />
             <span className="text-xs">Ração</span>
-          </Button>
-          <Button
-            variant={isActive('/water-quality') ? 'default' : 'ghost'}
-            size="sm"
-            onClick={() => navigate('/water-quality')}
-            className="flex flex-col items-center space-y-1 h-16 min-w-16 px-3"
-          >
-            <Droplets className="w-4 h-4" />
-            <span className="text-xs">Água</span>
           </Button>
           <Button
             variant={isActive('/inventory') ? 'default' : 'ghost'}
@@ -188,15 +180,6 @@ export function Layout({ children }: LayoutProps) {
           >
             <BarChart3 className="w-4 h-4" />
             <span className="text-xs">Relatórios</span>
-          </Button>
-          <Button
-            variant={isActive('/mortality') ? 'default' : 'ghost'}
-            size="sm"
-            onClick={() => navigate('/mortality')}
-            className="flex flex-col items-center space-y-1 h-16 min-w-16 px-3"
-          >
-            <Skull className="w-4 h-4" />
-            <span className="text-xs">Mortalidade</span>
           </Button>
         </div>
       </div>

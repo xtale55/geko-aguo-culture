@@ -8,10 +8,8 @@ import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Farm from "./pages/Farm";
 import Stocking from "./pages/Stocking";
-import Biometry from "./pages/Biometry";
-import Mortality from "./pages/Mortality";
+import Insumos from "./pages/Insumos";
 import Feeding from "./pages/Feeding";
-import WaterQuality from "./pages/WaterQuality";
 import Inventory from "./pages/Inventory";
 import Reports from "./pages/Reports";
 import NotFound from "./pages/NotFound";
@@ -30,10 +28,8 @@ const App = () => (
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/farm" element={<Farm />} />
           <Route path="/stocking" element={<Stocking />} />
-          <Route path="/biometry" element={<Biometry />} />
-          <Route path="/mortality" element={<Mortality />} />
+          <Route path="/insumos" element={<Insumos />} />
           <Route path="/feeding" element={<Feeding />} />
-          <Route path="/water-quality" element={<WaterQuality />} />
           <Route path="/inventory" element={<Inventory />} />
           <Route path="/reports" element={<Reports />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

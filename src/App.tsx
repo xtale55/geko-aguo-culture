@@ -12,6 +12,7 @@ import Manejos from "./pages/Manejos";
 import Feeding from "./pages/Feeding";
 import Inventory from "./pages/Inventory";
 import Reports from "./pages/Reports";
+import PondHistory from "./pages/PondHistory";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,6 +33,7 @@ const App = () => (
           <Route path="/feeding" element={<Feeding />} />
           <Route path="/inventory" element={<Inventory />} />
           <Route path="/reports" element={<Reports />} />
+          <Route path="/pond-history/:pondId" element={<PondHistory />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

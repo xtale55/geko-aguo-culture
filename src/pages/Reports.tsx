@@ -142,7 +142,7 @@ export default function Reports() {
           const plCost = cycle.batches?.pl_cost || 0;
           const preparationCost = cycle.preparation_cost || 0;
           const estimatedFeedCost = biomass * 1.5 * 7; // Estimate: 1.5 FCR * R$7/kg
-          const cycleCost = (plCost * cycle.pl_quantity / 1000) + preparationCost + estimatedFeedCost;
+          const cycleCost = (plCost * cycle.pl_quantity) + preparationCost + estimatedFeedCost;
           totalCosts += cycleCost;
 
           // Estimate revenue (R$25/kg average)
@@ -384,12 +384,24 @@ export default function Reports() {
               <CardContent>
                 <div className="space-y-4">
                   {cycleAnalyses.map((cycle) => (
-                    <div key={cycle.cycle_id} className="border rounded-lg p-4 space-y-3">
+                    <div 
+                      key={cycle.cycle_id} 
+                      className="border rounded-lg p-4 space-y-3 hover:shadow-md transition-shadow cursor-pointer"
+                      onClick={() => {
+                        // Extract pond ID from the cycle data - we need to get it from the database
+                        // For now, we'll navigate to a pond details page
+                        const pondName = cycle.pond_name.replace(/\s+/g, '-').toLowerCase();
+                        navigate(`/pond-history/${cycle.cycle_id}?pond=${pondName}`);
+                      }}
+                    >
                       <div className="flex justify-between items-center">
                         <div>
                           <h3 className="font-semibold">{cycle.batch_name} - {cycle.pond_name}</h3>
                           <p className="text-sm text-muted-foreground">
                             DOC {cycle.doc} • Iniciado em {new Date(cycle.stocking_date).toLocaleDateString('pt-BR')}
+                          </p>
+                          <p className="text-xs text-primary hover:underline">
+                            Clique para ver histórico completo →
                           </p>
                         </div>
                         <Badge variant={cycle.profit_margin > 20 ? "default" : cycle.profit_margin > 0 ? "secondary" : "destructive"}>

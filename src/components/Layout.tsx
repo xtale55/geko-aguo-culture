@@ -1,6 +1,6 @@
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { Fish, LogOut, Settings, Home, Waves } from 'lucide-react';
+import { Fish, LogOut, Settings, Home, Waves, Scale, Skull } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 interface LayoutProps {
@@ -40,24 +40,38 @@ export function Layout({ children }: LayoutProps) {
             </div>
           </div>
 
-          <nav className="hidden md:flex items-center space-x-6">
+          <nav className="hidden md:flex items-center space-x-2">
             <Button
-              variant={isActive('/') ? 'default' : 'ghost'}
+              variant={isActive('/dashboard') ? 'default' : 'ghost'}
               size="sm"
-              onClick={() => navigate('/')}
-              className="flex items-center space-x-2"
+              onClick={() => navigate('/dashboard')}
             >
-              <Home className="w-4 h-4" />
-              <span>Dashboard</span>
+              <Home className="w-4 h-4 mr-2" />
+              Dashboard
             </Button>
             <Button
               variant={isActive('/farm') ? 'default' : 'ghost'}
               size="sm"
               onClick={() => navigate('/farm')}
-              className="flex items-center space-x-2"
             >
-              <Waves className="w-4 h-4" />
-              <span>Minha Fazenda</span>
+              <Waves className="w-4 h-4 mr-2" />
+              Fazenda
+            </Button>
+            <Button 
+              variant={isActive('/biometry') ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => navigate('/biometry')}
+            >
+              <Scale className="w-4 h-4 mr-2" />
+              Biometria
+            </Button>
+            <Button 
+              variant={isActive('/mortality') ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => navigate('/mortality')}
+            >
+              <Skull className="w-4 h-4 mr-2" />
+              Mortalidade
             </Button>
           </nav>
 
@@ -79,11 +93,11 @@ export function Layout({ children }: LayoutProps) {
 
       {/* Mobile Bottom Navigation */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 bg-card border-t border-border">
-        <div className="grid grid-cols-2 gap-1 p-2">
+        <div className="grid grid-cols-4 gap-1 p-2">
           <Button
-            variant={isActive('/') ? 'default' : 'ghost'}
+            variant={isActive('/dashboard') ? 'default' : 'ghost'}
             size="sm"
-            onClick={() => navigate('/')}
+            onClick={() => navigate('/dashboard')}
             className="flex flex-col items-center space-y-1 h-12"
           >
             <Home className="w-4 h-4" />
@@ -97,6 +111,24 @@ export function Layout({ children }: LayoutProps) {
           >
             <Waves className="w-4 h-4" />
             <span className="text-xs">Fazenda</span>
+          </Button>
+          <Button
+            variant={isActive('/biometry') ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => navigate('/biometry')}
+            className="flex flex-col items-center space-y-1 h-12"
+          >
+            <Scale className="w-4 h-4" />
+            <span className="text-xs">Biometria</span>
+          </Button>
+          <Button
+            variant={isActive('/mortality') ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => navigate('/mortality')}
+            className="flex flex-col items-center space-y-1 h-12"
+          >
+            <Skull className="w-4 h-4" />
+            <span className="text-xs">Mortalidade</span>
           </Button>
         </div>
       </div>

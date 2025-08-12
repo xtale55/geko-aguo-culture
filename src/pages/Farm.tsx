@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Plus, Fish, Waves, Edit, Trash2, MapPin } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 
 interface Farm {
@@ -34,6 +35,7 @@ export default function Farm() {
   const [showPondDialog, setShowPondDialog] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (user) {
@@ -405,7 +407,12 @@ export default function Farm() {
 
                     <div className="flex gap-2 pt-2 border-t border-border">
                       {pond.status === 'free' && (
-                        <Button variant="outline" size="sm" className="flex-1">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="flex-1"
+                          onClick={() => navigate('/stocking')}
+                        >
                           <Fish className="w-4 h-4 mr-1" />
                           Povoar
                         </Button>

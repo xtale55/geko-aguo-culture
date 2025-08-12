@@ -300,7 +300,11 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Button variant="outline" className="h-auto p-4 justify-start">
+              <Button 
+                variant="outline" 
+                className="h-auto p-4 justify-start"
+                onClick={() => navigate('/stocking')}
+              >
                 <Plus className="w-5 h-5 mr-3" />
                 <div className="text-left">
                   <div className="font-medium">Novo Povoamento</div>

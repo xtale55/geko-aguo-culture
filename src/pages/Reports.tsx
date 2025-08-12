@@ -83,6 +83,8 @@ export default function Reports() {
   const [farmArea, setFarmArea] = useState<number>(1);
   const [loading, setLoading] = useState(true);
   const [selectedPeriod, setSelectedPeriod] = useState('last_30_days');
+  const [operationalCosts, setOperationalCosts] = useState<number>(0);
+  const [materialsConsumed, setMaterialsConsumed] = useState<number>(0);
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -167,6 +169,12 @@ export default function Reports() {
         .select('*')
         .in('pond_batch_id', pondBatchIds);
 
+      // Get input applications
+      const { data: inputApplications } = await supabase
+        .from('input_applications')
+        .select('*')
+        .in('pond_batch_id', pondBatchIds);
+
       const cycles = pondBatches.map(pb => {
         const pond = ponds.find(p => p.id === pb.pond_id);
         const batch = batches?.find(b => b.id === pb.batch_id);
@@ -196,6 +204,20 @@ export default function Reports() {
         .select('total_value, category')
         .in('farm_id', farmIds);
 
+      // Calculate operational costs
+      const opCosts = operationalCosts?.reduce((sum, cost) => sum + cost.amount, 0) || 0;
+      
+      // Calculate consumed materials costs
+      const feedConsumedCosts = feeding?.reduce((sum, feed) => {
+        return sum + (feed.actual_amount * (feed.unit_cost || 0));
+      }, 0) || 0;
+      
+      const inputsConsumedCosts = inputApplications?.reduce((sum, input) => {
+        return sum + (input.total_cost || 0);
+      }, 0) || 0;
+      
+      const totalMaterialsConsumed = feedConsumedCosts + inputsConsumedCosts;
+
       // Process cycles for analysis
       const processedCycles: CycleAnalysis[] = [];
       const processedPondCards: PondCardData[] = [];
@@ -210,7 +232,7 @@ export default function Reports() {
         
         // Get latest biometry
         const latestBiometry = cycle.biometrics
-          ?.sort((a, b) => new Date(b.created_at || b.measurement_date).getTime() - new Date(a.created_at || a.measurement_date).getTime())[0];
+          ?.sort((a, b) => new Date(b.measurement_date).getTime() - new Date(a.measurement_date).getTime())[0];
 
         // Calculate mortality
         const totalMortality = cycle.mortality_records
@@ -330,10 +352,7 @@ export default function Reports() {
         }
       });
 
-      // Calculate additional costs from inventory and operational costs
-      const inventoryCosts = inventory?.reduce((sum, item) => sum + item.total_value, 0) || 0;
-      const opCosts = operationalCosts?.reduce((sum, cost) => sum + cost.amount, 0) || 0;
-      const totalOperationalCosts = totalCosts + inventoryCosts + opCosts;
+      const totalOperationalCosts = totalCosts + opCosts + totalMaterialsConsumed;
 
       // Calculate overall metrics
       const totalRevenue = totalProduction * 25; // R$25/kg average
@@ -361,8 +380,11 @@ export default function Reports() {
         profitMargin: overallProfitMargin
       });
 
+      setOperationalCosts(opCosts);
+      setMaterialsConsumed(totalMaterialsConsumed);
+
       setCycleAnalyses(processedCycles.sort((a, b) => b.doc - a.doc));
-      setPondCards(processedPondCards.sort((a, b) => b.doc - a.doc));
+      setPondCards(processedPondCards.sort((a, b) => a.pond_name.localeCompare(b.pond_name)));
       
     } catch (error: any) {
       toast({
@@ -684,7 +706,13 @@ export default function Reports() {
                     <div className="flex justify-between items-center p-3 bg-destructive/10 rounded">
                       <span className="text-muted-foreground">Custos Operacionais:</span>
                       <span className="font-bold text-destructive text-lg">
-                        R$ {productionReport.operationalCosts.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        R$ {operationalCosts.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center p-3 bg-warning/10 rounded">
+                      <span className="text-muted-foreground">Materiais Consumidos:</span>
+                      <span className="font-bold text-warning text-lg">
+                        R$ {materialsConsumed.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                       </span>
                     </div>
                     <div className="flex justify-between items-center p-3 bg-primary/10 rounded">

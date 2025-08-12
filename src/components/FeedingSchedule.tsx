@@ -3,25 +3,25 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { Check, AlertCircle, Edit2, Clock } from 'lucide-react';
+import { Edit2, Clock, Plus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface FeedingRecord {
-  id?: string;
+  id: string;
+  feeding_date: string;
   feeding_time: string;
-  planned_amount: number;
   actual_amount: number;
-  completed: boolean;
   notes?: string;
   feed_type_id?: string;
   feed_type_name?: string;
   unit_cost?: number;
+  created_at: string;
 }
 
 interface FeedType {
@@ -68,23 +68,25 @@ export function FeedingSchedule({
 }: FeedingScheduleProps) {
   const [feedingRecords, setFeedingRecords] = useState<FeedingRecord[]>([]);
   const [availableFeeds, setAvailableFeeds] = useState<FeedType[]>([]);
-  const [editingRecord, setEditingRecord] = useState<FeedingRecord | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingRate, setEditingRate] = useState(false);
   const [newFeedingRate, setNewFeedingRate] = useState<string>("");
   const [newMealsPerDay, setNewMealsPerDay] = useState<string>("");
   const [actualAmount, setActualAmount] = useState<string>("");
   const [selectedFeedType, setSelectedFeedType] = useState<string>("");
   const [notes, setNotes] = useState<string>("");
+  const [feedingDate, setFeedingDate] = useState<string>(selectedDate);
+  const [feedingTime, setFeedingTime] = useState<string>("");
   const { toast } = useToast();
   const { user } = useAuth();
 
-  const defaultSchedule = ['06:00', '10:00', '14:00', '18:00', '22:00'];
   const feedPerMeal = dailyFeed / mealsPerDay;
 
-  // Initialize feeding records for the day
+  // Load feeding records and available feeds
   React.useEffect(() => {
     loadFeedingRecords();
     loadAvailableFeeds();
+    setFeedingDate(selectedDate);
   }, [pondBatchId, selectedDate, farmId]);
 
   const loadAvailableFeeds = async () => {
@@ -111,89 +113,97 @@ export function FeedingSchedule({
         .select('*')
         .eq('pond_batch_id', pondBatchId)
         .eq('feeding_date', selectedDate)
-        .order('feeding_time');
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
-
-      // If no records exist, create default schedule
-      if (!data || data.length === 0) {
-        const defaultRecords = defaultSchedule.slice(0, mealsPerDay).map(time => ({
-          feeding_time: time,
-          planned_amount: feedPerMeal,
-          actual_amount: 0,
-          completed: false
-        }));
-        setFeedingRecords(defaultRecords);
-      } else {
-        setFeedingRecords(data.map(record => ({
-          id: record.id,
-          feeding_time: record.feeding_time,
-          planned_amount: record.planned_amount,
-          actual_amount: record.actual_amount,
-          completed: record.actual_amount > 0,
-          notes: record.notes || "",
-          feed_type_id: record.feed_type_id,
-          feed_type_name: record.feed_type_name,
-          unit_cost: record.unit_cost
-        })));
-      }
+      setFeedingRecords(data || []);
     } catch (error: any) {
       console.error('Error loading feeding records:', error);
     }
   };
 
-  const handleEditFeeding = async (record: FeedingRecord) => {
-    setEditingRecord(record);
-    setActualAmount(record.planned_amount.toString()); // Pre-fill with planned amount
-    setNotes(record.notes || "");
+  const handleOpenFeedingDialog = async () => {
+    // Reset form
+    setActualAmount(feedPerMeal.toString());
+    setNotes("");
+    setFeedingDate(selectedDate);
+    
+    // Set current time
+    const now = new Date();
+    const currentTime = now.toTimeString().slice(0, 5);
+    setFeedingTime(currentTime);
     
     // Try to get default feed type from feeding rates
-    let defaultFeedType = record.feed_type_id || "";
-    
-    if (!defaultFeedType) {
-      try {
-        const { data: rateData } = await supabase
-          .from('feeding_rates')
-          .select('default_feed_type_id')
-          .eq('farm_id', farmId)
-          .is('pond_batch_id', null)
-          .lte('weight_range_min', averageWeight)
-          .gte('weight_range_max', averageWeight)
-          .order('weight_range_min', { ascending: false })
-          .limit(1);
-          
-        if (rateData && rateData.length > 0 && rateData[0].default_feed_type_id) {
-          defaultFeedType = rateData[0].default_feed_type_id;
-        }
-      } catch (error) {
-        console.error('Error getting default feed type:', error);
+    let defaultFeedType = "";
+    try {
+      const { data: rateData } = await supabase
+        .from('feeding_rates')
+        .select('default_feed_type_id')
+        .eq('farm_id', farmId)
+        .is('pond_batch_id', null)
+        .lte('weight_range_min', averageWeight)
+        .gte('weight_range_max', averageWeight)
+        .order('weight_range_min', { ascending: false })
+        .limit(1);
+        
+      if (rateData && rateData.length > 0 && rateData[0].default_feed_type_id) {
+        defaultFeedType = rateData[0].default_feed_type_id;
       }
+    } catch (error) {
+      console.error('Error getting default feed type:', error);
     }
     
     setSelectedFeedType(defaultFeedType);
-    // Reload feeds to get latest inventory
     loadAvailableFeeds();
+    setIsDialogOpen(true);
   };
 
-  const handleRemoveFeeding = async (record: FeedingRecord) => {
-    if (!record.id) return;
-    
+  const handleRemoveFeeding = async (recordId: string) => {
     try {
-      const { error } = await supabase
+      // Get the record to restore inventory
+      const { data: record } = await supabase
         .from('feeding_records')
-        .delete()
-        .eq('id', record.id);
+        .select('*')
+        .eq('id', recordId)
+        .single();
 
-      if (error) throw error;
+      if (record) {
+        // Restore inventory
+        if (record.feed_type_id) {
+          const { data: inventory } = await supabase
+            .from('inventory')
+            .select('quantity')
+            .eq('id', record.feed_type_id)
+            .single();
 
-      toast({
-        title: "Alimentação desmarcada",
-        description: "Registro removido com sucesso"
-      });
+          if (inventory) {
+            await supabase
+              .from('inventory')
+              .update({ 
+                quantity: inventory.quantity + record.actual_amount,
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', record.feed_type_id);
+          }
+        }
 
-      loadFeedingRecords();
-      loadAvailableFeeds(); // Reload to update stock
-      onFeedingUpdate();
+        // Delete the record
+        const { error } = await supabase
+          .from('feeding_records')
+          .delete()
+          .eq('id', recordId);
+
+        if (error) throw error;
+
+        toast({
+          title: "Alimentação removida",
+          description: "Registro removido e estoque restaurado"
+        });
+
+        loadFeedingRecords();
+        loadAvailableFeeds();
+        onFeedingUpdate();
+      }
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -286,8 +296,6 @@ export function FeedingSchedule({
   };
 
   const handleSaveFeeding = async () => {
-    if (!editingRecord) return;
-
     try {
       const actualAmountNum = parseFloat(actualAmount) || 0;
       
@@ -305,6 +313,15 @@ export function FeedingSchedule({
           variant: "destructive",
           title: "Erro",
           description: "Por favor, selecione o tipo de ração"
+        });
+        return;
+      }
+
+      if (!feedingTime) {
+        toast({
+          variant: "destructive",
+          title: "Erro",
+          description: "Por favor, informe o horário da alimentação"
         });
         return;
       }
@@ -332,9 +349,9 @@ export function FeedingSchedule({
       
       const feedingData = {
         pond_batch_id: pondBatchId,
-        feeding_date: selectedDate,
-        feeding_time: editingRecord.feeding_time,
-        planned_amount: editingRecord.planned_amount,
+        feeding_date: feedingDate,
+        feeding_time: feedingTime,
+        planned_amount: feedPerMeal,
         actual_amount: actualAmountNum,
         feeding_rate_percentage: feedingRate,
         feed_type_id: selectedFeedType,
@@ -343,22 +360,12 @@ export function FeedingSchedule({
         notes: notes || null
       };
 
-      if (editingRecord.id) {
-        // Update existing record
-        const { error } = await supabase
-          .from('feeding_records')
-          .update(feedingData)
-          .eq('id', editingRecord.id);
+      // Create new record
+      const { error } = await supabase
+        .from('feeding_records')
+        .insert([feedingData]);
 
-        if (error) throw error;
-      } else {
-        // Create new record
-        const { error } = await supabase
-          .from('feeding_records')
-          .insert([feedingData]);
-
-        if (error) throw error;
-      }
+      if (error) throw error;
 
       // Update inventory - reduce stock
       const { error: inventoryError } = await supabase
@@ -373,15 +380,17 @@ export function FeedingSchedule({
 
       toast({
         title: "Alimentação registrada",
-        description: `${actualAmountNum}kg de ${selectedFeed.name} registrados para ${editingRecord.feeding_time}`
+        description: `${actualAmountNum}kg de ${selectedFeed.name} registrados às ${feedingTime}`
       });
 
-      setEditingRecord(null);
+      // Reset form and close dialog
       setActualAmount("");
       setNotes("");
       setSelectedFeedType("");
+      setFeedingTime("");
+      setIsDialogOpen(false);
       loadFeedingRecords();
-      loadAvailableFeeds(); // Refresh to show updated stock
+      loadAvailableFeeds();
       onFeedingUpdate();
     } catch (error: any) {
       toast({
@@ -392,17 +401,12 @@ export function FeedingSchedule({
     }
   };
 
-  const getCompletionRate = () => {
-    const completed = feedingRecords.filter(record => record.completed).length;
-    return feedingRecords.length > 0 ? (completed / feedingRecords.length) * 100 : 0;
-  };
-
   const getTotalActualFeed = () => {
     return feedingRecords.reduce((sum, record) => sum + record.actual_amount, 0);
   };
 
-  const completionRate = getCompletionRate();
   const totalActualFeed = getTotalActualFeed();
+  const feedingsToday = feedingRecords.length;
 
   return (
     <Card className="shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-ocean)] transition-shadow">
@@ -470,11 +474,8 @@ export function FeedingSchedule({
                 </div>
               </DialogContent>
             </Dialog>
-            <Badge 
-              variant={completionRate === 100 ? "default" : completionRate > 0 ? "secondary" : "outline"}
-              className={completionRate === 100 ? "bg-success" : ""}
-            >
-              {completionRate.toFixed(0)}% concluído
+            <Badge variant="secondary">
+              {feedingsToday} alimentações hoje
             </Badge>
           </div>
         </div>
@@ -503,162 +504,165 @@ export function FeedingSchedule({
         </div>
 
         {/* Daily Feed Summary */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-3 gap-4">
           <div className="border-l-4 border-primary pl-4">
-            <div className="text-sm text-muted-foreground">Planejado</div>
+            <div className="text-sm text-muted-foreground">Planejado/dia</div>
             <div className="text-xl font-bold text-primary">{dailyFeed.toFixed(1)} kg</div>
             <div className="text-xs text-muted-foreground">
-              {feedingRate}% da biomassa
+              {mealsPerDay}x • {feedPerMeal.toFixed(1)}kg/refeição
             </div>
           </div>
           <div className="border-l-4 border-success pl-4">
-            <div className="text-sm text-muted-foreground">Realizado</div>
+            <div className="text-sm text-muted-foreground">Realizado hoje</div>
             <div className="text-xl font-bold text-success">{totalActualFeed.toFixed(1)} kg</div>
             <div className="text-xs text-muted-foreground">
-              {mealsPerDay}x por dia
+              {feedingsToday} alimentações
+            </div>
+          </div>
+          <div className="border-l-4 border-ocean pl-4">
+            <div className="text-sm text-muted-foreground">Taxa atual</div>
+            <div className="text-xl font-bold text-ocean">{feedingRate}%</div>
+            <div className="text-xs text-muted-foreground">
+              da biomassa ({biomass.toFixed(1)}kg)
             </div>
           </div>
         </div>
 
-        {/* Feeding Schedule */}
-        <div className="space-y-2">
-          <div className="text-sm font-medium">Horários de Alimentação</div>
-          <div className="space-y-2">
-            {feedingRecords.map((record, index) => (
-              <div key={index} className="flex items-center justify-between p-2 border border-border rounded">
-                <div className="flex items-center space-x-3">
-                  <Checkbox
-                    checked={record.completed}
-                    onCheckedChange={(checked) => {
-                      // Toggle completed status
-                      if (checked) {
-                        handleEditFeeding(record);
-                      } else {
-                        // Mark as uncompleted - remove the feeding record
-                        handleRemoveFeeding(record);
-                      }
-                    }}
-                    className="cursor-pointer"
+        {/* Register Feeding Button */}
+        <div className="flex justify-center">
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button 
+                onClick={handleOpenFeedingDialog}
+                className="w-full max-w-sm"
+                size="lg"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Registrar Alimentação
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>Registrar Alimentação - {pondName}</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <Label>Viveiro</Label>
+                  <Input
+                    value={`${pondName} - ${batchName}`}
+                    disabled
+                    className="bg-muted"
                   />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <div className="font-medium flex items-center gap-2">
-                      <Clock className="w-3 h-3" />
-                      {record.feeding_time}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      Planejado: {record.planned_amount.toFixed(1)} kg
-                      {record.actual_amount > 0 && (
-                        <span className="ml-2 text-success">
-                          • Realizado: {record.actual_amount.toFixed(1)} kg
-                          {record.feed_type_name && (
-                            <span className="ml-1">({record.feed_type_name})</span>
-                          )}
-                        </span>
-                      )}
-                    </div>
+                    <Label>Data</Label>
+                    <Input
+                      type="date"
+                      value={feedingDate}
+                      onChange={(e) => setFeedingDate(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <Label>Horário</Label>
+                    <Input
+                      type="time"
+                      value={feedingTime}
+                      onChange={(e) => setFeedingTime(e.target.value)}
+                    />
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  {record.completed && (
-                    <Check className="w-4 h-4 text-success" />
+                <div>
+                  <Label>Tipo de Ração *</Label>
+                  <Select value={selectedFeedType} onValueChange={setSelectedFeedType}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o tipo de ração..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableFeeds.map((feed) => (
+                        <SelectItem key={feed.id} value={feed.id}>
+                          {feed.name} - Disponível: {feed.quantity}kg (R$ {feed.unit_price}/kg)
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {availableFeeds.length === 0 && (
+                    <p className="text-xs text-destructive mt-1">
+                      Nenhuma ração disponível no estoque
+                    </p>
                   )}
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={() => handleEditFeeding(record)}
-                      >
-                        <Edit2 className="w-3 h-3" />
-                        {record.completed ? 'Editar' : 'Registrar'}
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-md">
-                      <DialogHeader>
-                        <DialogTitle>Registrar Alimentação - {record.feeding_time}</DialogTitle>
-                      </DialogHeader>
-                      <div className="space-y-4">
-                        <div>
-                          <Label>Quantidade Planejada</Label>
-                          <Input
-                            value={record.planned_amount.toFixed(1) + " kg"}
-                            disabled
-                            className="bg-muted"
-                          />
-                        </div>
-                        <div>
-                          <Label>Tipo de Ração *</Label>
-                          <select
-                            className="w-full p-2 border border-border rounded-md bg-background"
-                            value={selectedFeedType}
-                            onChange={(e) => setSelectedFeedType(e.target.value)}
-                          >
-                            <option value="">Selecione o tipo de ração...</option>
-                            {availableFeeds.map((feed) => (
-                              <option key={feed.id} value={feed.id}>
-                                {feed.name} - Disponível: {feed.quantity}kg (R$ {feed.unit_price}/kg)
-                              </option>
-                            ))}
-                          </select>
-                          {availableFeeds.length === 0 && (
-                            <p className="text-xs text-destructive mt-1">
-                              Nenhuma ração disponível no estoque
-                            </p>
-                          )}
-                        </div>
-                        <div>
-                          <Label>Quantidade Realizada (kg) *</Label>
-                          <Input
-                            type="number"
-                            step="0.1"
-                            value={actualAmount}
-                            onChange={(e) => setActualAmount(e.target.value)}
-                            placeholder="Ex: 2.5"
-                          />
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Sugerido: {record.planned_amount.toFixed(1)}kg
-                          </p>
-                        </div>
-                        <div>
-                          <Label>Observações</Label>
-                          <Textarea
-                            value={notes}
-                            onChange={(e) => setNotes(e.target.value)}
-                            placeholder="Observações sobre a alimentação..."
-                          />
-                        </div>
-                        <div className="flex gap-2">
-                          <Button 
-                            onClick={handleSaveFeeding}
-                            disabled={!selectedFeedType || !actualAmount || availableFeeds.length === 0}
-                          >
-                            Registrar Alimentação
-                          </Button>
-                          <Button 
-                            variant="outline" 
-                            onClick={() => {
-                              setEditingRecord(null);
-                              setActualAmount("");
-                              setNotes("");
-                              setSelectedFeedType("");
-                            }}
-                          >
-                            Cancelar
-                          </Button>
-                        </div>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
+                </div>
+                <div>
+                  <Label>Quantidade (kg) *</Label>
+                  <Input
+                    type="number"
+                    step="0.1"
+                    value={actualAmount}
+                    onChange={(e) => setActualAmount(e.target.value)}
+                    placeholder="Ex: 2.5"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Sugerido por refeição: {feedPerMeal.toFixed(1)}kg
+                  </p>
+                </div>
+                <div>
+                  <Label>Observações</Label>
+                  <Textarea
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    placeholder="Observações sobre a alimentação..."
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button 
+                    onClick={handleSaveFeeding}
+                    disabled={!selectedFeedType || !actualAmount || !feedingTime || availableFeeds.length === 0}
+                    className="flex-1"
+                  >
+                    Registrar Alimentação
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setIsDialogOpen(false)}
+                  >
+                    Cancelar
+                  </Button>
                 </div>
               </div>
-            ))}
-          </div>
+            </DialogContent>
+          </Dialog>
         </div>
 
-        {completionRate < 100 && (
-          <div className="flex items-center space-x-2 text-sm text-amber-600">
-            <AlertCircle className="w-4 h-4" />
-            <span>Pendente: {feedingRecords.filter(r => !r.completed).length} refeições</span>
+        {/* Feeding History */}
+        {feedingRecords.length > 0 && (
+          <div className="space-y-2">
+            <div className="text-sm font-medium">Alimentações de Hoje</div>
+            <div className="space-y-2 max-h-60 overflow-y-auto">
+              {feedingRecords.map((record) => (
+                <div key={record.id} className="flex items-center justify-between p-3 border border-border rounded-lg bg-muted/30">
+                  <div className="flex items-center space-x-3">
+                    <Clock className="w-4 h-4 text-muted-foreground" />
+                    <div>
+                      <div className="font-medium">{record.feeding_time}</div>
+                      <div className="text-sm text-muted-foreground">
+                        {record.actual_amount.toFixed(1)}kg de {record.feed_type_name}
+                        {record.notes && (
+                          <span className="block text-xs">{record.notes}</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleRemoveFeeding(record.id)}
+                    className="text-destructive hover:text-destructive"
+                  >
+                    Remover
+                  </Button>
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </CardContent>

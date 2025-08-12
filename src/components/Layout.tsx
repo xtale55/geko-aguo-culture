@@ -1,6 +1,6 @@
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { Fish, LogOut, Settings, Home, Waves, Scale, Skull, Utensils } from 'lucide-react';
+import { Fish, LogOut, Settings, Home, Waves, Scale, Skull, Utensils, Package } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 interface LayoutProps {
@@ -100,13 +100,13 @@ export function Layout({ children }: LayoutProps) {
       </main>
 
       {/* Mobile Bottom Navigation */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-card border-t border-border">
-        <div className="grid grid-cols-5 gap-1 p-2">
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-card border-t border-border overflow-x-auto">
+        <div className="flex min-w-max">
           <Button
             variant={isActive('/dashboard') ? 'default' : 'ghost'}
             size="sm"
             onClick={() => navigate('/dashboard')}
-            className="flex flex-col items-center space-y-1 h-12"
+            className="flex flex-col items-center space-y-1 h-16 min-w-16 px-3"
           >
             <Home className="w-4 h-4" />
             <span className="text-xs">Home</span>
@@ -115,7 +115,7 @@ export function Layout({ children }: LayoutProps) {
             variant={isActive('/farm') ? 'default' : 'ghost'}
             size="sm"
             onClick={() => navigate('/farm')}
-            className="flex flex-col items-center space-y-1 h-12"
+            className="flex flex-col items-center space-y-1 h-16 min-w-16 px-3"
           >
             <Waves className="w-4 h-4" />
             <span className="text-xs">Fazenda</span>
@@ -124,7 +124,7 @@ export function Layout({ children }: LayoutProps) {
             variant={isActive('/biometry') ? 'default' : 'ghost'}
             size="sm"
             onClick={() => navigate('/biometry')}
-            className="flex flex-col items-center space-y-1 h-12"
+            className="flex flex-col items-center space-y-1 h-16 min-w-16 px-3"
           >
             <Scale className="w-4 h-4" />
             <span className="text-xs">Biometria</span>
@@ -133,7 +133,7 @@ export function Layout({ children }: LayoutProps) {
             variant={isActive('/feeding') ? 'default' : 'ghost'}
             size="sm"
             onClick={() => navigate('/feeding')}
-            className="flex flex-col items-center space-y-1 h-12"
+            className="flex flex-col items-center space-y-1 h-16 min-w-16 px-3"
           >
             <Utensils className="w-4 h-4" />
             <span className="text-xs">Ração</span>
@@ -142,7 +142,7 @@ export function Layout({ children }: LayoutProps) {
             variant={isActive('/mortality') ? 'default' : 'ghost'}
             size="sm"
             onClick={() => navigate('/mortality')}
-            className="flex flex-col items-center space-y-1 h-12"
+            className="flex flex-col items-center space-y-1 h-16 min-w-16 px-3"
           >
             <Skull className="w-4 h-4" />
             <span className="text-xs">Mortalidade</span>

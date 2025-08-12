@@ -108,40 +108,93 @@ export default function Reports() {
         return;
       }
 
-      const farmId = farms[0].id;
-      const currentFarmArea = farms[0].total_area || 1;
+      const farmIds = farms.map(f => f.id);
+      const currentFarmArea = farms.reduce((sum, farm) => sum + (farm.total_area || 0), 0) || 1;
       setFarmArea(currentFarmArea);
 
-      // Get comprehensive cycle data
-      const { data: cycles } = await supabase
-        .from('pond_batches')
-        .select(`
-          *,
-          ponds(name, area),
-          batches(name, total_pl_quantity, pl_cost),
-          biometrics(average_weight, measurement_date),
-          mortality_records(dead_count, record_date),
-          feeding_records(actual_amount, unit_cost)
-        `)
-        .in('pond_id', 
-          await supabase
-            .from('ponds')
-            .select('id')
-            .eq('farm_id', farmId)
-            .then(({ data }) => data?.map(p => p.id) || [])
-        );
+      // Get ponds first
+      const { data: ponds, error: pondsError } = await supabase
+        .from('ponds')
+        .select('id, name, area, farm_id')
+        .in('farm_id', farmIds);
 
-      // Get operational costs
+      if (pondsError) throw pondsError;
+      if (!ponds || ponds.length === 0) {
+        setLoading(false);
+        return;
+      }
+
+      const pondIds = ponds.map(p => p.id);
+
+      // Get pond batches with active populations
+      const { data: pondBatches, error: batchesError } = await supabase
+        .from('pond_batches')
+        .select('*')
+        .in('pond_id', pondIds)
+        .gte('current_population', 1);
+
+      if (batchesError) throw batchesError;
+      if (!pondBatches || pondBatches.length === 0) {
+        setLoading(false);
+        return;
+      }
+
+      const pondBatchIds = pondBatches.map(pb => pb.id);
+      const batchIds = pondBatches.map(pb => pb.batch_id);
+
+      // Get batches data
+      const { data: batches } = await supabase
+        .from('batches')
+        .select('*')
+        .in('id', batchIds);
+
+      // Get biometrics data
+      const { data: biometrics } = await supabase
+        .from('biometrics')
+        .select('*')
+        .in('pond_batch_id', pondBatchIds)
+        .order('measurement_date', { ascending: false });
+
+      // Get mortality records
+      const { data: mortality } = await supabase
+        .from('mortality_records')
+        .select('*')
+        .in('pond_batch_id', pondBatchIds);
+
+      // Get feeding records
+      const { data: feeding } = await supabase
+        .from('feeding_records')
+        .select('*')
+        .in('pond_batch_id', pondBatchIds);
+
+      const cycles = pondBatches.map(pb => {
+        const pond = ponds.find(p => p.id === pb.pond_id);
+        const batch = batches?.find(b => b.id === pb.batch_id);
+        const pbBiometrics = biometrics?.filter(b => b.pond_batch_id === pb.id) || [];
+        const pbMortality = mortality?.filter(m => m.pond_batch_id === pb.id) || [];
+        const pbFeeding = feeding?.filter(f => f.pond_batch_id === pb.id) || [];
+
+        return {
+          ...pb,
+          ponds: pond,
+          batches: batch,
+          biometrics: pbBiometrics,
+          mortality_records: pbMortality,
+          feeding_records: pbFeeding
+        };
+      });
+
+      // Get operational costs for all farms
       const { data: operationalCosts } = await supabase
         .from('operational_costs')
         .select('amount, category')
-        .eq('farm_id', farmId);
+        .in('farm_id', farmIds);
 
-      // Get inventory costs
+      // Get inventory costs for all farms
       const { data: inventory } = await supabase
         .from('inventory')
         .select('total_value, category')
-        .eq('farm_id', farmId);
+        .in('farm_id', farmIds);
 
       // Process cycles for analysis
       const processedCycles: CycleAnalysis[] = [];

@@ -67,8 +67,9 @@ export default function PondHistory() {
   const [mortalityRecords, setMortalityRecords] = useState<MortalityRecord[]>([]);
   const [waterQualityRecords, setWaterQualityRecords] = useState<WaterQualityRecord[]>([]);
   const [loading, setLoading] = useState(true);
-  const [editingBatch, setEditingBatch] = useState<string | null>(null);
-  const [newPlCost, setNewPlCost] = useState<string>("");
+  const [editingCost, setEditingCost] = useState<{ cycleId: string, costType: string } | null>(null);
+  const [newCostValue, setNewCostValue] = useState<string>("");
+  const [editingCycleData, setEditingCycleData] = useState<any>(null);
   const { pondId: cycleId } = useParams(); // Actually receiving cycle_id
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -103,7 +104,7 @@ export default function PondHistory() {
           .from('pond_batches')
           .select(`
             *,
-            batches(name, pl_cost),
+            batches(id, name, pl_cost),
             biometrics(average_weight, measurement_date, uniformity, sample_size),
             mortality_records(record_date, dead_count, notes)
           `)
@@ -233,29 +234,68 @@ export default function PondHistory() {
     }
   };
 
-  const handleEditPlCost = (batchId: string, currentCost: number) => {
-    setEditingBatch(batchId);
-    setNewPlCost((currentCost / 1000).toString()); // Convert back to per thousand for editing
+  const handleEditCost = (cycleId: string, costType: string, currentValue: number, cycleData: any) => {
+    setEditingCost({ cycleId, costType });
+    setEditingCycleData(cycleData);
+    
+    // Set the appropriate current value based on cost type
+    switch (costType) {
+      case 'pl_cost':
+        setNewCostValue((currentValue / (cycleData.pl_quantity / 1000)).toString()); // Convert to per thousand
+        break;
+      case 'preparation_cost':
+        setNewCostValue(currentValue.toString());
+        break;
+      default:
+        setNewCostValue(currentValue.toString());
+    }
   };
 
-  const handleSavePlCost = async () => {
-    if (!editingBatch || !newPlCost) return;
+  const handleSaveCost = async () => {
+    if (!editingCost || !newCostValue || !editingCycleData) return;
 
     try {
-      const { error } = await supabase
-        .from('batches')
-        .update({ pl_cost: parseFloat(newPlCost) })
-        .eq('id', editingBatch);
+      const newValue = parseFloat(newCostValue);
 
-      if (error) throw error;
+      if (editingCost.costType === 'pl_cost') {
+        // Find the batch ID from the cycle data
+        const cycleData = cycles.find(c => c.cycle_id === editingCost.cycleId);
+        if (!cycleData) throw new Error('Ciclo não encontrado');
+
+        // Get the batch ID from the database
+        const { data: batchData } = await supabase
+          .from('pond_batches')
+          .select('batch_id')
+          .eq('id', editingCost.cycleId)
+          .single();
+
+        if (!batchData) throw new Error('Batch não encontrado');
+
+        const { error } = await supabase
+          .from('batches')
+          .update({ pl_cost: newValue })
+          .eq('id', batchData.batch_id);
+
+        if (error) throw error;
+      } else if (editingCost.costType === 'preparation_cost') {
+        const { error } = await supabase
+          .from('pond_batches')
+          .update({ preparation_cost: newValue })
+          .eq('id', editingCost.cycleId);
+
+        if (error) throw error;
+      } else {
+        throw new Error('Tipo de custo não suportado');
+      }
 
       toast({
         title: "Sucesso",
-        description: "Custo de pós-larvas atualizado com sucesso!"
+        description: "Custo atualizado com sucesso!"
       });
 
-      setEditingBatch(null);
-      setNewPlCost("");
+      setEditingCost(null);
+      setNewCostValue("");
+      setEditingCycleData(null);
       loadPondHistory(); // Reload data
     } catch (error: any) {
       toast({
@@ -403,6 +443,7 @@ export default function PondHistory() {
                 <div className="border-t pt-3">
                   <h4 className="font-medium mb-2">Detalhamento de Custos</h4>
                   <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-sm">
+                    {/* Pós-Larvas */}
                     <div>
                       <div className="flex items-center justify-between">
                         <p className="text-muted-foreground">Pós-Larvas</p>
@@ -411,13 +452,10 @@ export default function PondHistory() {
                             <Button 
                               variant="ghost" 
                               size="sm" 
-                              onClick={() => {
-                                const batch = cycles.find(c => c.cycle_id === cycle.cycle_id);
-                                if (batch) {
-                                  // Find the batch data to get the original pl_cost
-                                  handleEditPlCost(cycle.cycle_id, cycle.costs.pl_cost);
-                                }
-                              }}
+                              onClick={() => handleEditCost(cycle.cycle_id, 'pl_cost', cycle.costs.pl_cost, {
+                                batch_id: cycles.find(c => c.cycle_id === cycle.cycle_id)?.cycle_id,
+                                pl_quantity: cycle.initial_population
+                              })}
                             >
                               <Edit2 className="w-3 h-3" />
                             </Button>
@@ -428,24 +466,25 @@ export default function PondHistory() {
                             </DialogHeader>
                             <div className="space-y-4">
                               <div>
-                                <label className="text-sm font-medium">Custo por mil pós-larvas (R$)</label>
+                                <label className="text-sm font-medium">Valor por mil pós-larvas (R$)</label>
                                 <Input
                                   type="number"
                                   step="0.01"
-                                  value={newPlCost}
-                                  onChange={(e) => setNewPlCost(e.target.value)}
+                                  value={newCostValue}
+                                  onChange={(e) => setNewCostValue(e.target.value)}
                                   placeholder="Ex: 0.50"
                                 />
                               </div>
                               <div className="flex gap-2">
-                                <Button onClick={handleSavePlCost} disabled={!newPlCost}>
+                                <Button onClick={handleSaveCost} disabled={!newCostValue}>
                                   Salvar
                                 </Button>
                                 <Button 
                                   variant="outline" 
                                   onClick={() => {
-                                    setEditingBatch(null);
-                                    setNewPlCost("");
+                                    setEditingCost(null);
+                                    setNewCostValue("");
+                                    setEditingCycleData(null);
                                   }}
                                 >
                                   Cancelar
@@ -457,20 +496,82 @@ export default function PondHistory() {
                       </div>
                       <p className="font-medium">R$ {cycle.costs.pl_cost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
                     </div>
+                    
+                    {/* Preparação */}
                     <div>
-                      <p className="text-muted-foreground">Preparação</p>
+                      <div className="flex items-center justify-between">
+                        <p className="text-muted-foreground">Preparação</p>
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              onClick={() => handleEditCost(cycle.cycle_id, 'preparation_cost', cycle.costs.preparation_cost, {})}
+                            >
+                              <Edit2 className="w-3 h-3" />
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Editar Custo de Preparação</DialogTitle>
+                            </DialogHeader>
+                            <div className="space-y-4">
+                              <div>
+                                <label className="text-sm font-medium">Custo de preparação (R$)</label>
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  value={newCostValue}
+                                  onChange={(e) => setNewCostValue(e.target.value)}
+                                  placeholder="Ex: 500.00"
+                                />
+                              </div>
+                              <div className="flex gap-2">
+                                <Button onClick={handleSaveCost} disabled={!newCostValue}>
+                                  Salvar
+                                </Button>
+                                <Button 
+                                  variant="outline" 
+                                  onClick={() => {
+                                    setEditingCost(null);
+                                    setNewCostValue("");
+                                    setEditingCycleData(null);
+                                  }}
+                                >
+                                  Cancelar
+                                </Button>
+                              </div>
+                            </div>
+                          </DialogContent>
+                        </Dialog>
+                      </div>
                       <p className="font-medium">R$ {cycle.costs.preparation_cost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
                     </div>
+                    
+                    {/* Ração (Estimada) */}
                     <div>
-                      <p className="text-muted-foreground">Ração (Est.)</p>
+                      <div className="flex items-center justify-between">
+                        <p className="text-muted-foreground">Ração (Est.)</p>
+                        <span className="text-xs text-muted-foreground">(Calculado)</span>
+                      </div>
                       <p className="font-medium">R$ {cycle.costs.feed_cost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
                     </div>
+                    
+                    {/* Mão de Obra */}
                     <div>
-                      <p className="text-muted-foreground">Mão de Obra</p>
+                      <div className="flex items-center justify-between">
+                        <p className="text-muted-foreground">Mão de Obra</p>
+                        <span className="text-xs text-muted-foreground">(Calculado)</span>
+                      </div>
                       <p className="font-medium">R$ {cycle.costs.labor_cost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
                     </div>
+                    
+                    {/* Outros */}
                     <div>
-                      <p className="text-muted-foreground">Outros</p>
+                      <div className="flex items-center justify-between">
+                        <p className="text-muted-foreground">Outros</p>
+                        <span className="text-xs text-muted-foreground">(Inventário)</span>
+                      </div>
                       <p className="font-medium">R$ {cycle.costs.inventory_cost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
                     </div>
                   </div>

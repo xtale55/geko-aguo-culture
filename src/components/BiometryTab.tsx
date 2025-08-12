@@ -5,9 +5,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { Scale } from 'lucide-react';
+import { Scale, History, Edit2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface PondWithBatch {
@@ -37,18 +39,34 @@ interface BiometryData {
   sample_size: number;
 }
 
+interface BiometryRecord {
+  id: string;
+  measurement_date: string;
+  average_weight: number;
+  uniformity: number;
+  sample_size: number;
+  created_at: string;
+  pond_name: string;
+  batch_name: string;
+}
+
 export function BiometryTab() {
   const [ponds, setPonds] = useState<PondWithBatch[]>([]);
+  const [biometryHistory, setBiometryHistory] = useState<BiometryRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [historyLoading, setHistoryLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [showDialog, setShowDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
   const [selectedPond, setSelectedPond] = useState<PondWithBatch | null>(null);
+  const [editingBiometry, setEditingBiometry] = useState<BiometryRecord | null>(null);
   const { user } = useAuth();
   const { toast } = useToast();
 
   useEffect(() => {
     if (user) {
       loadActivePonds();
+      loadBiometryHistory();
     }
   }, [user]);
 
@@ -154,6 +172,7 @@ export function BiometryTab() {
       setShowDialog(false);
       setSelectedPond(null);
       loadActivePonds();
+      loadBiometryHistory();
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -165,9 +184,105 @@ export function BiometryTab() {
     }
   };
 
+  const loadBiometryHistory = async () => {
+    setHistoryLoading(true);
+    try {
+      const { data: farmsData, error: farmsError } = await supabase
+        .from('farms')
+        .select('id')
+        .eq('user_id', user?.id);
+
+      if (farmsError) throw farmsError;
+
+      if (farmsData && farmsData.length > 0) {
+        const { data: biometryData, error: biometryError } = await supabase
+          .from('biometrics')
+          .select(`
+            *,
+            pond_batches!inner(
+              ponds!inner(name, farm_id),
+              batches!inner(name)
+            )
+          `)
+          .eq('pond_batches.ponds.farm_id', farmsData[0].id)
+          .order('created_at', { ascending: false });
+
+        if (biometryError) throw biometryError;
+
+        const formattedHistory = biometryData?.map(record => ({
+          id: record.id,
+          measurement_date: record.measurement_date,
+          average_weight: record.average_weight,
+          uniformity: record.uniformity || 0,
+          sample_size: record.sample_size || 0,
+          created_at: record.created_at,
+          pond_name: record.pond_batches.ponds.name,
+          batch_name: record.pond_batches.batches.name
+        })) || [];
+
+        setBiometryHistory(formattedHistory);
+      }
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: error.message
+      });
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
   const openBiometryDialog = (pond: PondWithBatch) => {
     setSelectedPond(pond);
     setShowDialog(true);
+  };
+
+  const openEditDialog = (biometry: BiometryRecord) => {
+    setEditingBiometry(biometry);
+    setShowEditDialog(true);
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!editingBiometry) return;
+
+    const formData = new FormData(e.currentTarget);
+    setSubmitting(true);
+
+    try {
+      const updatedData = {
+        measurement_date: formData.get('measurement_date') as string,
+        average_weight: parseFloat(formData.get('average_weight') as string),
+        uniformity: parseFloat(formData.get('uniformity') as string) || 0,
+        sample_size: parseInt(formData.get('sample_size') as string) || 0
+      };
+
+      const { error } = await supabase
+        .from('biometrics')
+        .update(updatedData)
+        .eq('id', editingBiometry.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Biometria atualizada!",
+        description: `Registro de ${editingBiometry.pond_name} foi atualizado com sucesso.`
+      });
+
+      setShowEditDialog(false);
+      setEditingBiometry(null);
+      loadActivePonds();
+      loadBiometryHistory();
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: error.message
+      });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (loading) {
@@ -197,8 +312,21 @@ export function BiometryTab() {
 
   return (
     <div className="space-y-6">
-      {/* Ponds Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <Tabs defaultValue="active" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="active" className="flex items-center gap-2">
+            <Scale className="w-4 h-4" />
+            Viveiros Ativos
+          </TabsTrigger>
+          <TabsTrigger value="history" className="flex items-center gap-2">
+            <History className="w-4 h-4" />
+            Histórico
+          </TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="active" className="mt-6">
+          {/* Ponds Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {ponds.map((pond) => {
           const batch = pond.current_batch!;
           const doc = calculateDOC(batch.stocking_date);
@@ -274,7 +402,78 @@ export function BiometryTab() {
             </Card>
           );
         })}
-      </div>
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="history" className="mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Histórico de Biometrias</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {historyLoading ? (
+                <div className="animate-pulse space-y-4">
+                  {[1, 2, 3].map(i => (
+                    <div key={i} className="h-12 bg-muted rounded"></div>
+                  ))}
+                </div>
+              ) : biometryHistory.length === 0 ? (
+                <div className="text-center py-8">
+                  <History className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground">Nenhuma biometria registrada ainda.</p>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Viveiro</TableHead>
+                      <TableHead>Lote</TableHead>
+                      <TableHead>Data Medição</TableHead>
+                      <TableHead>Peso Médio</TableHead>
+                      <TableHead>Uniformidade</TableHead>
+                      <TableHead>Amostra</TableHead>
+                      <TableHead>Registrado em</TableHead>
+                      <TableHead>Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {biometryHistory.map((record) => (
+                      <TableRow key={record.id}>
+                        <TableCell className="font-medium">{record.pond_name}</TableCell>
+                        <TableCell>{record.batch_name}</TableCell>
+                        <TableCell>
+                          {new Date(record.measurement_date).toLocaleDateString('pt-BR')}
+                        </TableCell>
+                        <TableCell className="font-medium text-primary">
+                          {record.average_weight}g
+                        </TableCell>
+                        <TableCell>
+                          {record.uniformity > 0 ? `${record.uniformity}%` : '-'}
+                        </TableCell>
+                        <TableCell>
+                          {record.sample_size > 0 ? record.sample_size : '-'}
+                        </TableCell>
+                        <TableCell>
+                          {new Date(record.created_at).toLocaleDateString('pt-BR')} {new Date(record.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openEditDialog(record)}
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       {/* Biometry Dialog */}
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
@@ -343,6 +542,78 @@ export function BiometryTab() {
               </Button>
             </div>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Biometry Dialog */}
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              Editar Biometria - {editingBiometry?.pond_name}
+            </DialogTitle>
+          </DialogHeader>
+          {editingBiometry && (
+            <form onSubmit={handleEditSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit_measurement_date">Data da Medição</Label>
+                <Input
+                  id="edit_measurement_date"
+                  name="measurement_date"
+                  type="date"
+                  defaultValue={editingBiometry.measurement_date}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit_average_weight">Peso Médio (g)</Label>
+                <Input
+                  id="edit_average_weight"
+                  name="average_weight"
+                  type="number"
+                  step="0.01"
+                  defaultValue={editingBiometry.average_weight}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit_uniformity">Uniformidade (%)</Label>
+                <Input
+                  id="edit_uniformity"
+                  name="uniformity"
+                  type="number"
+                  step="0.1"
+                  defaultValue={editingBiometry.uniformity || ''}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit_sample_size">Tamanho da Amostra</Label>
+                <Input
+                  id="edit_sample_size"
+                  name="sample_size"
+                  type="number"
+                  defaultValue={editingBiometry.sample_size || ''}
+                />
+              </div>
+              <div className="flex gap-2 pt-4">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => setShowEditDialog(false)}
+                  className="flex-1"
+                >
+                  Cancelar
+                </Button>
+                <Button 
+                  type="submit" 
+                  disabled={submitting}
+                  className="flex-1"
+                >
+                  {submitting ? 'Salvando...' : 'Salvar Alterações'}
+                </Button>
+              </div>
+            </form>
+          )}
         </DialogContent>
       </Dialog>
     </div>

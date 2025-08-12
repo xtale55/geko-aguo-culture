@@ -390,23 +390,23 @@ export default function Feeding() {
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {feedingTasks.map((task) => (
-              <div key={task.pond_id} onClick={() => setSelectedPond(task.pond_batch_id)}>
-                <FeedingSchedule
-                  pondId={task.pond_id}
-                  pondName={task.pond_name}
-                  batchName={task.batch_name}
-                  pondBatchId={task.pond_batch_id}
-                  biomass={task.biomass}
-                  feedingRate={task.feeding_rate}
-                  mealsPerDay={task.meals_per_day}
-                  dailyFeed={task.daily_feed}
-                  doc={task.doc}
-                  selectedDate={selectedDate}
-                  currentPopulation={task.current_population}
-                  averageWeight={task.average_weight}
-                  onFeedingUpdate={loadFeedingData}
-                />
-              </div>
+              <FeedingSchedule
+                key={task.pond_id}
+                pondId={task.pond_id}
+                pondName={task.pond_name}
+                batchName={task.batch_name}
+                pondBatchId={task.pond_batch_id}
+                biomass={task.biomass}
+                feedingRate={task.feeding_rate}
+                mealsPerDay={task.meals_per_day}
+                dailyFeed={task.daily_feed}
+                doc={task.doc}
+                selectedDate={selectedDate}
+                currentPopulation={task.current_population}
+                averageWeight={task.average_weight}
+                onFeedingUpdate={loadFeedingData}
+                onRateUpdate={loadFeedingData}
+              />
             ))}
           </div>
         </div>

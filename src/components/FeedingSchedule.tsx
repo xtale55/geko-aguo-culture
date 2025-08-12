@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 import { Check, AlertCircle, Edit2, Clock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -34,6 +35,7 @@ interface FeedingScheduleProps {
   currentPopulation: number;
   averageWeight: number;
   onFeedingUpdate: () => void;
+  onRateUpdate: () => void;
 }
 
 export function FeedingSchedule({
@@ -49,13 +51,17 @@ export function FeedingSchedule({
   selectedDate,
   currentPopulation,
   averageWeight,
-  onFeedingUpdate
+  onFeedingUpdate,
+  onRateUpdate
 }: FeedingScheduleProps) {
   const [feedingRecords, setFeedingRecords] = useState<FeedingRecord[]>([]);
   const [editingRecord, setEditingRecord] = useState<FeedingRecord | null>(null);
+  const [editingRate, setEditingRate] = useState(false);
+  const [newFeedingRate, setNewFeedingRate] = useState<string>("");
   const [actualAmount, setActualAmount] = useState<string>("");
   const [notes, setNotes] = useState<string>("");
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const defaultSchedule = ['06:00', '10:00', '14:00', '18:00', '22:00'];
   const feedPerMeal = dailyFeed / mealsPerDay;
@@ -104,6 +110,73 @@ export function FeedingSchedule({
     setEditingRecord(record);
     setActualAmount(record.actual_amount.toString());
     setNotes(record.notes || "");
+  };
+
+  const handleEditFeedingRate = () => {
+    setEditingRate(true);
+    setNewFeedingRate(feedingRate.toString());
+  };
+
+  const handleSaveFeedingRate = async () => {
+    try {
+      const newRate = parseFloat(newFeedingRate);
+      
+      if (isNaN(newRate) || newRate <= 0) {
+        toast({
+          variant: "destructive",
+          title: "Erro",
+          description: "Por favor, insira um percentual válido"
+        });
+        return;
+      }
+
+      // Check if there's already a rate for this weight range
+      const { data: existingRates } = await supabase
+        .from('feeding_rates')
+        .select('*')
+        .eq('pond_batch_id', pondBatchId)
+        .lte('weight_range_min', averageWeight)
+        .gte('weight_range_max', averageWeight);
+
+      if (existingRates && existingRates.length > 0) {
+        // Update existing rate
+        const { error } = await supabase
+          .from('feeding_rates')
+          .update({ feeding_percentage: newRate })
+          .eq('id', existingRates[0].id);
+
+        if (error) throw error;
+      } else {
+        // Create new rate for current weight
+        const { error } = await supabase
+          .from('feeding_rates')
+          .insert({
+            pond_batch_id: pondBatchId,
+            weight_range_min: Math.max(0, averageWeight - 1),
+            weight_range_max: averageWeight + 10,
+            feeding_percentage: newRate,
+            meals_per_day: mealsPerDay,
+            created_by: user?.id
+          });
+
+        if (error) throw error;
+      }
+
+      toast({
+        title: "Taxa atualizada",
+        description: `Nova taxa: ${newRate}% da biomassa`
+      });
+
+      setEditingRate(false);
+      setNewFeedingRate("");
+      onRateUpdate();
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: error.message
+      });
+    }
   };
 
   const handleSaveFeeding = async () => {
@@ -175,12 +248,60 @@ export function FeedingSchedule({
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg">{pondName}</CardTitle>
-          <Badge 
-            variant={completionRate === 100 ? "default" : completionRate > 0 ? "secondary" : "outline"}
-            className={completionRate === 100 ? "bg-success" : ""}
-          >
-            {completionRate.toFixed(0)}% concluído
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={handleEditFeedingRate}
+                >
+                  <Edit2 className="w-3 h-3 mr-1" />
+                  {feedingRate}%
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Editar Taxa de Alimentação - {pondName}</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div>
+                    <Label>Percentual da Biomassa (%)</Label>
+                    <Input
+                      type="number"
+                      step="0.1"
+                      value={newFeedingRate}
+                      onChange={(e) => setNewFeedingRate(e.target.value)}
+                      placeholder="Ex: 5.0"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Peso atual dos animais: {averageWeight}g
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button onClick={handleSaveFeedingRate} disabled={!newFeedingRate}>
+                      Salvar
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      onClick={() => {
+                        setEditingRate(false);
+                        setNewFeedingRate("");
+                      }}
+                    >
+                      Cancelar
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+            <Badge 
+              variant={completionRate === 100 ? "default" : completionRate > 0 ? "secondary" : "outline"}
+              className={completionRate === 100 ? "bg-success" : ""}
+            >
+              {completionRate.toFixed(0)}% concluído
+            </Badge>
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">

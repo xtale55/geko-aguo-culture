@@ -241,6 +241,57 @@ export type Database = {
           },
         ]
       }
+      input_applications: {
+        Row: {
+          application_date: string
+          application_time: string | null
+          created_at: string
+          dosage_per_hectare: number | null
+          id: string
+          input_item_id: string
+          input_item_name: string
+          notes: string | null
+          pond_batch_id: string
+          purpose: string | null
+          quantity_applied: number
+          total_cost: number | null
+          unit_cost: number | null
+          updated_at: string
+        }
+        Insert: {
+          application_date: string
+          application_time?: string | null
+          created_at?: string
+          dosage_per_hectare?: number | null
+          id?: string
+          input_item_id: string
+          input_item_name: string
+          notes?: string | null
+          pond_batch_id: string
+          purpose?: string | null
+          quantity_applied: number
+          total_cost?: number | null
+          unit_cost?: number | null
+          updated_at?: string
+        }
+        Update: {
+          application_date?: string
+          application_time?: string | null
+          created_at?: string
+          dosage_per_hectare?: number | null
+          id?: string
+          input_item_id?: string
+          input_item_name?: string
+          notes?: string | null
+          pond_batch_id?: string
+          purpose?: string | null
+          quantity_applied?: number
+          total_cost?: number | null
+          unit_cost?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       inventory: {
         Row: {
           brand: string | null

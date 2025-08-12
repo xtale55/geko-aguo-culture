@@ -40,7 +40,7 @@ const Home = () => {
   ];
 
   return (
-    <div className="min-h-screen" style={{ background: 'linear-gradient(135deg, hsl(210 85% 25%) 0%, hsl(195 70% 30%) 40%, hsl(160 60% 25%) 100%)' }}>
+    <div className="min-h-screen" style={{ background: 'var(--gradient-hero)' }}>
       {/* Header */}
       <header className="container mx-auto px-4 py-6">
         <div className="flex items-center justify-between">

@@ -175,6 +175,8 @@ export type Database = {
         Row: {
           actual_amount: number
           created_at: string
+          feed_type_id: string | null
+          feed_type_name: string | null
           feeding_date: string
           feeding_rate_percentage: number
           feeding_time: string
@@ -182,11 +184,14 @@ export type Database = {
           notes: string | null
           planned_amount: number
           pond_batch_id: string
+          unit_cost: number | null
           updated_at: string
         }
         Insert: {
           actual_amount?: number
           created_at?: string
+          feed_type_id?: string | null
+          feed_type_name?: string | null
           feeding_date: string
           feeding_rate_percentage?: number
           feeding_time: string
@@ -194,11 +199,14 @@ export type Database = {
           notes?: string | null
           planned_amount?: number
           pond_batch_id: string
+          unit_cost?: number | null
           updated_at?: string
         }
         Update: {
           actual_amount?: number
           created_at?: string
+          feed_type_id?: string | null
+          feed_type_name?: string | null
           feeding_date?: string
           feeding_rate_percentage?: number
           feeding_time?: string
@@ -206,9 +214,18 @@ export type Database = {
           notes?: string | null
           planned_amount?: number
           pond_batch_id?: string
+          unit_cost?: number | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "feeding_records_feed_type_id_fkey"
+            columns: ["feed_type_id"]
+            isOneToOne: false
+            referencedRelation: "inventory"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       inventory: {
         Row: {

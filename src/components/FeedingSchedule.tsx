@@ -19,6 +19,16 @@ interface FeedingRecord {
   actual_amount: number;
   completed: boolean;
   notes?: string;
+  feed_type_id?: string;
+  feed_type_name?: string;
+  unit_cost?: number;
+}
+
+interface FeedType {
+  id: string;
+  name: string;
+  quantity: number;
+  unit_price: number;
 }
 
 interface FeedingScheduleProps {
@@ -34,6 +44,7 @@ interface FeedingScheduleProps {
   selectedDate: string;
   currentPopulation: number;
   averageWeight: number;
+  farmId: string;
   onFeedingUpdate: () => void;
   onRateUpdate: () => void;
 }
@@ -51,15 +62,18 @@ export function FeedingSchedule({
   selectedDate,
   currentPopulation,
   averageWeight,
+  farmId,
   onFeedingUpdate,
   onRateUpdate
 }: FeedingScheduleProps) {
   const [feedingRecords, setFeedingRecords] = useState<FeedingRecord[]>([]);
+  const [availableFeeds, setAvailableFeeds] = useState<FeedType[]>([]);
   const [editingRecord, setEditingRecord] = useState<FeedingRecord | null>(null);
   const [editingRate, setEditingRate] = useState(false);
   const [newFeedingRate, setNewFeedingRate] = useState<string>("");
   const [newMealsPerDay, setNewMealsPerDay] = useState<string>("");
   const [actualAmount, setActualAmount] = useState<string>("");
+  const [selectedFeedType, setSelectedFeedType] = useState<string>("");
   const [notes, setNotes] = useState<string>("");
   const { toast } = useToast();
   const { user } = useAuth();
@@ -70,7 +84,25 @@ export function FeedingSchedule({
   // Initialize feeding records for the day
   React.useEffect(() => {
     loadFeedingRecords();
-  }, [pondBatchId, selectedDate]);
+    loadAvailableFeeds();
+  }, [pondBatchId, selectedDate, farmId]);
+
+  const loadAvailableFeeds = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('inventory')
+        .select('id, name, quantity, unit_price')
+        .eq('farm_id', farmId)
+        .eq('category', 'ração')
+        .gt('quantity', 0)
+        .order('name');
+
+      if (error) throw error;
+      setAvailableFeeds(data || []);
+    } catch (error: any) {
+      console.error('Error loading available feeds:', error);
+    }
+  };
 
   const loadFeedingRecords = async () => {
     try {
@@ -99,7 +131,10 @@ export function FeedingSchedule({
           planned_amount: record.planned_amount,
           actual_amount: record.actual_amount,
           completed: record.actual_amount > 0,
-          notes: record.notes || ""
+          notes: record.notes || "",
+          feed_type_id: record.feed_type_id,
+          feed_type_name: record.feed_type_name,
+          unit_cost: record.unit_cost
         })));
       }
     } catch (error: any) {
@@ -109,8 +144,9 @@ export function FeedingSchedule({
 
   const handleEditFeeding = (record: FeedingRecord) => {
     setEditingRecord(record);
-    setActualAmount(record.actual_amount.toString());
+    setActualAmount(record.planned_amount.toString()); // Pre-fill with planned amount
     setNotes(record.notes || "");
+    setSelectedFeedType(record.feed_type_id || "");
   };
 
   const handleEditFeedingRate = () => {
@@ -201,6 +237,45 @@ export function FeedingSchedule({
     try {
       const actualAmountNum = parseFloat(actualAmount) || 0;
       
+      if (actualAmountNum <= 0) {
+        toast({
+          variant: "destructive",
+          title: "Erro",
+          description: "Por favor, insira uma quantidade válida"
+        });
+        return;
+      }
+
+      if (!selectedFeedType) {
+        toast({
+          variant: "destructive",
+          title: "Erro",
+          description: "Por favor, selecione o tipo de ração"
+        });
+        return;
+      }
+
+      // Get feed details
+      const selectedFeed = availableFeeds.find(feed => feed.id === selectedFeedType);
+      if (!selectedFeed) {
+        toast({
+          variant: "destructive",
+          title: "Erro",
+          description: "Tipo de ração não encontrado"
+        });
+        return;
+      }
+
+      // Check if there's enough stock
+      if (selectedFeed.quantity < actualAmountNum) {
+        toast({
+          variant: "destructive",
+          title: "Estoque insuficiente",
+          description: `Disponível: ${selectedFeed.quantity}kg, Solicitado: ${actualAmountNum}kg`
+        });
+        return;
+      }
+      
       const feedingData = {
         pond_batch_id: pondBatchId,
         feeding_date: selectedDate,
@@ -208,6 +283,9 @@ export function FeedingSchedule({
         planned_amount: editingRecord.planned_amount,
         actual_amount: actualAmountNum,
         feeding_rate_percentage: feedingRate,
+        feed_type_id: selectedFeedType,
+        feed_type_name: selectedFeed.name,
+        unit_cost: selectedFeed.unit_price,
         notes: notes || null
       };
 
@@ -228,15 +306,28 @@ export function FeedingSchedule({
         if (error) throw error;
       }
 
+      // Update inventory - reduce stock
+      const { error: inventoryError } = await supabase
+        .from('inventory')
+        .update({ 
+          quantity: selectedFeed.quantity - actualAmountNum,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', selectedFeedType);
+
+      if (inventoryError) throw inventoryError;
+
       toast({
         title: "Alimentação registrada",
-        description: `${actualAmountNum}kg registrados para ${editingRecord.feeding_time}`
+        description: `${actualAmountNum}kg de ${selectedFeed.name} registrados para ${editingRecord.feeding_time}`
       });
 
       setEditingRecord(null);
       setActualAmount("");
       setNotes("");
+      setSelectedFeedType("");
       loadFeedingRecords();
+      loadAvailableFeeds(); // Refresh to show updated stock
       onFeedingUpdate();
     } catch (error: any) {
       toast({
@@ -396,6 +487,9 @@ export function FeedingSchedule({
                       {record.actual_amount > 0 && (
                         <span className="ml-2 text-success">
                           • Realizado: {record.actual_amount.toFixed(1)} kg
+                          {record.feed_type_name && (
+                            <span className="ml-1">({record.feed_type_name})</span>
+                          )}
                         </span>
                       )}
                     </div>
@@ -415,7 +509,7 @@ export function FeedingSchedule({
                         <Edit2 className="w-3 h-3" />
                       </Button>
                     </DialogTrigger>
-                    <DialogContent>
+                    <DialogContent className="max-w-md">
                       <DialogHeader>
                         <DialogTitle>Registrar Alimentação - {record.feeding_time}</DialogTitle>
                       </DialogHeader>
@@ -423,13 +517,33 @@ export function FeedingSchedule({
                         <div>
                           <Label>Quantidade Planejada</Label>
                           <Input
-                            value={record.planned_amount.toFixed(1)}
+                            value={record.planned_amount.toFixed(1) + " kg"}
                             disabled
                             className="bg-muted"
                           />
                         </div>
                         <div>
-                          <Label>Quantidade Realizada (kg)</Label>
+                          <Label>Tipo de Ração *</Label>
+                          <select
+                            className="w-full p-2 border border-border rounded-md bg-background"
+                            value={selectedFeedType}
+                            onChange={(e) => setSelectedFeedType(e.target.value)}
+                          >
+                            <option value="">Selecione o tipo de ração...</option>
+                            {availableFeeds.map((feed) => (
+                              <option key={feed.id} value={feed.id}>
+                                {feed.name} - Disponível: {feed.quantity}kg (R$ {feed.unit_price}/kg)
+                              </option>
+                            ))}
+                          </select>
+                          {availableFeeds.length === 0 && (
+                            <p className="text-xs text-destructive mt-1">
+                              Nenhuma ração disponível no estoque
+                            </p>
+                          )}
+                        </div>
+                        <div>
+                          <Label>Quantidade Realizada (kg) *</Label>
                           <Input
                             type="number"
                             step="0.1"
@@ -437,6 +551,9 @@ export function FeedingSchedule({
                             onChange={(e) => setActualAmount(e.target.value)}
                             placeholder="Ex: 2.5"
                           />
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Sugerido: {record.planned_amount.toFixed(1)}kg
+                          </p>
                         </div>
                         <div>
                           <Label>Observações</Label>
@@ -447,8 +564,11 @@ export function FeedingSchedule({
                           />
                         </div>
                         <div className="flex gap-2">
-                          <Button onClick={handleSaveFeeding}>
-                            Salvar
+                          <Button 
+                            onClick={handleSaveFeeding}
+                            disabled={!selectedFeedType || !actualAmount || availableFeeds.length === 0}
+                          >
+                            Registrar Alimentação
                           </Button>
                           <Button 
                             variant="outline" 
@@ -456,6 +576,7 @@ export function FeedingSchedule({
                               setEditingRecord(null);
                               setActualAmount("");
                               setNotes("");
+                              setSelectedFeedType("");
                             }}
                           >
                             Cancelar

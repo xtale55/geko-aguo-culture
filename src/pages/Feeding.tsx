@@ -431,6 +431,7 @@ export default function Feeding() {
                 selectedDate={selectedDate}
                 currentPopulation={task.current_population}
                 averageWeight={task.average_weight}
+                farmId={farms[0]?.id}
                 onFeedingUpdate={loadFeedingData}
                 onRateUpdate={loadFeedingData}
               />

@@ -12,6 +12,9 @@ import {
   Activity, BarChart3, PieChart, LineChart, FileText
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { FeedingHistoryPanel } from "@/components/FeedingHistoryPanel";
+import { GrowthAnalysis } from "@/components/GrowthAnalysis";
+import { OperationalCosts } from "@/components/OperationalCosts";
 
 interface ProductionReport {
   totalCycles: number;
@@ -37,6 +40,8 @@ interface CycleAnalysis {
   average_weight: number;
   biomass: number;
   feed_conversion: number;
+  real_fca?: number;
+  total_feed_consumed?: number;
   estimated_revenue: number;
   cycle_cost: number;
   profit_margin: number;
@@ -93,7 +98,8 @@ export default function Reports() {
           ponds(name, area),
           batches(name, total_pl_quantity, pl_cost),
           biometrics(average_weight, measurement_date),
-          mortality_records(dead_count, record_date)
+          mortality_records(dead_count, record_date),
+          feeding_records(actual_amount, unit_cost)
         `)
         .in('pond_id', 
           await supabase
@@ -102,6 +108,12 @@ export default function Reports() {
             .eq('farm_id', farmId)
             .then(({ data }) => data?.map(p => p.id) || [])
         );
+
+      // Get operational costs
+      const { data: operationalCosts } = await supabase
+        .from('operational_costs')
+        .select('amount, category')
+        .eq('farm_id', farmId);
 
       // Get inventory costs
       const { data: inventory } = await supabase
@@ -138,11 +150,29 @@ export default function Reports() {
           const biomass = (cycle.current_population * latestBiometry.average_weight) / 1000;
           totalProduction += biomass;
           
-          // Estimate costs (PL cost + preparation + estimated feed)
+          // Calculate real feed consumption
+          const totalFeedConsumed = Array.isArray(cycle.feeding_records)
+            ? cycle.feeding_records.reduce((sum, fr) => sum + fr.actual_amount, 0)
+            : 0;
+          
+          // Calculate real FCA if we have feed data and weight growth
+          const firstBiometry = cycle.biometrics
+            ?.sort((a, b) => new Date(a.measurement_date).getTime() - new Date(b.measurement_date).getTime())[0];
+          
+          let realFCA = 1.5; // Default fallback
+          if (firstBiometry && totalFeedConsumed > 0) {
+            const initialBiomass = (cycle.pl_quantity * firstBiometry.average_weight) / 1000;
+            const biomassGain = biomass - initialBiomass;
+            realFCA = biomassGain > 0 ? totalFeedConsumed / biomassGain : 1.5;
+          }
+          
+          // Calculate costs (PL cost + preparation + real feed cost)
           const plCost = cycle.batches?.pl_cost || 0;
           const preparationCost = cycle.preparation_cost || 0;
-          const estimatedFeedCost = biomass * 1.5 * 7; // Estimate: 1.5 FCR * R$7/kg
-          const cycleCost = (plCost * cycle.pl_quantity) + preparationCost + estimatedFeedCost;
+          const realFeedCost = Array.isArray(cycle.feeding_records)
+            ? cycle.feeding_records.reduce((sum, fr) => sum + (fr.actual_amount * (fr.unit_cost || 7)), 0)
+            : (biomass * 1.5 * 7);
+          const cycleCost = (plCost * cycle.pl_quantity) + preparationCost + realFeedCost;
           totalCosts += cycleCost;
 
           // Estimate revenue (R$25/kg average)
@@ -160,7 +190,9 @@ export default function Reports() {
             survival_rate: survivalRate,
             average_weight: latestBiometry.average_weight,
             biomass,
-            feed_conversion: 1.5, // Estimated
+            feed_conversion: realFCA,
+            real_fca: realFCA,
+            total_feed_consumed: totalFeedConsumed,
             estimated_revenue: estimatedRevenue,
             cycle_cost: cycleCost,
             profit_margin: profitMargin
@@ -168,9 +200,10 @@ export default function Reports() {
         }
       });
 
-      // Calculate additional costs from inventory
+      // Calculate additional costs from inventory and operational costs
       const inventoryCosts = inventory?.reduce((sum, item) => sum + item.total_value, 0) || 0;
-      const totalOperationalCosts = totalCosts + inventoryCosts;
+      const opCosts = operationalCosts?.reduce((sum, cost) => sum + cost.amount, 0) || 0;
+      const totalOperationalCosts = totalCosts + inventoryCosts + opCosts;
 
       // Calculate overall metrics
       const totalRevenue = totalProduction * 25; // R$25/kg average
@@ -368,8 +401,11 @@ export default function Reports() {
 
         {/* Detailed Analysis */}
         <Tabs defaultValue="cycles" className="w-full">
-          <TabsList>
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="cycles">Análise por Ciclo</TabsTrigger>
+            <TabsTrigger value="growth">Crescimento</TabsTrigger>
+            <TabsTrigger value="feeding">Alimentação</TabsTrigger>
+            <TabsTrigger value="costs">Custos</TabsTrigger>
             <TabsTrigger value="financial">Análise Financeira</TabsTrigger>
           </TabsList>
 
@@ -409,7 +445,7 @@ export default function Reports() {
                         </Badge>
                       </div>
 
-                      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
+                      <div className="grid grid-cols-2 md:grid-cols-6 gap-4 text-sm">
                         <div>
                           <p className="text-muted-foreground">Sobrevivência</p>
                           <p className="font-medium">{cycle.survival_rate.toFixed(1)}%</p>
@@ -421,6 +457,10 @@ export default function Reports() {
                         <div>
                           <p className="text-muted-foreground">Biomassa</p>
                           <p className="font-medium">{cycle.biomass.toFixed(1)} kg</p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground">FCA Real</p>
+                          <p className="font-medium text-accent">{cycle.real_fca?.toFixed(2) || '1.50'}</p>
                         </div>
                         <div>
                           <p className="text-muted-foreground">Receita Est.</p>
@@ -440,6 +480,18 @@ export default function Reports() {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="growth" className="space-y-4">
+            <GrowthAnalysis />
+          </TabsContent>
+
+          <TabsContent value="feeding" className="space-y-4">
+            <FeedingHistoryPanel />
+          </TabsContent>
+
+          <TabsContent value="costs" className="space-y-4">
+            <OperationalCosts />
           </TabsContent>
 
           <TabsContent value="financial" className="space-y-4">

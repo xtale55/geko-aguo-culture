@@ -329,6 +329,42 @@ export type Database = {
           },
         ]
       }
+      operational_costs: {
+        Row: {
+          amount: number
+          category: string
+          cost_date: string
+          created_at: string
+          description: string | null
+          farm_id: string
+          id: string
+          pond_batch_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          category: string
+          cost_date: string
+          created_at?: string
+          description?: string | null
+          farm_id: string
+          id?: string
+          pond_batch_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          category?: string
+          cost_date?: string
+          created_at?: string
+          description?: string | null
+          farm_id?: string
+          id?: string
+          pond_batch_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       pond_batches: {
         Row: {
           batch_id: string

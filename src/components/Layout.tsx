@@ -1,6 +1,6 @@
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { Fish, LogOut, Settings, Home, Waves, Scale, Skull, Utensils, Droplets, Package } from 'lucide-react';
+import { Fish, LogOut, Settings, Home, Waves, Scale, Skull, Utensils, Droplets, Package, BarChart3 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 interface LayoutProps {
@@ -90,6 +90,14 @@ export function Layout({ children }: LayoutProps) {
               Estoque
             </Button>
             <Button 
+              variant={isActive('/reports') ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => navigate('/reports')}
+            >
+              <BarChart3 className="w-4 h-4 mr-2" />
+              Relatórios
+            </Button>
+            <Button 
               variant={isActive('/mortality') ? 'default' : 'ghost'}
               size="sm"
               onClick={() => navigate('/mortality')}
@@ -171,6 +179,15 @@ export function Layout({ children }: LayoutProps) {
           >
             <Package className="w-4 h-4" />
             <span className="text-xs">Estoque</span>
+          </Button>
+          <Button
+            variant={isActive('/reports') ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => navigate('/reports')}
+            className="flex flex-col items-center space-y-1 h-16 min-w-16 px-3"
+          >
+            <BarChart3 className="w-4 h-4" />
+            <span className="text-xs">Relatórios</span>
           </Button>
           <Button
             variant={isActive('/mortality') ? 'default' : 'ghost'}

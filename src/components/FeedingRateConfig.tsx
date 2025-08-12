@@ -362,22 +362,6 @@ export function FeedingRateConfig({ farmId, onRateUpdate }: FeedingRateConfigPro
           </p>
         </div>
 
-        {/* Current Rate Example */}
-        {currentRate && (
-          <div className="bg-primary/10 rounded-lg p-3">
-            <div className="text-sm font-medium mb-2">Exemplo - Peixe de 5g:</div>
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <span className="text-muted-foreground">% da Biomassa:</span>
-                <span className="font-medium ml-1">{currentRate.feeding_percentage}%</span>
-              </div>
-              <div>
-                <span className="text-muted-foreground">Refeições/Dia:</span>
-                <span className="font-medium ml-1">{currentRate.meals_per_day}</span>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Farm Templates List */}
         {feedingRates.length > 0 && (

@@ -8,7 +8,7 @@ import { BiometryTab } from '@/components/BiometryTab';
 import { WaterQualityTab } from '@/components/WaterQualityTab';
 import { MortalityTab } from '@/components/MortalityTab';
 
-export default function Insumos() {
+export default function Manejos() {
   const navigate = useNavigate();
 
   return (
@@ -26,7 +26,7 @@ export default function Insumos() {
               <ArrowLeft className="w-4 h-4 mr-2" />
               Voltar
             </Button>
-            <h1 className="text-3xl font-bold text-foreground">Insumos</h1>
+            <h1 className="text-3xl font-bold text-foreground">Manejos</h1>
             <p className="text-muted-foreground">
               Gerencie biometria, qualidade da água e mortalidade
             </p>

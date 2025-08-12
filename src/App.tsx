@@ -8,7 +8,7 @@ import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Farm from "./pages/Farm";
 import Stocking from "./pages/Stocking";
-import Insumos from "./pages/Insumos";
+import Manejos from "./pages/Manejos";
 import Feeding from "./pages/Feeding";
 import Inventory from "./pages/Inventory";
 import Reports from "./pages/Reports";
@@ -28,7 +28,7 @@ const App = () => (
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/farm" element={<Farm />} />
           <Route path="/stocking" element={<Stocking />} />
-          <Route path="/insumos" element={<Insumos />} />
+          <Route path="/manejos" element={<Manejos />} />
           <Route path="/feeding" element={<Feeding />} />
           <Route path="/inventory" element={<Inventory />} />
           <Route path="/reports" element={<Reports />} />

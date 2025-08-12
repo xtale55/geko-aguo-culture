@@ -66,12 +66,12 @@ export function Layout({ children }: LayoutProps) {
               Povoamento
             </Button>
             <Button 
-              variant={isActive('/insumos') ? 'default' : 'ghost'}
+              variant={isActive('/manejos') ? 'default' : 'ghost'}
               size="sm"
-              onClick={() => navigate('/insumos')}
+              onClick={() => navigate('/manejos')}
             >
               <Fish className="w-4 h-4 mr-2" />
-              Insumos
+              Manejos
             </Button>
             <Button 
               variant={isActive('/feeding') ? 'default' : 'ghost'}
@@ -146,13 +146,13 @@ export function Layout({ children }: LayoutProps) {
             <span className="text-xs">Povoamento</span>
           </Button>
           <Button
-            variant={isActive('/insumos') ? 'default' : 'ghost'}
+            variant={isActive('/manejos') ? 'default' : 'ghost'}
             size="sm"
-            onClick={() => navigate('/insumos')}
+            onClick={() => navigate('/manejos')}
             className="flex flex-col items-center space-y-1 h-16 min-w-16 px-3"
           >
             <Fish className="w-4 h-4" />
-            <span className="text-xs">Insumos</span>
+            <span className="text-xs">Manejos</span>
           </Button>
           <Button
             variant={isActive('/feeding') ? 'default' : 'ghost'}

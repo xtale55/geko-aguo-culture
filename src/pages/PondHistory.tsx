@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -37,6 +38,13 @@ interface PondCycleHistory {
   estimated_revenue: number;
   profit_margin: number;
   status: 'active' | 'harvested';
+  pond_area: number;
+  density: number;
+  cost_per_kg: number;
+  real_fca: number;
+  weekly_growth: number;
+  productivity_per_ha: number;
+  pond_result: number;
 }
 
 interface BiometryRecord {
@@ -75,6 +83,7 @@ export default function PondHistory() {
   const [feedingRecords, setFeedingRecords] = useState<FeedingRecord[]>([]);
   const [waterQualityRecords, setWaterQualityRecords] = useState<WaterQualityRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [priceTable, setPriceTable] = useState<number>(19);
   const [editingCost, setEditingCost] = useState<{ cycleId: string, costType: string } | null>(null);
   const [newCostValue, setNewCostValue] = useState<string>("");
   const [editingCycleData, setEditingCycleData] = useState<any>(null);
@@ -82,6 +91,11 @@ export default function PondHistory() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  const calculatePriceByWeight = (weight: number, tableValue: number): number => {
+    const referenceWeight = 10; // 10g reference
+    return (weight / referenceWeight) * tableValue;
+  };
 
   useEffect(() => {
     if (user && cycleId) {
@@ -98,7 +112,7 @@ export default function PondHistory() {
         .from('pond_batches')
         .select(`
           pond_id,
-          ponds(name)
+          ponds(name, area)
         `)
         .eq('id', cycleId)
         .single();
@@ -114,7 +128,8 @@ export default function PondHistory() {
             *,
             batches(id, name, pl_cost),
             biometrics(average_weight, measurement_date, uniformity, sample_size),
-            mortality_records(record_date, dead_count, notes)
+            mortality_records(record_date, dead_count, notes),
+            ponds(area)
           `)
           .eq('pond_id', actualPondId)
           .order('stocking_date', { ascending: false });
@@ -199,6 +214,7 @@ export default function PondHistory() {
             : 0;
 
           const biomass = (cycle.current_population * latestBiometry.average_weight) / 1000;
+          const pondArea = cycle.ponds?.area || 0;
           
           // Calculate detailed costs
           const plCostTotal = (cycle.batches?.pl_cost || 0) * (cycle.pl_quantity / 1000);
@@ -215,8 +231,26 @@ export default function PondHistory() {
             ?.reduce((sum, cost) => sum + cost.amount, 0) || 0;
           
           const totalCost = plCostTotal + preparationCost + realFeedCost + operationalCost;
-          const estimatedRevenue = biomass * 25; // R$25/kg
+          
+          // Calculate estimated revenue using dynamic price table
+          const pricePerKg = calculatePriceByWeight(latestBiometry.average_weight, priceTable);
+          const estimatedRevenue = biomass * pricePerKg;
           const profitMargin = estimatedRevenue > 0 ? ((estimatedRevenue - totalCost) / estimatedRevenue) * 100 : 0;
+          
+          // Calculate additional metrics
+          const density = pondArea > 0 ? cycle.current_population / pondArea : 0;
+          const costPerKg = biomass > 0 ? totalCost / biomass : 0;
+          const productivityPerHa = pondArea > 0 ? biomass / (pondArea / 10000) : 0; // kg/ha
+          const pondResult = estimatedRevenue - totalCost;
+          
+          // Calculate FCA and weekly growth (simplified)
+          const totalFeedUsed = feedingData
+            ?.filter(feed => feed.pond_batch_id === cycle.id)
+            ?.reduce((sum, feed) => sum + feed.actual_amount, 0) || 0;
+          const realFca = biomass > 0 ? totalFeedUsed / biomass : 0;
+          
+          // Calculate weekly growth (estimate based on DOC)
+          const weeklyGrowth = doc > 0 ? (latestBiometry.average_weight / (doc / 7)) : 0;
 
           processedCycles.push({
             cycle_id: cycle.id,
@@ -228,6 +262,13 @@ export default function PondHistory() {
             survival_rate: survivalRate,
             average_weight: latestBiometry.average_weight,
             biomass,
+            pond_area: pondArea,
+            density,
+            cost_per_kg: costPerKg,
+            real_fca: realFca,
+            weekly_growth: weeklyGrowth,
+            productivity_per_ha: productivityPerHa,
+            pond_result: pondResult,
             costs: {
               pl_cost: plCostTotal,
               preparation_cost: preparationCost,
@@ -383,6 +424,25 @@ export default function PondHistory() {
               Análise completa de custos e performance do viveiro
             </p>
           </div>
+          
+          {/* Price Table Configuration */}
+          <div className="flex items-center gap-2">
+            <Label htmlFor="priceTable" className="text-sm font-medium">
+              Tabela de Preços:
+            </Label>
+            <select
+              id="priceTable"
+              value={priceTable}
+              onChange={(e) => setPriceTable(Number(e.target.value))}
+              className="h-9 px-3 py-1 text-sm border border-input bg-background rounded-md"
+            >
+              {Array.from({ length: 31 }, (_, i) => 10 + (i * 0.5)).map(value => (
+                <option key={value} value={value}>
+                  R$ {value.toFixed(1)}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         {/* Cycles Summary */}
@@ -448,36 +508,71 @@ export default function PondHistory() {
                   </Badge>
                 </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-6 gap-4 text-sm">
-                  <div>
-                    <p className="text-muted-foreground">Sobrevivência</p>
-                    <p className="font-medium">{cycle.survival_rate.toFixed(1)}%</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Peso Médio</p>
-                    <p className="font-medium">{cycle.average_weight.toFixed(1)}g</p>
-                  </div>
+                {/* Main Performance Metrics */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                   <div>
                     <p className="text-muted-foreground">Biomassa</p>
                     <p className="font-medium">{cycle.biomass.toFixed(1)} kg</p>
                   </div>
                   <div>
-                    <p className="text-muted-foreground">Receita Est.</p>
-                    <p className="font-medium text-green-600">
-                      R$ {cycle.estimated_revenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                    </p>
+                    <p className="text-muted-foreground">Peso Atual</p>
+                    <p className="font-medium">{cycle.average_weight.toFixed(1)}g</p>
                   </div>
                   <div>
-                    <p className="text-muted-foreground">Custo Total</p>
-                    <p className="font-medium text-red-600">
-                      R$ {cycle.costs.total_cost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                    </p>
+                    <p className="text-muted-foreground">Crescimento</p>
+                    <p className="font-medium">{cycle.weekly_growth.toFixed(1)}g/sem</p>
                   </div>
                   <div>
-                    <p className="text-muted-foreground">Margem</p>
-                    <p className={`font-medium ${cycle.profit_margin > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {cycle.profit_margin.toFixed(1)}%
-                    </p>
+                    <p className="text-muted-foreground">FCA Real</p>
+                    <p className="font-medium">{cycle.real_fca.toFixed(2)}</p>
+                  </div>
+                </div>
+
+                {/* Secondary Metrics */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                  <div>
+                    <p className="text-muted-foreground">Densidade</p>
+                    <p className="font-medium">{cycle.density.toFixed(1)} Un/m²</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Custo/kg</p>
+                    <p className="font-medium">R$ {cycle.cost_per_kg.toFixed(2)}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">População</p>
+                    <p className="font-medium">{cycle.current_population.toLocaleString('pt-BR')}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Sobrevivência</p>
+                    <p className="font-medium">{cycle.survival_rate.toFixed(1)}%</p>
+                  </div>
+                </div>
+
+                {/* Financial Summary */}
+                <div className="bg-muted/50 rounded-lg p-3">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                    <div>
+                      <p className="text-muted-foreground">Receita Estimada</p>
+                      <p className="font-medium text-green-600">
+                        R$ {cycle.estimated_revenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Custo Total</p>
+                      <p className="font-medium text-red-600">
+                        R$ {cycle.costs.total_cost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Resultado do Viveiro</p>
+                      <p className={`font-medium ${cycle.pond_result > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        R$ {cycle.pond_result.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Produtividade</p>
+                      <p className="font-medium">{cycle.productivity_per_ha.toFixed(1)} kg/ha</p>
+                    </div>
                   </div>
                 </div>
 

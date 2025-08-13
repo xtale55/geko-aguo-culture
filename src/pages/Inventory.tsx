@@ -58,8 +58,8 @@ export default function Inventory() {
     category: "",
     brand: "",
     supplier: "",
-    quantity: 0,
-    unit_price: 0,
+    quantity: '',
+    unit_price: '',
     entry_date: new Date().toISOString().split('T')[0],
     farm_id: ""
   });
@@ -115,8 +115,10 @@ export default function Inventory() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const total_value = formData.quantity * formData.unit_price;
-    const itemData = { ...formData, total_value };
+    const quantity = parseFloat(formData.quantity.toString()) || 0;
+    const unit_price = parseFloat(formData.unit_price.toString()) || 0;
+    const total_value = quantity * unit_price;
+    const itemData = { ...formData, quantity, unit_price, total_value };
 
     try {
       if (editingItem) {
@@ -184,8 +186,8 @@ export default function Inventory() {
       category: "",
       brand: "",
       supplier: "",
-      quantity: 0,
-      unit_price: 0,
+      quantity: '',
+      unit_price: '',
       entry_date: new Date().toISOString().split('T')[0],
       farm_id: farms[0]?.id || ""
     });
@@ -200,8 +202,8 @@ export default function Inventory() {
       category: item.category,
       brand: item.brand || "",
       supplier: item.supplier || "",
-      quantity: item.quantity,
-      unit_price: item.unit_price,
+      quantity: item.quantity.toString(),
+      unit_price: item.unit_price.toString(),
       entry_date: item.entry_date,
       farm_id: item.farm_id
     });
@@ -316,7 +318,7 @@ export default function Inventory() {
                     type="number"
                     step="0.01"
                     value={formData.quantity}
-                    onChange={(e) => setFormData({...formData, quantity: parseFloat(e.target.value) || 0})}
+                    onChange={(e) => setFormData({...formData, quantity: e.target.value})}
                     required
                     placeholder="Ex: 30 (para 1 saca de 30kg)"
                   />
@@ -328,8 +330,9 @@ export default function Inventory() {
                     type="number"
                     step="0.01"
                     value={formData.unit_price}
-                    onChange={(e) => setFormData({...formData, unit_price: parseFloat(e.target.value) || 0})}
+                    onChange={(e) => setFormData({...formData, unit_price: e.target.value})}
                     required
+                    placeholder="Ex: 80.00"
                   />
                 </div>
                 <div>

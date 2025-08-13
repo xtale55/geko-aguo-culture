@@ -56,7 +56,7 @@ export function StockingContent() {
     initial_quantity: 0,
     size_cm: 0,
     cost_per_thousand: 0,
-    survival_rate: 85
+    survival_rate: 0
   });
 
   const [allocations, setAllocations] = useState<PondAllocation[]>([]);
@@ -73,7 +73,7 @@ export function StockingContent() {
       const initialAllocations = ponds.map(pond => ({
         pond_id: pond.id,
         quantity: 0,
-        preparation_cost: pond.area * 500
+        preparation_cost: 0
       }));
       setAllocations(initialAllocations);
     }
@@ -313,18 +313,18 @@ export function StockingContent() {
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="survival_rate">Taxa de Sobrevivência (%)</Label>
-                <Input
-                  id="survival_rate"
-                  type="number"
-                  min="0"
-                  max="100"
-                  placeholder="Ex: 85"
-                  value={batchData.survival_rate || ''}
-                  onChange={(e) => setBatchData(prev => ({ ...prev, survival_rate: parseInt(e.target.value) || 85 }))}
-                />
-              </div>
+                <div className="space-y-2">
+                  <Label htmlFor="survival_rate">Taxa de Sobrevivência (%)</Label>
+                  <Input
+                    id="survival_rate"
+                    type="number"
+                    min="0"
+                    max="100"
+                    placeholder="Ex: 85"
+                    value={batchData.survival_rate || ''}
+                    onChange={(e) => setBatchData(prev => ({ ...prev, survival_rate: parseInt(e.target.value) || 0 }))}
+                  />
+                </div>
             </div>
 
             <div className="flex justify-end pt-4">
@@ -420,7 +420,7 @@ export function StockingContent() {
                         step="0.01"
                         value={allocation.preparation_cost || ''}
                         onChange={(e) => updateAllocation(pond.id, 'preparation_cost', parseFloat(e.target.value) || 0)}
-                        placeholder="0.00"
+                        placeholder="Ex: 5000"
                       />
                     </div>
 

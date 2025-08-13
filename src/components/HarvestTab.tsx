@@ -77,7 +77,7 @@ const HarvestTab = () => {
             )
           )
         `)
-        .eq('status', 'occupied');
+        .eq('status', 'in_use');
 
       if (pondsError) throw pondsError;
 

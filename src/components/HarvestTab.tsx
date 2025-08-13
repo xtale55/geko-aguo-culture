@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, Fish, Calendar, DollarSign } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import HarvestHistoryDetail from './HarvestHistoryDetail';
 
 interface PondBatch {
   id: string;
@@ -47,6 +48,8 @@ const HarvestTab = () => {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedPondBatch, setSelectedPondBatch] = useState<PondBatch | null>(null);
+  const [selectedHarvestId, setSelectedHarvestId] = useState<string | null>(null);
+  const [detailDialogOpen, setDetailDialogOpen] = useState(false);
 
   // Form states
   const [harvestDate, setHarvestDate] = useState(format(new Date(), 'yyyy-MM-dd'));
@@ -215,6 +218,34 @@ const HarvestTab = () => {
       const priceValue = pricePerKg ? parseFloat(pricePerKg) : null;
       const totalValue = priceValue ? biomassValue * priceValue : null;
 
+      // Calculate expected values for reconciliation
+      const expectedPopulation = selectedPondBatch.current_population;
+      const expectedBiomass = (expectedPopulation * (selectedPondBatch.latest_average_weight || 0)) / 1000;
+      const actualMortalityDetected = expectedPopulation - populationValue;
+
+      // Generate reconciliation notes
+      let reconciliationNotes = '';
+      if (harvestType === 'total') {
+        const mortalityDifference = actualMortalityDetected;
+        const expectedSurvivalRate = (expectedPopulation / selectedPondBatch.current_population) * 100; // This should be calculated from original PL quantity
+        const actualSurvivalRate = (populationValue / selectedPondBatch.current_population) * 100; // This should be calculated from original PL quantity
+        
+        if (mortalityDifference > 0) {
+          reconciliationNotes = `Mortalidade adicional detectada: ${mortalityDifference.toLocaleString()} camarões. População real menor que esperada.`;
+        } else if (mortalityDifference < 0) {
+          reconciliationNotes = `População real maior que esperada em ${Math.abs(mortalityDifference).toLocaleString()} camarões. Possível erro na biometria anterior.`;
+        } else {
+          reconciliationNotes = `Dados da despesca conferem com a biometria.`;
+        }
+
+        // Add weight comparison
+        const expectedWeight = selectedPondBatch.latest_average_weight || 0;
+        const weightDifference = averageWeightValue - expectedWeight;
+        if (Math.abs(weightDifference) > 0.5) {
+          reconciliationNotes += ` Variação de peso: ${weightDifference > 0 ? '+' : ''}${weightDifference.toFixed(1)}g vs biometria.`;
+        }
+      }
+
       // Validate harvest amounts
       if (harvestType === 'total') {
         if (populationValue > selectedPondBatch.current_population) {
@@ -236,7 +267,7 @@ const HarvestTab = () => {
         }
       }
 
-      // Insert harvest record
+      // Insert harvest record with reconciliation data
       const { error: harvestError } = await supabase
         .from('harvest_records')
         .insert({
@@ -248,40 +279,32 @@ const HarvestTab = () => {
           price_per_kg: priceValue,
           total_value: totalValue,
           notes: notes || null,
-          average_weight_at_harvest: averageWeightValue
+          average_weight_at_harvest: averageWeightValue,
+          expected_population: expectedPopulation,
+          expected_biomass: expectedBiomass,
+          actual_mortality_detected: actualMortalityDetected,
+          reconciliation_notes: reconciliationNotes
         });
 
       if (harvestError) throw harvestError;
 
-      // Update pond batch population
-      const newPopulation = harvestType === 'total' ? 0 : selectedPondBatch.current_population - populationValue;
-      
-      const { error: updateError } = await supabase
-        .from('pond_batches')
-        .update({ current_population: newPopulation })
-        .eq('id', selectedPondBatch.id);
-
-      if (updateError) throw updateError;
-
-      // If total harvest, update pond status to free
-      if (harvestType === 'total') {
-        const { data: pondData } = await supabase
+      // For partial harvests, manually update population (total harvests are handled by trigger)
+      if (harvestType === 'partial') {
+        const newPopulation = selectedPondBatch.current_population - populationValue;
+        
+        const { error: updateError } = await supabase
           .from('pond_batches')
-          .select('pond_id')
-          .eq('id', selectedPondBatch.id)
-          .single();
+          .update({ current_population: newPopulation })
+          .eq('id', selectedPondBatch.id);
 
-        if (pondData) {
-          await supabase
-            .from('ponds')
-            .update({ status: 'free' })
-            .eq('id', pondData.pond_id);
-        }
+        if (updateError) throw updateError;
       }
 
       toast({
         title: "Sucesso",
-        description: "Despesca registrada com sucesso",
+        description: harvestType === 'total' 
+          ? "Ciclo finalizado com sucesso. Dados de reconciliação calculados automaticamente."
+          : "Despesca parcial registrada com sucesso.",
       });
 
       setDialogOpen(false);
@@ -420,7 +443,14 @@ const HarvestTab = () => {
           ) : (
             <div className="space-y-4 max-h-96 overflow-y-auto">
               {harvestRecords.map((record) => (
-                <Card key={record.id}>
+                <Card 
+                  key={record.id} 
+                  className="cursor-pointer hover:shadow-md transition-shadow"
+                  onClick={() => {
+                    setSelectedHarvestId(record.id);
+                    setDetailDialogOpen(true);
+                  }}
+                >
                   <CardContent className="pt-4">
                     <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-4">
                       <div>
@@ -461,6 +491,9 @@ const HarvestTab = () => {
                         {record.notes}
                       </p>
                     )}
+                    <p className="text-xs text-blue-600 mt-2 font-medium">
+                      Clique para ver detalhes completos do ciclo
+                    </p>
                   </CardContent>
                 </Card>
               ))}
@@ -596,6 +629,13 @@ const HarvestTab = () => {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Harvest History Detail Dialog */}
+      <HarvestHistoryDetail
+        harvestId={selectedHarvestId}
+        open={detailDialogOpen}
+        onOpenChange={setDetailDialogOpen}
+      />
     </div>
   );
 };

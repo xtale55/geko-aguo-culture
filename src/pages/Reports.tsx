@@ -24,6 +24,7 @@ interface ProductionReport {
   survivalRate: number;
   productivityPerHa: number;
   totalRevenue: number;
+  totalCost: number;
   operationalCosts: number;
   profitMargin: number;
 }
@@ -63,6 +64,7 @@ interface PondCardData {
   performance_score: 'excellent' | 'good' | 'average' | 'poor';
   estimated_revenue: number;
   total_cost: number;
+  pond_result: number;
   profit_margin: number;
   cost_per_kg: number;
   density: number; // Units per m²
@@ -79,6 +81,7 @@ export default function Reports() {
     survivalRate: 0,
     productivityPerHa: 0,
     totalRevenue: 0,
+    totalCost: 0,
     operationalCosts: 0,
     profitMargin: 0,
   });
@@ -372,6 +375,7 @@ export default function Reports() {
             performance_score: performanceScore,
             estimated_revenue: estimatedRevenue,
             total_cost: cycleCost,
+            pond_result: estimatedRevenue - cycleCost,
             profit_margin: profitMargin,
             cost_per_kg: costPerKg,
             density: density,
@@ -411,6 +415,7 @@ export default function Reports() {
         survivalRate: averageSurvival,
         productivityPerHa: averageProductivityPerHa,
         totalRevenue,
+        totalCost: totalOperationalCosts,
         operationalCosts: totalOperationalCosts,
         profitMargin: overallProfitMargin
       });
@@ -523,12 +528,12 @@ export default function Reports() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Margem de Lucro</p>
+                  <p className="text-sm font-medium text-muted-foreground">Custo Total</p>
                   <p className="text-2xl font-bold text-warning">
-                    {productionReport.profitMargin.toFixed(1)}%
+                    R$ {productionReport.totalCost.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}
                   </p>
                 </div>
-                <TrendingUp className="w-8 h-8 text-warning/70" />
+                <DollarSign className="w-8 h-8 text-warning/70" />
               </div>
             </CardContent>
           </Card>
@@ -687,15 +692,21 @@ export default function Reports() {
                               </span>
                             </div>
                             <div className="flex justify-between text-sm">
-                              <span className="text-muted-foreground">Produtividade:</span>
-                              <span className="font-medium text-accent">
-                                {pond.productivity_per_ha.toFixed(0)} kg/ha
+                              <span className="text-muted-foreground">Custo Total:</span>
+                              <span className="font-medium text-destructive">
+                                R$ {pond.total_cost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                               </span>
                             </div>
                             <div className="flex justify-between text-sm">
-                              <span className="text-muted-foreground">Margem:</span>
-                              <span className={`font-medium ${pond.profit_margin > 0 ? 'text-success' : 'text-destructive'}`}>
-                                {pond.profit_margin.toFixed(1)}%
+                              <span className="text-muted-foreground">Resultado:</span>
+                              <span className={`font-medium ${pond.pond_result > 0 ? 'text-success' : 'text-destructive'}`}>
+                                R$ {pond.pond_result.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                              </span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">Produtividade:</span>
+                              <span className="font-medium text-accent">
+                                {pond.productivity_per_ha.toFixed(0)} kg/ha
                               </span>
                             </div>
                           </div>

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Layout } from '@/components/Layout';
+import Layout from '@/components/Layout';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -9,10 +9,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { Plus, Fish, Waves, Edit, Trash2, MapPin } from 'lucide-react';
+import { Plus, Fish, Waves, Edit, Trash2, MapPin, Activity, CheckCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
-import Stocking from './Stocking';
+import { StockingContent } from '@/components/StockingContent';
 
 interface Farm {
   id: string;
@@ -26,7 +26,7 @@ interface Pond {
   name: string;
   area: number;
   depth: number;
-  status: string;
+  status: 'free' | 'in_use' | 'maintenance';
 }
 
 export default function Farm() {
@@ -35,6 +35,8 @@ export default function Farm() {
   const [loading, setLoading] = useState(true);
   const [showFarmDialog, setShowFarmDialog] = useState(false);
   const [showPondDialog, setShowPondDialog] = useState(false);
+  const [selectedPondForStocking, setSelectedPondForStocking] = useState<string | undefined>();
+  const [activeTab, setActiveTab] = useState("viveiros");
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -317,18 +319,73 @@ export default function Farm() {
           </Dialog>
         </div>
 
-        <Tabs defaultValue="ponds" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="ponds">Viveiros</TabsTrigger>
-            <TabsTrigger value="stocking">Povoamento</TabsTrigger>
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+          <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Total de Viveiros</p>
+                  <p className="text-2xl font-bold text-primary">{ponds.length}</p>
+                </div>
+                <Waves className="w-8 h-8 text-primary/70" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-success/10 to-success/5 border-success/20">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Viveiros Ativos</p>
+                  <p className="text-2xl font-bold text-success">{activePonds.length}</p>
+                </div>
+                <Activity className="w-8 h-8 text-success/70" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-secondary/30 to-secondary/10 border-secondary/40">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Viveiros Livres</p>
+                  <p className="text-2xl font-bold text-secondary-foreground">{freePonds.length}</p>
+                </div>
+                <CheckCircle className="w-8 h-8 text-secondary-foreground/70" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-2 h-12 p-1 bg-muted/50 border border-border/50">
+            <TabsTrigger 
+              value="viveiros" 
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm font-medium text-foreground/80 data-[state=active]:font-semibold transition-all"
+            >
+              Viveiros
+            </TabsTrigger>
+            <TabsTrigger 
+              value="povoamento" 
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm font-medium text-foreground/80 data-[state=active]:font-semibold transition-all"
+            >
+              Povoamento
+            </TabsTrigger>
           </TabsList>
           
-          <TabsContent value="ponds" className="space-y-4">
+          <TabsContent value="viveiros" className="space-y-4 mt-6">
             {renderFarmContent()}
           </TabsContent>
           
-          <TabsContent value="stocking" className="space-y-4">
-            <Stocking />
+          <TabsContent value="povoamento" className="space-y-4 mt-6">
+            <StockingContent 
+              selectedPondId={selectedPondForStocking}
+              onBack={() => {
+                setSelectedPondForStocking(undefined);
+                setActiveTab("viveiros");
+              }}
+            />
           </TabsContent>
         </Tabs>
       </div>
@@ -338,46 +395,6 @@ export default function Farm() {
   function renderFarmContent() {
     return (
       <>
-
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Total de Viveiros</p>
-                <p className="text-2xl font-bold text-primary">{ponds.length}</p>
-              </div>
-              <Waves className="w-8 h-8 text-primary/70" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-success/10 to-success/5 border-success/20">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Viveiros Ativos</p>
-                <p className="text-2xl font-bold text-success">{activePonds.length}</p>
-              </div>
-              <Fish className="w-8 h-8 text-success/70" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-secondary/30 to-secondary/10 border-secondary/40">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Viveiros Livres</p>
-                <p className="text-2xl font-bold text-secondary-foreground">{freePonds.length}</p>
-              </div>
-              <Plus className="w-8 h-8 text-secondary-foreground/70" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
       {/* Ponds Grid */}
       <div>
         <div className="flex justify-between items-center mb-4">
@@ -435,7 +452,10 @@ export default function Farm() {
                         variant="outline" 
                         size="sm" 
                         className="flex-1"
-                        onClick={() => navigate('/stocking')}
+                        onClick={() => {
+                          setSelectedPondForStocking(pond.id);
+                          setActiveTab("povoamento");
+                        }}
                       >
                         <Fish className="w-4 h-4 mr-1" />
                         Povoar

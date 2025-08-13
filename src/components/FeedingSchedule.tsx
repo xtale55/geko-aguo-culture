@@ -485,23 +485,34 @@ export function FeedingSchedule({
       <CardContent className="space-y-4">
         {/* Task Summary */}
         <div className="bg-muted/50 rounded-lg p-3 space-y-2">
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <span className="text-muted-foreground">Lote:</span>
-              <span className="font-medium ml-1">{batchName}</span>
+          <div className="flex items-start justify-between">
+            <div className="grid grid-cols-2 gap-4 text-sm flex-1">
+              <div>
+                <span className="text-muted-foreground">Lote:</span>
+                <span className="font-medium ml-1">{batchName}</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground">DOC:</span>
+                <span className="font-medium ml-1">{doc} dias</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Biomassa:</span>
+                <span className="font-medium ml-1">{biomass.toFixed(1)} kg</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Peso médio:</span>
+                <span className="font-medium ml-1">{averageWeight}g</span>
+              </div>
             </div>
-            <div>
-              <span className="text-muted-foreground">DOC:</span>
-              <span className="font-medium ml-1">{doc} dias</span>
-            </div>
-            <div>
-              <span className="text-muted-foreground">Biomassa:</span>
-              <span className="font-medium ml-1">{biomass.toFixed(1)} kg</span>
-            </div>
-            <div>
-              <span className="text-muted-foreground">Peso médio:</span>
-              <span className="font-medium ml-1">{averageWeight}g</span>
-            </div>
+            <Button 
+              variant="outline"
+              size="sm"
+              onClick={() => setIsHistoryDialogOpen(true)}
+              className="h-6 px-2 text-xs ml-4"
+            >
+              <History className="w-3 h-3 mr-1" />
+              Histórico
+            </Button>
           </div>
         </div>
 
@@ -515,18 +526,7 @@ export function FeedingSchedule({
             </div>
           </div>
           <div className="border-l-4 border-success pl-4">
-            <div className="flex items-center justify-between">
-              <div className="text-sm text-muted-foreground">Realizado hoje</div>
-              <Button 
-                variant="outline"
-                size="sm"
-                onClick={() => setIsHistoryDialogOpen(true)}
-                className="h-6 px-2 text-xs"
-              >
-                <History className="w-3 h-3 mr-1" />
-                Histórico
-              </Button>
-            </div>
+            <div className="text-sm text-muted-foreground">Realizado hoje</div>
             <div className="text-xl font-bold text-success">{totalActualFeed.toFixed(1)} kg</div>
             <div className="text-xs text-muted-foreground">
               {feedingsToday} alimentações

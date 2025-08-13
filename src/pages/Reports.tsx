@@ -65,6 +65,9 @@ interface PondCardData {
   total_cost: number;
   profit_margin: number;
   cost_per_kg: number;
+  density: number; // Units per m²
+  productivity_per_ha: number; // kg/ha for this pond
+  pond_area: number; // pond area in m²
 }
 
 export default function Reports() {
@@ -86,6 +89,7 @@ export default function Reports() {
   const [selectedPeriod, setSelectedPeriod] = useState('last_30_days');
   const [operationalCosts, setOperationalCosts] = useState<number>(0);
   const [materialsConsumed, setMaterialsConsumed] = useState<number>(0);
+  const [priceTable, setPriceTable] = useState<number>(19); // Default table price for 10g shrimp
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -94,7 +98,7 @@ export default function Reports() {
     if (user) {
       loadReports();
     }
-  }, [user, selectedPeriod]);
+  }, [user, selectedPeriod, priceTable]);
 
   const loadReports = async () => {
     try {
@@ -219,12 +223,19 @@ export default function Reports() {
       
       const calculatedMaterialsConsumed = calculatedFeedConsumed + calculatedInputsConsumed;
 
+      // Calculate price based on weight and table
+      const calculatePriceByWeight = (weight: number, tableValue: number) => {
+        // Base weight is 10g, price adjusts proportionally
+        return (weight / 10) * tableValue;
+      };
+
       // Process cycles for analysis
       const processedCycles: CycleAnalysis[] = [];
       const processedPondCards: PondCardData[] = [];
       let totalProduction = 0;
       let totalCosts = 0;
       let activeCycles = 0;
+      let totalProductivityPerHa = 0;
 
       cycles?.forEach(cycle => {
         const stocking = new Date(cycle.stocking_date);
@@ -298,9 +309,16 @@ export default function Reports() {
           const cycleCost = (plCost * cycle.pl_quantity / 1000) + preparationCost + feedCost;
           totalCosts += cycleCost;
 
-          // Estimate revenue (R$25/kg average)
-          const estimatedRevenue = biomass * 25;
+          // Calculate revenue using price table
+          const pricePerKg = calculatePriceByWeight(latestBiometry.average_weight, priceTable);
+          const estimatedRevenue = biomass * pricePerKg;
           const profitMargin = ((estimatedRevenue - cycleCost) / estimatedRevenue) * 100;
+
+          // Calculate pond area in hectares and productivity per ha
+          const pondArea = cycle.ponds?.area || 1;
+          const pondAreaHa = pondArea / 10000; // Convert m² to ha
+          const productivityPerHa = biomass / pondAreaHa;
+          totalProductivityPerHa += productivityPerHa;
 
           // Calculate performance score
           let performanceScore: 'excellent' | 'good' | 'average' | 'poor' = 'poor';
@@ -334,6 +352,9 @@ export default function Reports() {
           // Calculate cost per kg
           const costPerKg = biomass > 0 ? cycleCost / biomass : 0;
 
+          // Calculate density (units per m²)
+          const density = cycle.current_population / pondArea;
+
           // Create pond card data
           processedPondCards.push({
             pond_batch_id: cycle.id,
@@ -352,25 +373,34 @@ export default function Reports() {
             estimated_revenue: estimatedRevenue,
             total_cost: cycleCost,
             profit_margin: profitMargin,
-            cost_per_kg: costPerKg
+            cost_per_kg: costPerKg,
+            density: density,
+            productivity_per_ha: productivityPerHa,
+            pond_area: pondArea
           });
         }
       });
 
       const totalOperationalCosts = totalCosts + calculatedOpCosts + calculatedMaterialsConsumed;
 
-      // Calculate overall metrics
-      const totalRevenue = totalProduction * 25; // R$25/kg average
-      const overallProfitMargin = totalRevenue > 0 
-        ? ((totalRevenue - totalOperationalCosts) / totalRevenue) * 100 
-        : 0;
-
+      // Calculate overall metrics with average price
       const averageWeight = processedCycles.length > 0
         ? processedCycles.reduce((sum, c) => sum + c.average_weight, 0) / processedCycles.length
         : 0;
 
+      const averagePrice = calculatePriceByWeight(averageWeight, priceTable);
+      const totalRevenue = totalProduction * averagePrice;
+      const overallProfitMargin = totalRevenue > 0 
+        ? ((totalRevenue - totalOperationalCosts) / totalRevenue) * 100 
+        : 0;
+
       const averageSurvival = processedCycles.length > 0
         ? processedCycles.reduce((sum, c) => sum + c.survival_rate, 0) / processedCycles.length
+        : 0;
+
+      // Calculate average productivity per hectare
+      const averageProductivityPerHa = activeCycles > 0 
+        ? totalProductivityPerHa / activeCycles 
         : 0;
 
       setProductionReport({
@@ -379,7 +409,7 @@ export default function Reports() {
         totalProduction,
         averageWeight,
         survivalRate: averageSurvival,
-        productivityPerHa: totalProduction / currentFarmArea,
+        productivityPerHa: averageProductivityPerHa,
         totalRevenue,
         operationalCosts: totalOperationalCosts,
         profitMargin: overallProfitMargin
@@ -599,24 +629,20 @@ export default function Reports() {
                         </div>
                       </CardHeader>
                       <CardContent className="space-y-3">
-                        <div className="grid grid-cols-2 gap-4 text-sm">
+                         <div className="grid grid-cols-2 gap-4 text-sm">
                           <div>
-                            <p className="text-muted-foreground">População</p>
-                            <p className="font-medium">{pond.current_population.toLocaleString()}</p>
-                          </div>
-                          <div>
-                            <p className="text-muted-foreground">Sobrevivência</p>
-                            <p className={`font-medium ${pond.survival_rate >= 85 ? 'text-success' : pond.survival_rate >= 75 ? 'text-warning' : 'text-destructive'}`}>
-                              {pond.survival_rate.toFixed(1)}%
-                            </p>
+                            <p className="text-muted-foreground">Biomassa</p>
+                            <p className="font-medium">{pond.biomass.toFixed(1)} kg</p>
                           </div>
                           <div>
                             <p className="text-muted-foreground">Peso Atual</p>
                             <p className="font-medium text-primary">{pond.current_weight.toFixed(1)}g</p>
                           </div>
                           <div>
-                            <p className="text-muted-foreground">Biomassa</p>
-                            <p className="font-medium">{pond.biomass.toFixed(1)} kg</p>
+                            <p className="text-muted-foreground">Crescimento</p>
+                            <p className={`font-medium ${pond.weekly_growth >= 1.5 ? 'text-success' : pond.weekly_growth >= 1.0 ? 'text-warning' : 'text-destructive'}`}>
+                              {pond.weekly_growth.toFixed(1)}g/sem
+                            </p>
                           </div>
                            <div>
                              <p className="text-muted-foreground">FCA Real</p>
@@ -629,36 +655,50 @@ export default function Reports() {
                              </p>
                            </div>
                           <div>
-                            <p className="text-muted-foreground">Crescimento Semanal</p>
-                            <p className={`font-medium ${pond.weekly_growth >= 1.5 ? 'text-success' : pond.weekly_growth >= 1.0 ? 'text-warning' : 'text-destructive'}`}>
-                              {pond.weekly_growth.toFixed(1)}g
+                            <p className="text-muted-foreground">Densidade</p>
+                            <p className="font-medium">{pond.density.toFixed(1)} Un/m²</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">Custo/kg</p>
+                            <p className={`font-medium ${
+                              pond.cost_per_kg <= 15 ? 'text-success' : 
+                              pond.cost_per_kg <= 20 ? 'text-warning' : 'text-destructive'
+                            }`}>
+                              R$ {pond.cost_per_kg.toFixed(2)}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">População</p>
+                            <p className="font-medium">{pond.current_population.toLocaleString()}</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">Sobrevivência</p>
+                            <p className={`font-medium ${pond.survival_rate >= 85 ? 'text-success' : pond.survival_rate >= 75 ? 'text-warning' : 'text-destructive'}`}>
+                              {pond.survival_rate.toFixed(1)}%
                             </p>
                           </div>
                         </div>
-                        
-                         <div className="pt-3 border-t border-border space-y-2">
-                           <div className="flex justify-between text-sm">
-                             <span className="text-muted-foreground">Receita Estimada:</span>
-                             <span className="font-medium text-success">
-                               R$ {pond.estimated_revenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                             </span>
-                           </div>
-                           <div className="flex justify-between text-sm">
-                             <span className="text-muted-foreground">Custo/kg:</span>
-                             <span className={`font-medium ${
-                               pond.cost_per_kg <= 15 ? 'text-success' : 
-                               pond.cost_per_kg <= 20 ? 'text-warning' : 'text-destructive'
-                             }`}>
-                               R$ {pond.cost_per_kg.toFixed(2)}
-                             </span>
-                           </div>
-                           <div className="flex justify-between text-sm">
-                             <span className="text-muted-foreground">Margem:</span>
-                             <span className={`font-medium ${pond.profit_margin > 0 ? 'text-success' : 'text-destructive'}`}>
-                               {pond.profit_margin.toFixed(1)}%
-                             </span>
-                           </div>
-                         </div>
+                         
+                          <div className="pt-3 border-t border-border space-y-2">
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">Receita Estimada:</span>
+                              <span className="font-medium text-success">
+                                R$ {pond.estimated_revenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                              </span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">Produtividade:</span>
+                              <span className="font-medium text-accent">
+                                {pond.productivity_per_ha.toFixed(0)} kg/ha
+                              </span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">Margem:</span>
+                              <span className={`font-medium ${pond.profit_margin > 0 ? 'text-success' : 'text-destructive'}`}>
+                                {pond.profit_margin.toFixed(1)}%
+                              </span>
+                            </div>
+                          </div>
 
                         <div className="pt-2">
                           <Badge 
@@ -701,14 +741,43 @@ export default function Reports() {
           </TabsContent>
 
           <TabsContent value="financial" className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-6">
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <DollarSign className="w-5 h-5" />
-                    Receitas vs Custos
+                    Configuração de Preços
                   </CardTitle>
                 </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-4">
+                      <label className="text-sm font-medium">Tabela de Preços (10g):</label>
+                      <select 
+                        value={priceTable} 
+                        onChange={(e) => setPriceTable(Number(e.target.value))}
+                        className="px-3 py-1 border border-border rounded bg-background text-foreground"
+                      >
+                        {Array.from({ length: 31 }, (_, i) => 10 + i * 0.5).map(value => (
+                          <option key={value} value={value}>R$ {value.toFixed(1)}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Define o preço base para camarão de 10g. O preço varia proporcionalmente ao peso.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <DollarSign className="w-5 h-5" />
+                      Receitas vs Custos
+                    </CardTitle>
+                  </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
                     <div className="flex justify-between items-center p-3 bg-success/10 rounded">
@@ -768,11 +837,12 @@ export default function Reports() {
                      </div>
                    </div>
                  </CardContent>
-               </Card>
-             </div>
-           </TabsContent>
-         </Tabs>
-       </div>
-     </Layout>
-   );
+                </Card>
+              </div>
+            </div>
+            </TabsContent>
+          </Tabs>
+        </div>
+      </Layout>
+    );
  }

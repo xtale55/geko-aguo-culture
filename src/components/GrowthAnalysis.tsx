@@ -250,27 +250,27 @@ export function GrowthAnalysis() {
                   </div>
                 </div>
                 
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
-                  <div>
-                    <p className="text-muted-foreground">Peso Atual</p>
-                    <p className="font-medium flex items-center gap-1">
-                      <Scale className="w-3 h-3" />
-                      {data.latest_weight.toFixed(1)}g
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Crescimento Total</p>
-                    <p className="font-medium text-primary">+{data.total_growth.toFixed(1)}g</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Crescimento Semanal</p>
-                    <p className="font-medium text-success">{data.weekly_growth.toFixed(2)}g/sem</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Crescimento Diário</p>
-                    <p className="font-medium text-accent">{data.daily_growth.toFixed(2)}g/dia</p>
-                  </div>
-                </div>
+                         <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-xs">
+                          <div>
+                            <p className="text-muted-foreground">Peso Atual</p>
+                            <p className="font-medium flex items-center gap-1">
+                              <Scale className="w-3 h-3" />
+                              {data.latest_weight.toFixed(1)}g
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">Crescimento Total</p>
+                            <p className="font-medium text-primary">+{data.total_growth.toFixed(1)}g</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">Crescimento Semanal</p>
+                            <p className="font-medium text-success">{data.weekly_growth.toFixed(2)}g/sem</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">Crescimento Diário</p>
+                            <p className="font-medium text-accent">{data.daily_growth.toFixed(2)}g/dia</p>
+                          </div>
+                        </div>
               </div>
             ))
           )}

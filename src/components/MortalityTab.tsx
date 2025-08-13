@@ -1,14 +1,16 @@
-import { useEffect, useState } from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { Skull } from 'lucide-react';
+import { Skull, History, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface PondWithBatch {
@@ -27,25 +29,32 @@ interface PondWithBatch {
 
 interface MortalityRecord {
   id: string;
+  pond_batch_id: string;
   record_date: string;
   dead_count: number;
-  notes: string;
+  notes: string | null;
   pond_name: string;
+  batch_name: string;
+  created_at: string;
 }
 
 export function MortalityTab() {
   const [ponds, setPonds] = useState<PondWithBatch[]>([]);
   const [mortalityRecords, setMortalityRecords] = useState<MortalityRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [historyLoading, setHistoryLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [showDialog, setShowDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedPond, setSelectedPond] = useState<PondWithBatch | null>(null);
+  const [recordToDelete, setRecordToDelete] = useState<MortalityRecord | null>(null);
   const { user } = useAuth();
   const { toast } = useToast();
 
   useEffect(() => {
     if (user) {
       loadData();
+      loadMortalityHistory();
     }
   }, [user]);
 
@@ -60,7 +69,7 @@ export function MortalityTab() {
       if (farmsError) throw farmsError;
 
       if (farmsData && farmsData.length > 0) {
-        // Load active ponds with active batch data
+        // Load active ponds with active batch data  
         const { data: pondsData, error: pondsError } = await supabase
           .from('ponds')
           .select(`
@@ -82,7 +91,7 @@ export function MortalityTab() {
 
         if (pondsError) throw pondsError;
 
-        // Process data
+        // Process data to create PondWithBatch structure
         const processedPonds = pondsData?.map(pond => ({
           ...pond,
           current_batch: pond.pond_batches[0] ? {
@@ -102,26 +111,30 @@ export function MortalityTab() {
             .filter(p => p.current_batch)
             .map(p => p.current_batch!.id);
 
-          const { data: mortalityData, error: mortalityError } = await supabase
-            .from('mortality_records')
-            .select(`
-              *,
-              pond_batches!inner(
-                ponds!inner(name)
-              )
-            `)
-            .in('pond_batch_id', pondBatchIds)
-            .order('record_date', { ascending: false })
-            .limit(50);
+          if (pondBatchIds.length > 0) {
+            const { data: recordsData, error: recordsError } = await supabase
+              .from('mortality_records')
+              .select(`
+                *,
+                pond_batches!inner(
+                  ponds!inner(name),
+                  batches!inner(name)
+                )
+              `)
+              .in('pond_batch_id', pondBatchIds)
+              .order('record_date', { ascending: false })
+              .limit(10);
 
-          if (mortalityError) throw mortalityError;
+            if (recordsError) throw recordsError;
 
-          const processedMortality = mortalityData?.map(record => ({
-            ...record,
-            pond_name: record.pond_batches.ponds.name
-          })) || [];
+            const processedRecords = recordsData?.map(record => ({
+              ...record,
+              pond_name: record.pond_batches.ponds.name,
+              batch_name: record.pond_batches.batches.name
+            })) || [];
 
-          setMortalityRecords(processedMortality);
+            setMortalityRecords(processedRecords);
+          }
         }
       }
     } catch (error: any) {
@@ -142,8 +155,52 @@ export function MortalityTab() {
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   };
 
-  const calculateSurvivalRate = (current: number, initial: number) => {
-    return ((current / initial) * 100).toFixed(1);
+  const calculateSurvivalRate = (current_population: number, initial_population: number) => {
+    return Math.round(((current_population / initial_population) * 100) * 100) / 100;
+  };
+
+  const loadMortalityHistory = async () => {
+    setHistoryLoading(true);
+    try {
+      const { data: farmsData, error: farmsError } = await supabase
+        .from('farms')
+        .select('id')
+        .eq('user_id', user?.id);
+
+      if (farmsError) throw farmsError;
+
+      if (farmsData && farmsData.length > 0) {
+        const { data: recordsData, error: recordsError } = await supabase
+          .from('mortality_records')
+          .select(`
+            *,
+            pond_batches!inner(
+              ponds!inner(name, farm_id),
+              batches!inner(name)
+            )
+          `)
+          .eq('pond_batches.ponds.farm_id', farmsData[0].id)
+          .order('created_at', { ascending: false });
+
+        if (recordsError) throw recordsError;
+
+        const processedRecords = recordsData?.map(record => ({
+          ...record,
+          pond_name: record.pond_batches.ponds.name,
+          batch_name: record.pond_batches.batches.name
+        })) || [];
+
+        setMortalityRecords(processedRecords);
+      }
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: error.message
+      });
+    } finally {
+      setHistoryLoading(false);
+    }
   };
 
   const handleMortalitySubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -153,11 +210,12 @@ export function MortalityTab() {
     const formData = new FormData(e.currentTarget);
     const deadCount = parseInt(formData.get('dead_count') as string);
     
+    // Validate that dead count doesn't exceed current population
     if (deadCount > selectedPond.current_batch.current_population) {
       toast({
         variant: "destructive",
         title: "Erro",
-        description: "Número de mortos não pode ser maior que a população atual."
+        description: `Número de mortos (${deadCount}) não pode ser maior que a população atual (${selectedPond.current_batch.current_population}).`
       });
       return;
     }
@@ -166,20 +224,21 @@ export function MortalityTab() {
 
     try {
       // Insert mortality record
-      const { error: mortalityError } = await supabase
+      const mortalityRecord = {
+        pond_batch_id: selectedPond.current_batch.id,
+        record_date: formData.get('record_date') as string,
+        dead_count: deadCount,
+        notes: formData.get('notes') as string || null
+      };
+
+      const { error: insertError } = await supabase
         .from('mortality_records')
-        .insert([{
-          pond_batch_id: selectedPond.current_batch.id,
-          record_date: formData.get('record_date') as string,
-          dead_count: deadCount,
-          notes: formData.get('notes') as string || null
-        }]);
+        .insert([mortalityRecord]);
 
-      if (mortalityError) throw mortalityError;
+      if (insertError) throw insertError;
 
-      // Update current population
+      // Update pond_batches current_population
       const newPopulation = selectedPond.current_batch.current_population - deadCount;
-      
       const { error: updateError } = await supabase
         .from('pond_batches')
         .update({ current_population: newPopulation })
@@ -189,12 +248,13 @@ export function MortalityTab() {
 
       toast({
         title: "Mortalidade registrada!",
-        description: `${deadCount} mortos registrados. População atual: ${newPopulation.toLocaleString()}.`
+        description: `${deadCount} mortos registrados para ${selectedPond.name}. População atualizada para ${newPopulation}.`
       });
 
       setShowDialog(false);
       setSelectedPond(null);
       loadData();
+      loadMortalityHistory();
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -206,9 +266,62 @@ export function MortalityTab() {
     }
   };
 
-  const openMortalityDialog = (pond: PondWithBatch) => {
-    setSelectedPond(pond);
-    setShowDialog(true);
+  const openDeleteDialog = (record: MortalityRecord) => {
+    setRecordToDelete(record);
+    setShowDeleteDialog(true);
+  };
+
+  const handleDeleteRecord = async () => {
+    if (!recordToDelete) return;
+
+    setSubmitting(true);
+
+    try {
+      // First, get the pond_batch to update current population
+      const { data: pondBatchData, error: fetchError } = await supabase
+        .from('pond_batches')
+        .select('current_population')
+        .eq('id', recordToDelete.pond_batch_id)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      // Delete the record
+      const { error: deleteError } = await supabase
+        .from('mortality_records')
+        .delete()
+        .eq('id', recordToDelete.id);
+
+      if (deleteError) throw deleteError;
+
+      // Restore the population
+      const { error: updateError } = await supabase
+        .from('pond_batches')
+        .update({ 
+          current_population: pondBatchData.current_population + recordToDelete.dead_count 
+        })
+        .eq('id', recordToDelete.pond_batch_id);
+
+      if (updateError) throw updateError;
+
+      toast({
+        title: "Registro excluído!",
+        description: `Registro de mortalidade foi excluído e população restaurada.`
+      });
+
+      setShowDeleteDialog(false);
+      setRecordToDelete(null);
+      loadData();
+      loadMortalityHistory();
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: error.message
+      });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (loading) {
@@ -238,112 +351,149 @@ export function MortalityTab() {
 
   return (
     <div className="space-y-6">
-      {/* Ponds Grid */}
-      <div>
-        <h2 className="text-2xl font-semibold mb-4">Viveiros Ativos</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {ponds.map((pond) => {
-            const batch = pond.current_batch!;
-            const doc = calculateDOC(batch.stocking_date);
-            const survivalRate = calculateSurvivalRate(batch.current_population, batch.initial_population);
-            const mortalityCount = batch.initial_population - batch.current_population;
+      <Tabs defaultValue="active" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="active" className="flex items-center gap-2">
+            <Skull className="w-4 h-4" />
+            Viveiros Ativos
+          </TabsTrigger>
+          <TabsTrigger value="history" className="flex items-center gap-2">
+            <History className="w-4 h-4" />
+            Histórico
+          </TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="active" className="mt-6">
+          <div className="space-y-6">
+            {/* Active Ponds Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {ponds.map((pond) => {
+                const batch = pond.current_batch!;
+                const doc = calculateDOC(batch.stocking_date);
+                const survivalRate = calculateSurvivalRate(batch.current_population, batch.initial_population);
 
-            return (
-              <Card key={pond.id} className="shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-ocean)] transition-shadow">
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg">{pond.name}</CardTitle>
-                    <Badge 
-                      variant={parseFloat(survivalRate) >= 80 ? "default" : "destructive"}
-                      className={parseFloat(survivalRate) >= 80 ? "bg-success" : ""}
-                    >
-                      {survivalRate}% sobrev.
-                    </Badge>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Lote:</span>
-                      <span className="font-medium">{batch.batch_name}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">DOC:</span>
-                      <span className="font-medium">{doc} dias</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">População Inicial:</span>
-                      <span className="font-medium">
-                        {batch.initial_population.toLocaleString()} PL
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">População Atual:</span>
-                      <span className="font-medium text-primary">
-                        {batch.current_population.toLocaleString()} PL
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Total de Mortos:</span>
-                      <span className="font-medium text-destructive">
-                        {mortalityCount.toLocaleString()} PL
-                      </span>
-                    </div>
-                  </div>
+                return (
+                  <Card key={pond.id} className="shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-ocean)] transition-shadow">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-lg">{pond.name}</CardTitle>
+                        <Badge variant="default" className="bg-success">
+                          DOC {doc}
+                        </Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Lote:</span>
+                          <span className="font-medium">{batch.batch_name}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">População Atual:</span>
+                          <span className="font-medium">
+                            {batch.current_population.toLocaleString()} PL
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">População Inicial:</span>
+                          <span className="font-medium">
+                            {batch.initial_population.toLocaleString()} PL
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Taxa de Sobrevivência:</span>
+                          <span className={`font-medium ${survivalRate >= 80 ? 'text-green-600' : survivalRate >= 60 ? 'text-yellow-600' : 'text-red-600'}`}>
+                            {survivalRate}%
+                          </span>
+                        </div>
+                      </div>
 
-                  <div className="pt-4 border-t border-border">
-                    <Button 
-                      onClick={() => openMortalityDialog(pond)}
-                      variant="outline"
-                      className="w-full"
-                      size="sm"
-                    >
-                      <Skull className="w-4 h-4 mr-2" />
-                      Registrar Mortalidade
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Recent Mortality Records */}
-      {mortalityRecords.length > 0 && (
-        <div>
-          <h2 className="text-2xl font-semibold mb-4">Registros Recentes</h2>
+                      <div className="pt-4 border-t border-border">
+                        <Button 
+                          onClick={() => {
+                            setSelectedPond(pond);
+                            setShowDialog(true);
+                          }}
+                          className="w-full"
+                          size="sm"
+                        >
+                          <Skull className="w-4 h-4 mr-2" />
+                          Registrar Mortalidade
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="history" className="mt-6">
           <Card>
-            <CardContent className="p-0">
-              <div className="divide-y divide-border">
-                {mortalityRecords.slice(0, 10).map((record) => (
-                  <div key={record.id} className="p-4 flex items-center justify-between">
-                    <div className="flex items-center space-x-4">
-                      <div className="w-2 h-2 bg-destructive rounded-full"></div>
-                      <div>
-                        <div className="font-medium">{record.pond_name}</div>
-                        <div className="text-sm text-muted-foreground">
+            <CardHeader>
+              <CardTitle>Histórico de Mortalidade</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {historyLoading ? (
+                <div className="animate-pulse space-y-4">
+                  {[1, 2, 3].map(i => (
+                    <div key={i} className="h-12 bg-muted rounded"></div>
+                  ))}
+                </div>
+              ) : mortalityRecords.length === 0 ? (
+                <div className="text-center py-8">
+                  <History className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground">Nenhum registro de mortalidade ainda.</p>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Viveiro</TableHead>
+                      <TableHead>Lote</TableHead>
+                      <TableHead>Data</TableHead>
+                      <TableHead>Quantidade</TableHead>
+                      <TableHead>Observações</TableHead>
+                      <TableHead>Registrado em</TableHead>
+                      <TableHead>Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {mortalityRecords.map((record) => (
+                      <TableRow key={record.id}>
+                        <TableCell className="font-medium">{record.pond_name}</TableCell>
+                        <TableCell>{record.batch_name}</TableCell>
+                        <TableCell>
                           {new Date(record.record_date).toLocaleDateString('pt-BR')}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="font-medium text-destructive">
-                        {record.dead_count.toLocaleString()} mortos
-                      </div>
-                      {record.notes && (
-                        <div className="text-xs text-muted-foreground truncate max-w-32">
-                          {record.notes}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
+                        </TableCell>
+                        <TableCell className="font-medium text-red-600">
+                          {record.dead_count}
+                        </TableCell>
+                        <TableCell>
+                          {record.notes || '-'}
+                        </TableCell>
+                        <TableCell>
+                          {new Date(record.created_at).toLocaleDateString('pt-BR')} {new Date(record.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openDeleteDialog(record)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
             </CardContent>
           </Card>
-        </div>
-      )}
+        </TabsContent>
+      </Tabs>
 
       {/* Mortality Dialog */}
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
@@ -354,17 +504,6 @@ export function MortalityTab() {
             </DialogTitle>
           </DialogHeader>
           <form onSubmit={handleMortalitySubmit} className="space-y-4">
-            <div className="p-4 bg-muted/50 rounded-lg">
-              <div className="text-sm space-y-1">
-                <div className="flex justify-between">
-                  <span>População atual:</span>
-                  <span className="font-medium">
-                    {selectedPond?.current_batch?.current_population.toLocaleString()} PL
-                  </span>
-                </div>
-              </div>
-            </div>
-            
             <div className="space-y-2">
               <Label htmlFor="record_date">Data do Registro</Label>
               <Input
@@ -375,7 +514,6 @@ export function MortalityTab() {
                 required
               />
             </div>
-            
             <div className="space-y-2">
               <Label htmlFor="dead_count">Número de Mortos</Label>
               <Input
@@ -383,22 +521,23 @@ export function MortalityTab() {
                 name="dead_count"
                 type="number"
                 min="1"
-                max={selectedPond?.current_batch?.current_population || 0}
+                max={selectedPond?.current_batch?.current_population || 1}
                 placeholder="Ex: 50"
                 required
               />
+              <div className="text-xs text-muted-foreground">
+                População atual: {selectedPond?.current_batch?.current_population.toLocaleString()} PL
+              </div>
             </div>
-            
             <div className="space-y-2">
               <Label htmlFor="notes">Observações (opcional)</Label>
               <Textarea
                 id="notes"
                 name="notes"
-                placeholder="Ex: Mortalidade por estresse após chuva..."
+                placeholder="Ex: Mortalidade por estresse térmico..."
                 rows={3}
               />
             </div>
-            
             <div className="flex gap-2 pt-4">
               <Button 
                 type="button" 
@@ -412,12 +551,51 @@ export function MortalityTab() {
                 type="submit" 
                 disabled={submitting}
                 className="flex-1"
-                variant="destructive"
               >
-                {submitting ? 'Registrando...' : 'Registrar Mortalidade'}
+                {submitting ? 'Salvando...' : 'Salvar Registro'}
               </Button>
             </div>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Dialog */}
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmar Exclusão</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p>Tem certeza que deseja excluir este registro de mortalidade?</p>
+            {recordToDelete && (
+              <div className="p-3 bg-muted rounded-lg">
+                <p><strong>Viveiro:</strong> {recordToDelete.pond_name}</p>
+                <p><strong>Data:</strong> {new Date(recordToDelete.record_date).toLocaleDateString('pt-BR')}</p>
+                <p><strong>Quantidade:</strong> {recordToDelete.dead_count} mortos</p>
+              </div>
+            )}
+            <div className="text-sm text-amber-600 bg-amber-50 p-3 rounded-lg">
+              <strong>Atenção:</strong> A população do viveiro será restaurada automaticamente.
+            </div>
+            <div className="flex gap-2 pt-4">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => setShowDeleteDialog(false)}
+                className="flex-1"
+              >
+                Cancelar
+              </Button>
+              <Button 
+                onClick={handleDeleteRecord}
+                disabled={submitting}
+                variant="destructive"
+                className="flex-1"
+              >
+                {submitting ? 'Excluindo...' : 'Excluir'}
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

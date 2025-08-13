@@ -7,9 +7,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { Droplets, Plus, TrendingUp, AlertTriangle } from 'lucide-react';
+import { Droplets, Plus, TrendingUp, AlertTriangle, History, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface Pond {
@@ -32,15 +34,19 @@ interface WaterQualityRecord {
   ammonia: number | null;
   turbidity: number | null;
   notes: string | null;
+  created_at: string;
 }
 
 export function WaterQualityTab() {
   const [ponds, setPonds] = useState<Pond[]>([]);
   const [records, setRecords] = useState<WaterQualityRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [historyLoading, setHistoryLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [showDialog, setShowDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedPond, setSelectedPond] = useState<string>('');
+  const [recordToDelete, setRecordToDelete] = useState<WaterQualityRecord | null>(null);
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -58,6 +64,7 @@ export function WaterQualityTab() {
   useEffect(() => {
     if (user) {
       loadData();
+      loadWaterQualityHistory();
     }
   }, [user]);
 
@@ -149,6 +156,7 @@ export function WaterQualityTab() {
       setShowDialog(false);
       setSelectedPond('');
       loadData();
+      loadWaterQualityHistory();
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -193,6 +201,91 @@ export function WaterQualityTab() {
     return averages;
   };
 
+  const loadWaterQualityHistory = async () => {
+    setHistoryLoading(true);
+    try {
+      const { data: farmsData, error: farmsError } = await supabase
+        .from('farms')
+        .select('id')
+        .eq('user_id', user?.id);
+
+      if (farmsError) throw farmsError;
+
+      if (farmsData && farmsData.length > 0) {
+        const { data: recordsData, error: recordsError } = await supabase
+          .from('water_quality')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (recordsError) throw recordsError;
+
+        // Load ponds to map names
+        const { data: pondsData, error: pondsDataError } = await supabase
+          .from('ponds')
+          .select('id, name')
+          .eq('farm_id', farmsData[0].id);
+
+        if (pondsDataError) throw pondsDataError;
+
+        const processedRecords = recordsData?.map(record => {
+          const pond = pondsData?.find(p => p.id === record.pond_id);
+          return {
+            ...record,
+            pond_name: pond?.name || 'Unknown'
+          };
+        }).filter(record => record.pond_name !== 'Unknown') || [];
+
+        setRecords(processedRecords);
+      }
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: error.message
+      });
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  const openDeleteDialog = (record: WaterQualityRecord) => {
+    setRecordToDelete(record);
+    setShowDeleteDialog(true);
+  };
+
+  const handleDeleteRecord = async () => {
+    if (!recordToDelete) return;
+
+    setSubmitting(true);
+
+    try {
+      const { error } = await supabase
+        .from('water_quality')
+        .delete()
+        .eq('id', recordToDelete.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Registro excluído!",
+        description: `Registro de qualidade da água foi excluído com sucesso.`
+      });
+
+      setShowDeleteDialog(false);
+      setRecordToDelete(null);
+      loadData();
+      loadWaterQualityHistory();
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: error.message
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="animate-pulse space-y-4">
@@ -222,6 +315,20 @@ export function WaterQualityTab() {
 
   return (
     <div className="space-y-6">
+      <Tabs defaultValue="ponds" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="ponds" className="flex items-center gap-2">
+            <Droplets className="w-4 h-4" />
+            Viveiros
+          </TabsTrigger>
+          <TabsTrigger value="history" className="flex items-center gap-2">
+            <History className="w-4 h-4" />
+            Histórico
+          </TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="ponds" className="mt-6">
+          <div className="space-y-6">
       {/* Header with new record button */}
       <div className="flex justify-end">
         <Dialog open={showDialog} onOpenChange={setShowDialog}>
@@ -451,6 +558,128 @@ export function WaterQualityTab() {
           </Card>
         </div>
       )}
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="history" className="mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Histórico de Qualidade da Água</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {historyLoading ? (
+                <div className="animate-pulse space-y-4">
+                  {[1, 2, 3].map(i => (
+                    <div key={i} className="h-12 bg-muted rounded"></div>
+                  ))}
+                </div>
+              ) : records.length === 0 ? (
+                <div className="text-center py-8">
+                  <History className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground">Nenhum registro de qualidade da água ainda.</p>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Viveiro</TableHead>
+                      <TableHead>Data</TableHead>
+                      <TableHead>Temp (°C)</TableHead>
+                      <TableHead>pH</TableHead>
+                      <TableHead>OD (mg/L)</TableHead>
+                      <TableHead>Amônia</TableHead>
+                      <TableHead>Alcalinidade</TableHead>
+                      <TableHead>Dureza</TableHead>
+                      <TableHead>Turbidez</TableHead>
+                      <TableHead>Registrado em</TableHead>
+                      <TableHead>Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {records.map((record) => (
+                      <TableRow key={record.id}>
+                        <TableCell className="font-medium">{record.pond_name}</TableCell>
+                        <TableCell>
+                          {new Date(record.measurement_date).toLocaleDateString('pt-BR')}
+                        </TableCell>
+                        <TableCell>
+                          {record.temperature ? `${record.temperature}°C` : '-'}
+                        </TableCell>
+                        <TableCell>
+                          {record.ph_level ? record.ph_level.toFixed(1) : '-'}
+                        </TableCell>
+                        <TableCell>
+                          {record.oxygen_level ? `${record.oxygen_level} mg/L` : '-'}
+                        </TableCell>
+                        <TableCell>
+                          {record.ammonia ? `${record.ammonia} mg/L` : '-'}
+                        </TableCell>
+                        <TableCell>
+                          {record.alkalinity ? `${record.alkalinity} mg/L` : '-'}
+                        </TableCell>
+                        <TableCell>
+                          {record.hardness ? `${record.hardness} mg/L` : '-'}
+                        </TableCell>
+                        <TableCell>
+                          {record.turbidity ? `${record.turbidity} NTU` : '-'}
+                        </TableCell>
+                        <TableCell>
+                          {new Date(record.created_at).toLocaleDateString('pt-BR')} {new Date(record.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openDeleteDialog(record)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      {/* Delete Dialog */}
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmar Exclusão</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p>Tem certeza que deseja excluir este registro de qualidade da água?</p>
+            {recordToDelete && (
+              <div className="p-3 bg-muted rounded-lg">
+                <p><strong>Viveiro:</strong> {recordToDelete.pond_name}</p>
+                <p><strong>Data:</strong> {new Date(recordToDelete.measurement_date).toLocaleDateString('pt-BR')}</p>
+              </div>
+            )}
+            <div className="flex gap-2 pt-4">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => setShowDeleteDialog(false)}
+                className="flex-1"
+              >
+                Cancelar
+              </Button>
+              <Button 
+                onClick={handleDeleteRecord}
+                disabled={submitting}
+                variant="destructive"
+                className="flex-1"
+              >
+                {submitting ? 'Excluindo...' : 'Excluir'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -182,7 +182,7 @@ export function FeedingSchedule({
             await supabase
               .from('inventory')
               .update({ 
-                quantity: inventory.quantity + record.actual_amount,
+                quantity: parseFloat((inventory.quantity + record.actual_amount).toFixed(2)),
                 updated_at: new Date().toISOString()
               })
               .eq('id', record.feed_type_id);
@@ -373,7 +373,7 @@ export function FeedingSchedule({
       const { error: inventoryError } = await supabase
         .from('inventory')
         .update({ 
-          quantity: selectedFeed.quantity - actualAmountNum,
+          quantity: parseFloat((selectedFeed.quantity - actualAmountNum).toFixed(2)),
           updated_at: new Date().toISOString()
         })
         .eq('id', selectedFeedType);

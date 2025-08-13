@@ -93,8 +93,7 @@ export default function PondHistory() {
   const { toast } = useToast();
 
   const calculatePriceByWeight = (weight: number, tableValue: number): number => {
-    const referenceWeight = 10; // 10g reference
-    return (weight / referenceWeight) * tableValue;
+    return tableValue + (weight - 10); // Correct formula: table + (weight - 10g)
   };
 
   useEffect(() => {

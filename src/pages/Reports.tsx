@@ -228,8 +228,8 @@ export default function Reports() {
 
       // Calculate price based on weight and table
       const calculatePriceByWeight = (weight: number, tableValue: number) => {
-        // Base weight is 10g, price adjusts proportionally
-        return (weight / 10) * tableValue;
+        // Correct formula: table + (weight - 10g)
+        return tableValue + (weight - 10);
       };
 
       // Process cycles for analysis

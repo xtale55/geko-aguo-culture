@@ -108,7 +108,10 @@ export function StockingContent({ selectedPondId, onBack }: StockingContentProps
 
         if (pondsError) throw pondsError;
         
-        setPonds(pondsData || []);
+        setPonds((pondsData || []).map(pond => ({
+          ...pond,
+          status: pond.status as 'free' | 'in_use' | 'maintenance'
+        })));
         
         // Initialize allocations for free ponds
         if (!selectedPondId) {

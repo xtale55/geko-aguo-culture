@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import Layout from '@/components/Layout';
+import { Layout } from '@/components/Layout';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -67,7 +67,10 @@ export default function Farm() {
           .order('created_at');
 
         if (pondsError) throw pondsError;
-        setPonds(pondsData || []);
+      setPonds((pondsData || []).map(pond => ({
+        ...pond,
+        status: pond.status as 'free' | 'in_use' | 'maintenance'
+      })));
       }
     } catch (error: any) {
       toast({

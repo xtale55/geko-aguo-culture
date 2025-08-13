@@ -41,12 +41,8 @@ interface PondAllocation {
   preparation_cost: number;
 }
 
-interface StockingContentProps {
-  selectedPondId?: string;
-  onBack?: () => void;
-}
 
-export function StockingContent({ selectedPondId, onBack }: StockingContentProps) {
+export function StockingContent() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [farms, setFarms] = useState<Farm[]>([]);
@@ -72,19 +68,8 @@ export function StockingContent({ selectedPondId, onBack }: StockingContentProps
   }, [user]);
 
   useEffect(() => {
-    if (selectedPondId && ponds.length > 0) {
-      const pond = ponds.find(p => p.id === selectedPondId);
-      if (pond) {
-        // Pre-allocate suggested quantity to the selected pond
-        const suggestedQuantity = Math.floor(pond.area * 50); // 50 PLs per m²
-        setAllocations([{
-          pond_id: selectedPondId,
-          quantity: suggestedQuantity,
-          preparation_cost: pond.area * 500 // R$ 500 per m²
-        }]);
-      }
-    } else if (!selectedPondId && ponds.length > 0) {
-      // Initialize allocations for all free ponds when in general mode
+    if (ponds.length > 0) {
+      // Initialize allocations for all free ponds
       const initialAllocations = ponds.map(pond => ({
         pond_id: pond.id,
         quantity: 0,
@@ -92,7 +77,7 @@ export function StockingContent({ selectedPondId, onBack }: StockingContentProps
       }));
       setAllocations(initialAllocations);
     }
-  }, [selectedPondId, ponds]);
+  }, [ponds]);
 
   const loadData = async () => {
     try {
@@ -208,12 +193,7 @@ export function StockingContent({ selectedPondId, onBack }: StockingContentProps
       }
 
       toast.success('Povoamento realizado com sucesso!');
-      
-      if (onBack) {
-        onBack();
-      } else {
-        navigate('/farm');
-      }
+      navigate('/farm');
     } catch (error) {
       console.error('Error during stocking:', error);
       toast.error('Erro ao realizar povoamento');
@@ -266,13 +246,6 @@ export function StockingContent({ selectedPondId, onBack }: StockingContentProps
   if (step === 'batch') {
     return (
       <div className="space-y-6">
-        {onBack && (
-          <Button variant="ghost" onClick={onBack} className="mb-4">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Voltar
-          </Button>
-        )}
-        
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -402,62 +375,30 @@ export function StockingContent({ selectedPondId, onBack }: StockingContentProps
       {/* Allocation */}
       <Card>
         <CardHeader>
-          <CardTitle>
-            {selectedPondId ? "Povoamento do Viveiro" : "Distribuição dos PLs"}
-          </CardTitle>
+          <CardTitle>Distribuição dos PLs</CardTitle>
           <CardDescription>
-            {selectedPondId 
-              ? `Defina a quantidade de PLs para o viveiro selecionado (${batchData.initial_quantity.toLocaleString()} PLs disponíveis)`
-              : `Distribua os ${batchData.initial_quantity.toLocaleString()} PLs entre os viveiros disponíveis`
-            }
+            Distribua os {batchData.initial_quantity.toLocaleString()} PLs entre os viveiros disponíveis
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {selectedPondId && (
-            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-              <p className="text-sm text-blue-700">
-                <strong>Modo Povoamento Específico:</strong> Você está povoando um viveiro específico. 
-                Para distribuir entre vários viveiros, acesse a aba "Povoamento" no menu principal.
-              </p>
-            </div>
-          )}
-          
           <div className="space-y-4">
-            {allocations
-              .filter(allocation => {
-                // If selectedPondId exists, show only that pond
-                // Otherwise, show all ponds
-                return selectedPondId ? allocation.pond_id === selectedPondId : true;
-              })
-              .map(allocation => {
-                const pond = ponds.find(p => p.id === allocation.pond_id);
-                if (!pond) return null;
+            {allocations.map(allocation => {
+              const pond = ponds.find(p => p.id === allocation.pond_id);
+              if (!pond) return null;
 
-                const farm = farms.find(f => f.id === pond.farm_id);
-                const expectedSurvival = Math.floor(allocation.quantity * (batchData.survival_rate / 100));
+              const farm = farms.find(f => f.id === pond.farm_id);
+              const expectedSurvival = Math.floor(allocation.quantity * (batchData.survival_rate / 100));
 
-                return (
-                  <div 
-                    key={pond.id} 
-                    className={`border rounded-lg p-4 space-y-3 ${
-                      selectedPondId === pond.id ? 'border-primary bg-primary/5' : ''
-                    }`}
-                  >
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h4 className="font-medium flex items-center gap-2">
-                          {pond.name}
-                          {selectedPondId === pond.id && (
-                            <span className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded">
-                              Selecionado
-                            </span>
-                          )}
-                        </h4>
-                        <p className="text-sm text-muted-foreground">
-                          {farm?.name} • {pond.area}m² • {pond.depth}m profundidade
-                        </p>
-                      </div>
+              return (
+                <div key={pond.id} className="border rounded-lg p-4 space-y-3">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h4 className="font-medium">{pond.name}</h4>
+                      <p className="text-sm text-muted-foreground">
+                        {farm?.name} • {pond.area}m² • {pond.depth}m profundidade
+                      </p>
                     </div>
+                  </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="space-y-2">

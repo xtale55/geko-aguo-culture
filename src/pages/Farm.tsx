@@ -35,7 +35,6 @@ export default function Farm() {
   const [loading, setLoading] = useState(true);
   const [showFarmDialog, setShowFarmDialog] = useState(false);
   const [showPondDialog, setShowPondDialog] = useState(false);
-  const [selectedPondForStocking, setSelectedPondForStocking] = useState<string | undefined>();
   const [activeTab, setActiveTab] = useState("viveiros");
   const { user } = useAuth();
   const { toast } = useToast();
@@ -382,13 +381,7 @@ export default function Farm() {
           </TabsContent>
           
           <TabsContent value="povoamento" className="space-y-4 mt-6">
-            <StockingContent 
-              selectedPondId={selectedPondForStocking}
-              onBack={() => {
-                setSelectedPondForStocking(undefined);
-                setActiveTab("viveiros");
-              }}
-            />
+            <StockingContent />
           </TabsContent>
         </Tabs>
       </div>
@@ -455,10 +448,7 @@ export default function Farm() {
                         variant="outline" 
                         size="sm" 
                         className="flex-1"
-                        onClick={() => {
-                          setSelectedPondForStocking(pond.id);
-                          setActiveTab("povoamento");
-                        }}
+                        onClick={() => navigate('/stocking')}
                       >
                         <Fish className="w-4 h-4 mr-1" />
                         Povoar

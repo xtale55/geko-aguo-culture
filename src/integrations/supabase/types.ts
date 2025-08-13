@@ -243,9 +243,12 @@ export type Database = {
       }
       harvest_records: {
         Row: {
+          actual_mortality_detected: number | null
           average_weight_at_harvest: number | null
           biomass_harvested: number
           created_at: string
+          expected_biomass: number | null
+          expected_population: number | null
           harvest_date: string
           harvest_type: string
           id: string
@@ -253,13 +256,17 @@ export type Database = {
           pond_batch_id: string
           population_harvested: number
           price_per_kg: number | null
+          reconciliation_notes: string | null
           total_value: number | null
           updated_at: string
         }
         Insert: {
+          actual_mortality_detected?: number | null
           average_weight_at_harvest?: number | null
           biomass_harvested?: number
           created_at?: string
+          expected_biomass?: number | null
+          expected_population?: number | null
           harvest_date: string
           harvest_type: string
           id?: string
@@ -267,13 +274,17 @@ export type Database = {
           pond_batch_id: string
           population_harvested?: number
           price_per_kg?: number | null
+          reconciliation_notes?: string | null
           total_value?: number | null
           updated_at?: string
         }
         Update: {
+          actual_mortality_detected?: number | null
           average_weight_at_harvest?: number | null
           biomass_harvested?: number
           created_at?: string
+          expected_biomass?: number | null
+          expected_population?: number | null
           harvest_date?: string
           harvest_type?: string
           id?: string
@@ -281,6 +292,7 @@ export type Database = {
           pond_batch_id?: string
           population_harvested?: number
           price_per_kg?: number | null
+          reconciliation_notes?: string | null
           total_value?: number | null
           updated_at?: string
         }
@@ -471,9 +483,15 @@ export type Database = {
       }
       pond_batches: {
         Row: {
+          actual_mortality_total: number | null
           batch_id: string
           created_at: string | null
           current_population: number
+          cycle_status: string | null
+          final_average_weight: number | null
+          final_biomass: number | null
+          final_population: number | null
+          final_survival_rate: number | null
           id: string
           pl_quantity: number
           pond_id: string
@@ -482,9 +500,15 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          actual_mortality_total?: number | null
           batch_id: string
           created_at?: string | null
           current_population: number
+          cycle_status?: string | null
+          final_average_weight?: number | null
+          final_biomass?: number | null
+          final_population?: number | null
+          final_survival_rate?: number | null
           id?: string
           pl_quantity: number
           pond_id: string
@@ -493,9 +517,15 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          actual_mortality_total?: number | null
           batch_id?: string
           created_at?: string | null
           current_population?: number
+          cycle_status?: string | null
+          final_average_weight?: number | null
+          final_biomass?: number | null
+          final_population?: number | null
+          final_survival_rate?: number | null
           id?: string
           pl_quantity?: number
           pond_id?: string

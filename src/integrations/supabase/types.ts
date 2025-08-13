@@ -281,7 +281,15 @@ export type Database = {
           total_value?: number | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "harvest_records_pond_batch_id_fkey"
+            columns: ["pond_batch_id"]
+            isOneToOne: false
+            referencedRelation: "pond_batches"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       input_applications: {
         Row: {

@@ -48,6 +48,7 @@ interface FeedingScheduleProps {
   farmId: string;
   onFeedingUpdate: () => void;
   onRateUpdate: () => void;
+  isWeightEstimated?: boolean;
 }
 
 export function FeedingSchedule({
@@ -65,7 +66,8 @@ export function FeedingSchedule({
   averageWeight,
   farmId,
   onFeedingUpdate,
-  onRateUpdate
+  onRateUpdate,
+  isWeightEstimated = false
 }: FeedingScheduleProps) {
   const [feedingRecords, setFeedingRecords] = useState<FeedingRecord[]>([]);
   const [availableFeeds, setAvailableFeeds] = useState<FeedType[]>([]);
@@ -499,9 +501,16 @@ export function FeedingSchedule({
                 <span className="text-muted-foreground">Biomassa:</span>
                 <span className="font-medium ml-1">{biomass.toFixed(1)} kg</span>
               </div>
-              <div>
+              <div className="flex items-center gap-2">
                 <span className="text-muted-foreground">Peso médio:</span>
-                <span className="font-medium ml-1">{averageWeight}g</span>
+                <span className="font-medium ml-1">
+                  {averageWeight < 0.1 ? '<0,1g' : `${averageWeight.toFixed(1)}g`}
+                </span>
+                {isWeightEstimated && (
+                  <Badge variant="secondary" className="text-xs">
+                    Estimado
+                  </Badge>
+                )}
               </div>
             </div>
             <Button 

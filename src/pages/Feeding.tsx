@@ -22,6 +22,7 @@ interface PondWithBatch {
     batch_name: string;
     stocking_date: string;
     current_population: number;
+    pl_size: number;
     latest_biometry?: {
       average_weight: number;
       measurement_date: string;
@@ -45,6 +46,7 @@ interface FeedingTask {
   doc: number;
   total_feed_consumed: number;
   fca: number;
+  is_weight_estimated: boolean;
 }
 
 export default function Feeding() {
@@ -86,7 +88,7 @@ export default function Feeding() {
               stocking_date,
               cycle_status,
               created_at,
-              batches!inner(name),
+              batches!inner(name, pl_size),
               biometrics(
                 average_weight,
                 measurement_date,
@@ -117,6 +119,7 @@ export default function Feeding() {
               batch_name: latestBatch.batches.name,
               stocking_date: latestBatch.stocking_date,
               current_population: latestBatch.current_population,
+              pl_size: latestBatch.batches.pl_size,
               latest_biometry: latestBatch.biometrics
                 .sort((a, b) => new Date(b.created_at || b.measurement_date).getTime() - new Date(a.created_at || a.measurement_date).getTime())[0] || null
             } : undefined
@@ -128,16 +131,28 @@ export default function Feeding() {
         // Generate feeding tasks
         const tasks = await Promise.all(
           processedPonds
-            .filter(pond => pond.current_batch?.latest_biometry)
+            .filter(pond => pond.current_batch) // Remove biometry requirement
             .map(async (pond) => {
               const batch = pond.current_batch!;
-              const biometry = batch.latest_biometry!;
               const doc = calculateDOC(batch.stocking_date);
-              const biomass = (batch.current_population * biometry.average_weight) / 1000; // kg
+              
+              // Calculate weight: use biometry if available, otherwise calculate from pl_size
+              let averageWeight = 0;
+              let isEstimated = false;
+              
+              if (batch.latest_biometry) {
+                averageWeight = batch.latest_biometry.average_weight;
+              } else if (batch.pl_size) {
+                // Calculate initial weight from pl_size (1g / pl_size)
+                averageWeight = 1 / batch.pl_size;
+                isEstimated = true;
+              }
+              
+              const biomass = (batch.current_population * averageWeight) / 1000; // kg
 
               // Get custom feeding rate or use default
-              const feedingRate = await getFeedingRate(batch.id, biometry.average_weight, farmsData[0].id);
-              const mealsPerDay = await getMealsPerDay(batch.id, biometry.average_weight, farmsData[0].id);
+              const feedingRate = await getFeedingRate(batch.id, averageWeight, farmsData[0].id);
+              const mealsPerDay = await getMealsPerDay(batch.id, averageWeight, farmsData[0].id);
               const dailyFeed = biomass * (feedingRate / 100);
               const feedPerMeal = dailyFeed / mealsPerDay;
 
@@ -148,9 +163,9 @@ export default function Feeding() {
               const firstBiometry = await getFirstBiometry(batch.id);
               let fca = 1.5; // Default fallback
               
-              if (firstBiometry && totalFeedConsumed > 0) {
+              if (firstBiometry && totalFeedConsumed > 0 && !isEstimated) {
                 const initialBiomass = (batch.current_population * firstBiometry.average_weight) / 1000;
-                const currentBiomass = (batch.current_population * biometry.average_weight) / 1000;
+                const currentBiomass = (batch.current_population * averageWeight) / 1000;
                 const biomassGain = currentBiomass - initialBiomass;
                 fca = biomassGain > 0 ? totalFeedConsumed / biomassGain : 1.5;
               }
@@ -161,7 +176,7 @@ export default function Feeding() {
                 pond_batch_id: batch.id,
                 batch_name: batch.batch_name,
                 current_population: batch.current_population,
-                average_weight: biometry.average_weight,
+                average_weight: averageWeight,
                 biomass,
                 feeding_rate: feedingRate,
                 daily_feed: dailyFeed,
@@ -169,7 +184,8 @@ export default function Feeding() {
                 feed_per_meal: feedPerMeal,
                 doc,
                 total_feed_consumed: totalFeedConsumed,
-                fca
+                fca,
+                is_weight_estimated: isEstimated
               };
             })
         );
@@ -342,9 +358,9 @@ export default function Feeding() {
       <Layout>
         <div className="text-center py-12">
           <Utensils className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-          <h2 className="text-2xl font-semibold mb-2">Nenhum viveiro com biometria</h2>
+          <h2 className="text-2xl font-semibold mb-2">Nenhum viveiro ativo</h2>
           <p className="text-muted-foreground mb-6">
-            É necessário registrar biometrias para calcular o arraçoamento.
+            É necessário ter viveiros ativos para calcular o arraçoamento.
           </p>
           <Button onClick={() => navigate('/biometry')}>
             Registrar Biometria
@@ -473,6 +489,7 @@ export default function Feeding() {
                 farmId={farms[0]?.id}
                 onFeedingUpdate={loadFeedingData}
                 onRateUpdate={loadFeedingData}
+                isWeightEstimated={task.is_weight_estimated}
               />
             ))}
           </div>

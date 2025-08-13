@@ -109,7 +109,7 @@ const HarvestTab = () => {
         });
       });
 
-      setActivePondBatches(activeBatches);
+      setActivePondBatches(activeBatches.sort((a, b) => a.pond_name.localeCompare(b.pond_name)));
 
       // Load harvest records with proper joins
       const { data: harvests, error: harvestsError } = await supabase

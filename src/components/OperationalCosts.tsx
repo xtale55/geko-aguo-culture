@@ -182,28 +182,96 @@ export function OperationalCosts() {
         return;
       }
 
-      const costData: any = {
-        farm_id: farms[0].id,
-        category: newCost.category as 'labor' | 'energy' | 'fuel' | 'other',
-        amount: parseFloat(newCost.amount),
-        cost_date: newCost.cost_date,
-        description: newCost.description
-      };
+      const farmId = farms[0].id;
+      const totalAmount = parseFloat(newCost.amount);
 
-      if (newCost.pond_batch_id && newCost.pond_batch_id !== "general") {
-        costData.pond_batch_id = newCost.pond_batch_id;
+      // Se for custo geral, distribuir entre viveiros ativos
+      if (newCost.pond_batch_id === "general") {
+        // Buscar todos os pond_batches ativos
+        const { data: activePondBatches } = await supabase
+          .from('pond_batches')
+          .select(`
+            id, 
+            current_population,
+            ponds!inner(farm_id),
+            biometrics(average_weight)
+          `)
+          .eq('ponds.farm_id', farmId)
+          .gt('current_population', 0)
+          .order('biometrics.created_at', { ascending: false });
+
+        if (!activePondBatches || activePondBatches.length === 0) {
+          toast({
+            variant: "destructive",
+            title: "Erro",
+            description: "Nenhum viveiro ativo encontrado para distribuir o custo"
+          });
+          return;
+        }
+
+        // Calcular biomassa total para distribuição proporcional
+        let totalBiomass = 0;
+        const pondBiomassData: { pond_batch_id: string; biomass: number }[] = [];
+
+        activePondBatches.forEach(pb => {
+          const latestBiometry = pb.biometrics?.[0];
+          const biomass = latestBiometry ? 
+            (pb.current_population * latestBiometry.average_weight) / 1000 : 
+            pb.current_population * 0.005; // Peso padrão se não houver biometria
+          
+          totalBiomass += biomass;
+          pondBiomassData.push({
+            pond_batch_id: pb.id,
+            biomass
+          });
+        });
+
+        // Criar registros proporcionais para cada viveiro
+        const costsToInsert = pondBiomassData.map(({ pond_batch_id, biomass }) => ({
+          farm_id: farmId,
+          pond_batch_id,
+          category: newCost.category as 'labor' | 'energy' | 'fuel' | 'other',
+          amount: (totalAmount * biomass) / totalBiomass,
+          cost_date: newCost.cost_date,
+          description: `${newCost.description} (distribuído por biomassa)`
+        }));
+
+        const { error } = await supabase
+          .from('operational_costs')
+          .insert(costsToInsert);
+
+        if (error) throw error;
+
+        toast({
+          title: "Custo distribuído",
+          description: `Custo de R$ ${totalAmount.toFixed(2)} distribuído entre ${costsToInsert.length} viveiros ativos`
+        });
+
+      } else {
+        // Custo específico do viveiro
+        const costData: any = {
+          farm_id: farmId,
+          category: newCost.category as 'labor' | 'energy' | 'fuel' | 'other',
+          amount: totalAmount,
+          cost_date: newCost.cost_date,
+          description: newCost.description
+        };
+
+        if (newCost.pond_batch_id) {
+          costData.pond_batch_id = newCost.pond_batch_id;
+        }
+
+        const { error } = await supabase
+          .from('operational_costs')
+          .insert(costData);
+
+        if (error) throw error;
+
+        toast({
+          title: "Custo adicionado",
+          description: "Custo operacional registrado com sucesso"
+        });
       }
-
-      const { error } = await supabase
-        .from('operational_costs')
-        .insert(costData);
-
-      if (error) throw error;
-
-      toast({
-        title: "Custo adicionado",
-        description: "Custo operacional registrado com sucesso"
-      });
 
       setIsDialogOpen(false);
       setNewCost({

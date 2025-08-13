@@ -64,6 +64,7 @@ interface PondCardData {
   estimated_revenue: number;
   total_cost: number;
   profit_margin: number;
+  cost_per_kg: number;
 }
 
 export default function Reports() {
@@ -330,6 +331,9 @@ export default function Reports() {
             profit_margin: profitMargin
           });
 
+          // Calculate cost per kg
+          const costPerKg = biomass > 0 ? cycleCost / biomass : 0;
+
           // Create pond card data
           processedPondCards.push({
             pond_batch_id: cycle.id,
@@ -347,7 +351,8 @@ export default function Reports() {
             performance_score: performanceScore,
             estimated_revenue: estimatedRevenue,
             total_cost: cycleCost,
-            profit_margin: profitMargin
+            profit_margin: profitMargin,
+            cost_per_kg: costPerKg
           });
         }
       });
@@ -631,20 +636,29 @@ export default function Reports() {
                           </div>
                         </div>
                         
-                        <div className="pt-3 border-t border-border space-y-2">
-                          <div className="flex justify-between text-sm">
-                            <span className="text-muted-foreground">Receita Estimada:</span>
-                            <span className="font-medium text-success">
-                              R$ {pond.estimated_revenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                            </span>
-                          </div>
-                          <div className="flex justify-between text-sm">
-                            <span className="text-muted-foreground">Margem:</span>
-                            <span className={`font-medium ${pond.profit_margin > 0 ? 'text-success' : 'text-destructive'}`}>
-                              {pond.profit_margin.toFixed(1)}%
-                            </span>
-                          </div>
-                        </div>
+                         <div className="pt-3 border-t border-border space-y-2">
+                           <div className="flex justify-between text-sm">
+                             <span className="text-muted-foreground">Receita Estimada:</span>
+                             <span className="font-medium text-success">
+                               R$ {pond.estimated_revenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                             </span>
+                           </div>
+                           <div className="flex justify-between text-sm">
+                             <span className="text-muted-foreground">Custo/kg:</span>
+                             <span className={`font-medium ${
+                               pond.cost_per_kg <= 15 ? 'text-success' : 
+                               pond.cost_per_kg <= 20 ? 'text-warning' : 'text-destructive'
+                             }`}>
+                               R$ {pond.cost_per_kg.toFixed(2)}
+                             </span>
+                           </div>
+                           <div className="flex justify-between text-sm">
+                             <span className="text-muted-foreground">Margem:</span>
+                             <span className={`font-medium ${pond.profit_margin > 0 ? 'text-success' : 'text-destructive'}`}>
+                               {pond.profit_margin.toFixed(1)}%
+                             </span>
+                           </div>
+                         </div>
 
                         <div className="pt-2">
                           <Badge 

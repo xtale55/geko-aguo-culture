@@ -243,6 +243,7 @@ export type Database = {
       }
       harvest_records: {
         Row: {
+          average_weight_at_harvest: number | null
           biomass_harvested: number
           created_at: string
           harvest_date: string
@@ -256,6 +257,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          average_weight_at_harvest?: number | null
           biomass_harvested?: number
           created_at?: string
           harvest_date: string
@@ -269,6 +271,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          average_weight_at_harvest?: number | null
           biomass_harvested?: number
           created_at?: string
           harvest_date?: string

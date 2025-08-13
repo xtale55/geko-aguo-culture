@@ -35,6 +35,7 @@ interface HarvestRecord {
   notes: string | null;
   pond_name: string;
   batch_name: string;
+  average_weight_at_harvest?: number;
 }
 
 const HarvestTab = () => {
@@ -51,6 +52,7 @@ const HarvestTab = () => {
   const [harvestDate, setHarvestDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [harvestType, setHarvestType] = useState<'total' | 'partial'>('partial');
   const [biomassHarvested, setBiomassHarvested] = useState('');
+  const [averageWeightAtHarvest, setAverageWeightAtHarvest] = useState('');
   const [populationHarvested, setPopulationHarvested] = useState('');
   const [pricePerKg, setPricePerKg] = useState('');
   const [notes, setNotes] = useState('');
@@ -123,6 +125,7 @@ const HarvestTab = () => {
           price_per_kg,
           total_value,
           notes,
+          average_weight_at_harvest,
           pond_batches!inner (
             ponds!inner (name),
             batches!inner (name)
@@ -135,7 +138,7 @@ const HarvestTab = () => {
 
       const formattedHarvests: HarvestRecord[] = harvests?.map((h: any) => ({
         id: h.id,
-        harvest_date: h.harvest_date,
+          harvest_date: h.harvest_date,
         harvest_type: h.harvest_type as 'total' | 'partial',
         biomass_harvested: h.biomass_harvested,
         population_harvested: h.population_harvested,
@@ -143,7 +146,8 @@ const HarvestTab = () => {
         total_value: h.total_value,
         notes: h.notes,
         pond_name: h.pond_batches.ponds.name,
-        batch_name: h.pond_batches.batches.name
+        batch_name: h.pond_batches.batches.name,
+        average_weight_at_harvest: h.average_weight_at_harvest
       })) || [];
 
       setHarvestRecords(formattedHarvests);
@@ -160,6 +164,21 @@ const HarvestTab = () => {
     }
   };
 
+  const getDefaultPrice = (averageWeight: number): number => {
+    // Get price table from localStorage or use default
+    const storedPriceTable = localStorage.getItem('priceTable');
+    const basePrice = storedPriceTable ? parseFloat(storedPriceTable) : 19;
+    
+    // Calculate price based on weight: basePrice + (weight - 10)
+    const calculatedPrice = basePrice + (averageWeight - 10);
+    return Math.max(calculatedPrice, 0); // Ensure price is not negative
+  };
+
+  const calculateShrimpCount = (biomass: number, averageWeight: number): number => {
+    if (!biomass || !averageWeight) return 0;
+    return Math.round((biomass * 1000) / averageWeight); // biomass in kg to grams, divided by weight in grams
+  };
+
   const openHarvestDialog = (pondBatch: PondBatch) => {
     setSelectedPondBatch(pondBatch);
     setDialogOpen(true);
@@ -167,8 +186,20 @@ const HarvestTab = () => {
     setHarvestDate(format(new Date(), 'yyyy-MM-dd'));
     setHarvestType('partial');
     setBiomassHarvested('');
+    
+    // Pre-fill average weight with latest biometry data
+    const defaultWeight = pondBatch.latest_average_weight || 0;
+    setAverageWeightAtHarvest(defaultWeight.toString());
+    
     setPopulationHarvested('');
-    setPricePerKg('');
+    
+    // Set default price based on weight
+    if (defaultWeight > 0) {
+      setPricePerKg(getDefaultPrice(defaultWeight).toFixed(2));
+    } else {
+      setPricePerKg('19.00');
+    }
+    
     setNotes('');
   };
 
@@ -179,7 +210,8 @@ const HarvestTab = () => {
 
     try {
       const biomassValue = parseFloat(biomassHarvested);
-      const populationValue = parseInt(populationHarvested);
+      const averageWeightValue = parseFloat(averageWeightAtHarvest);
+      const populationValue = calculateShrimpCount(biomassValue, averageWeightValue);
       const priceValue = pricePerKg ? parseFloat(pricePerKg) : null;
       const totalValue = priceValue ? biomassValue * priceValue : null;
 
@@ -215,7 +247,8 @@ const HarvestTab = () => {
           population_harvested: populationValue,
           price_per_kg: priceValue,
           total_value: totalValue,
-          notes: notes || null
+          notes: notes || null,
+          average_weight_at_harvest: averageWeightValue
         });
 
       if (harvestError) throw harvestError;
@@ -407,7 +440,7 @@ const HarvestTab = () => {
                           {record.biomass_harvested.toFixed(1)} kg
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          {record.population_harvested.toLocaleString()} peixes
+                          {record.population_harvested.toLocaleString()} camarões
                         </p>
                       </div>
                       <div>
@@ -446,7 +479,7 @@ const HarvestTab = () => {
                 <>
                   {selectedPondBatch.pond_name} - {selectedPondBatch.batch_name}
                   <br />
-                  População atual: {selectedPondBatch.current_population.toLocaleString()} peixes
+                  População atual: {selectedPondBatch.current_population.toLocaleString()} camarões
                 </>
               )}
             </DialogDescription>
@@ -484,20 +517,49 @@ const HarvestTab = () => {
                 type="number"
                 step="0.1"
                 value={biomassHarvested}
-                onChange={(e) => setBiomassHarvested(e.target.value)}
+                onChange={(e) => {
+                  setBiomassHarvested(e.target.value);
+                  // Recalculate price when biomass changes
+                  const weight = parseFloat(averageWeightAtHarvest);
+                  if (weight > 0) {
+                    setPricePerKg(getDefaultPrice(weight).toFixed(2));
+                  }
+                }}
                 required
               />
             </div>
 
             <div>
-              <Label htmlFor="population_harvested">Quantidade de Peixes</Label>
+              <Label htmlFor="average_weight_at_harvest">Peso Médio na Despesca (g)</Label>
+              <Input
+                id="average_weight_at_harvest"
+                type="number"
+                step="0.1"
+                value={averageWeightAtHarvest}
+                onChange={(e) => {
+                  setAverageWeightAtHarvest(e.target.value);
+                  // Recalculate price when weight changes
+                  const weight = parseFloat(e.target.value);
+                  if (weight > 0) {
+                    setPricePerKg(getDefaultPrice(weight).toFixed(2));
+                  }
+                }}
+                required
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="population_harvested">Quantidade de Camarões (calculado)</Label>
               <Input
                 id="population_harvested"
                 type="number"
-                value={populationHarvested}
-                onChange={(e) => setPopulationHarvested(e.target.value)}
-                required
+                value={calculateShrimpCount(parseFloat(biomassHarvested) || 0, parseFloat(averageWeightAtHarvest) || 0)}
+                readOnly
+                className="bg-muted"
               />
+              <p className="text-xs text-muted-foreground mt-1">
+                Calculado automaticamente: Biomassa ÷ Peso Médio
+              </p>
             </div>
 
             <div>

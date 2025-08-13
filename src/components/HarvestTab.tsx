@@ -19,6 +19,9 @@ interface PondBatch {
   batch_name: string;
   current_population: number;
   stocking_date: string;
+  latest_average_weight?: number;
+  latest_uniformity?: number;
+  latest_measurement_date?: string;
 }
 
 interface HarvestRecord {
@@ -62,37 +65,47 @@ const HarvestTab = () => {
     try {
       setLoading(true);
 
-      // Load active pond batches
-      const { data: ponds, error: pondsError } = await supabase
-        .from('ponds')
+      // Load active pond batches with latest biometry data
+      const { data: pondBatchesData, error: pondBatchesError } = await supabase
+        .from('pond_batches')
         .select(`
           id,
-          name,
-          pond_batches!inner (
+          current_population,
+          stocking_date,
+          ponds!inner (
             id,
-            current_population,
-            stocking_date,
-            batch:batches!inner (
-              name
-            )
+            name,
+            status
+          ),
+          batches!inner (
+            name
+          ),
+          biometrics (
+            average_weight,
+            uniformity,
+            measurement_date
           )
         `)
-        .eq('status', 'in_use');
+        .eq('ponds.status', 'in_use')
+        .gt('current_population', 0)
+        .order('measurement_date', { foreignTable: 'biometrics', ascending: false });
 
-      if (pondsError) throw pondsError;
+      if (pondBatchesError) throw pondBatchesError;
 
       const activeBatches: PondBatch[] = [];
-      ponds?.forEach(pond => {
-        pond.pond_batches.forEach((pb: any) => {
-          if (pb.current_population > 0) {
-            activeBatches.push({
-              id: pb.id,
-              pond_name: pond.name,
-              batch_name: pb.batch.name,
-              current_population: pb.current_population,
-              stocking_date: pb.stocking_date
-            });
-          }
+      pondBatchesData?.forEach((pb: any) => {
+        // Get the latest biometry record (first one due to ordering)
+        const latestBiometry = pb.biometrics && pb.biometrics.length > 0 ? pb.biometrics[0] : null;
+        
+        activeBatches.push({
+          id: pb.id,
+          pond_name: pb.ponds.name,
+          batch_name: pb.batches.name,
+          current_population: pb.current_population,
+          stocking_date: pb.stocking_date,
+          latest_average_weight: latestBiometry?.average_weight || undefined,
+          latest_uniformity: latestBiometry?.uniformity || undefined,
+          latest_measurement_date: latestBiometry?.measurement_date || undefined
         });
       });
 
@@ -258,6 +271,11 @@ const HarvestTab = () => {
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   };
 
+  const calculateBiomass = (population: number, averageWeight?: number): number => {
+    if (!averageWeight) return 0;
+    return (population * averageWeight) / 1000; // Convert to kg
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -293,13 +311,48 @@ const HarvestTab = () => {
                     <CardDescription>{pondBatch.batch_name}</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span>População:</span>
-                      <span className="font-medium">{pondBatch.current_population.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span>DOC:</span>
-                      <span className="font-medium">{calculateDOC(pondBatch.stocking_date)} dias</span>
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div className="flex justify-between">
+                        <span>População:</span>
+                        <span className="font-medium">{pondBatch.current_population.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>DOC:</span>
+                        <span className="font-medium">{calculateDOC(pondBatch.stocking_date)} dias</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Biomassa:</span>
+                        <span className="font-medium">
+                          {pondBatch.latest_average_weight 
+                            ? `${calculateBiomass(pondBatch.current_population, pondBatch.latest_average_weight).toFixed(1)} kg`
+                            : 'N/A'
+                          }
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Peso médio:</span>
+                        <span className="font-medium">
+                          {pondBatch.latest_average_weight 
+                            ? `${pondBatch.latest_average_weight.toFixed(1)}g`
+                            : 'N/A'
+                          }
+                        </span>
+                      </div>
+                      <div className="flex justify-between col-span-2">
+                        <span>Uniformidade:</span>
+                        <span className="font-medium">
+                          {pondBatch.latest_uniformity 
+                            ? `${pondBatch.latest_uniformity.toFixed(1)}%`
+                            : 'N/A'
+                          }
+                        </span>
+                      </div>
+                      {pondBatch.latest_measurement_date && (
+                        <div className="flex justify-between col-span-2 text-xs text-muted-foreground">
+                          <span>Última biometria:</span>
+                          <span>{format(new Date(pondBatch.latest_measurement_date), 'dd/MM/yyyy', { locale: ptBR })}</span>
+                        </div>
+                      )}
                     </div>
                     <Button 
                       onClick={() => openHarvestDialog(pondBatch)}

@@ -318,12 +318,12 @@ export function StockingContent({ selectedPondId, onBack }: StockingContentProps
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="size_cm">Tamanho (cm) *</Label>
+                <Label htmlFor="size_cm">PL/g *</Label>
                 <Input
                   id="size_cm"
                   type="number"
                   step="0.1"
-                  placeholder="Ex: 1.2"
+                  placeholder="Ex: 1000 (PLs por grama)"
                   value={batchData.size_cm || ''}
                   onChange={(e) => setBatchData(prev => ({ ...prev, size_cm: parseFloat(e.target.value) || 0 }))}
                 />

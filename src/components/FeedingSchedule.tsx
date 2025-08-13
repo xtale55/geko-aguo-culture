@@ -9,8 +9,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { Edit2, Clock, Plus } from 'lucide-react';
+import { Edit2, Clock, Plus, History } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { FeedingHistoryDialog } from './FeedingHistoryDialog';
 
 interface FeedingRecord {
   id: string;
@@ -77,6 +78,7 @@ export function FeedingSchedule({
   const [notes, setNotes] = useState<string>("");
   const [feedingDate, setFeedingDate] = useState<string>(selectedDate);
   const [feedingTime, setFeedingTime] = useState<string>("");
+  const [isHistoryDialogOpen, setIsHistoryDialogOpen] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -528,13 +530,13 @@ export function FeedingSchedule({
           </div>
         </div>
 
-        {/* Register Feeding Button */}
-        <div className="flex justify-center">
+        {/* Action Buttons */}
+        <div className="flex gap-3 justify-center">
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button 
                 onClick={handleOpenFeedingDialog}
-                className="w-full max-w-sm"
+                className="flex-1 max-w-xs"
                 size="lg"
               >
                 <Plus className="w-4 h-4 mr-2" />
@@ -631,7 +633,24 @@ export function FeedingSchedule({
               </div>
             </DialogContent>
           </Dialog>
+          <Button 
+            variant="outline"
+            size="lg"
+            onClick={() => setIsHistoryDialogOpen(true)}
+          >
+            <History className="w-4 h-4 mr-2" />
+            Histórico
+          </Button>
         </div>
+
+        {/* Feeding History Dialog */}
+        <FeedingHistoryDialog 
+          open={isHistoryDialogOpen}
+          onOpenChange={setIsHistoryDialogOpen}
+          pondBatchId={pondBatchId}
+          pondName={pondName}
+          batchName={batchName}
+        />
 
         {/* Feeding History */}
         {feedingRecords.length > 0 && (

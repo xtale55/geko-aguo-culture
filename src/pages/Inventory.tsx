@@ -310,7 +310,7 @@ export default function Inventory() {
 
               <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <Label htmlFor="quantity">Quantidade</Label>
+                  <Label htmlFor="quantity">Quantidade (kg)</Label>
                   <Input
                     id="quantity"
                     type="number"
@@ -318,6 +318,7 @@ export default function Inventory() {
                     value={formData.quantity}
                     onChange={(e) => setFormData({...formData, quantity: parseFloat(e.target.value) || 0})}
                     required
+                    placeholder="Ex: 30 (para 1 saca de 30kg)"
                   />
                 </div>
                 <div>

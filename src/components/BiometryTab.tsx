@@ -81,7 +81,7 @@ export function BiometryTab() {
       if (farmsError) throw farmsError;
 
       if (farmsData && farmsData.length > 0) {
-        // Load active ponds with batch data
+        // Load active ponds with active batch data
         const { data: pondsData, error: pondsError } = await supabase
           .from('ponds')
           .select(`
@@ -90,6 +90,7 @@ export function BiometryTab() {
               id,
               current_population,
               stocking_date,
+              cycle_status,
               batches!inner(name),
               biometrics(
                 average_weight,
@@ -101,6 +102,8 @@ export function BiometryTab() {
           `)
           .eq('farm_id', farmsData[0].id)
           .eq('status', 'in_use')
+          .eq('pond_batches.cycle_status', 'active')
+          .gt('pond_batches.current_population', 0)
           .order('name');
 
         if (pondsError) throw pondsError;

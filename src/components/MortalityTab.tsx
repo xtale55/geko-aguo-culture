@@ -60,7 +60,7 @@ export function MortalityTab() {
       if (farmsError) throw farmsError;
 
       if (farmsData && farmsData.length > 0) {
-        // Load active ponds with batch data
+        // Load active ponds with active batch data
         const { data: pondsData, error: pondsError } = await supabase
           .from('ponds')
           .select(`
@@ -70,11 +70,14 @@ export function MortalityTab() {
               current_population,
               pl_quantity,
               stocking_date,
+              cycle_status,
               batches!inner(name)
             )
           `)
           .eq('farm_id', farmsData[0].id)
           .eq('status', 'in_use')
+          .eq('pond_batches.cycle_status', 'active')
+          .gt('pond_batches.current_population', 0)
           .order('name');
 
         if (pondsError) throw pondsError;

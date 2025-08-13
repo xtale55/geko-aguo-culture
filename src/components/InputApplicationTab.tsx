@@ -119,10 +119,12 @@ export function InputApplicationTab() {
         id,
         stocking_date,
         current_population,
+        cycle_status,
         pond:ponds!inner(
           id,
           name,
           area,
+          status,
           farm:farms!inner(user_id)
         ),
         batch:batches!inner(
@@ -132,7 +134,10 @@ export function InputApplicationTab() {
         )
       `)
       .eq('pond.farm.user_id', user?.id)
-      .eq('batch.status', 'active');
+      .eq('batch.status', 'active')
+      .eq('cycle_status', 'active')
+      .eq('pond.status', 'in_use')
+      .gt('current_population', 0);
 
     if (error) {
       console.error('Error fetching pond batches:', error);

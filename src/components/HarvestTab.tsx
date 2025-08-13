@@ -288,8 +288,41 @@ const HarvestTab = () => {
 
       if (harvestError) throw harvestError;
 
-      // For partial harvests, manually update population (total harvests are handled by trigger)
-      if (harvestType === 'partial') {
+      // Update pond_batch and pond status based on harvest type
+      if (harvestType === 'total') {
+        // For total harvest, mark pond_batch as completed and pond as free
+        const { error: updatePondBatchError } = await supabase
+          .from('pond_batches')
+          .update({ 
+            current_population: 0,
+            cycle_status: 'completed',
+            final_population: populationValue,
+            final_biomass: biomassValue,
+            final_average_weight: averageWeightValue,
+            final_survival_rate: (populationValue / selectedPondBatch.current_population) * 100
+          })
+          .eq('id', selectedPondBatch.id);
+
+        if (updatePondBatchError) throw updatePondBatchError;
+
+        // Update pond status to free
+        const { data: pondData, error: pondQueryError } = await supabase
+          .from('pond_batches')
+          .select('pond_id')
+          .eq('id', selectedPondBatch.id)
+          .single();
+
+        if (pondQueryError) throw pondQueryError;
+
+        const { error: updatePondError } = await supabase
+          .from('ponds')
+          .update({ status: 'free' })
+          .eq('id', pondData.pond_id);
+
+        if (updatePondError) throw updatePondError;
+
+      } else {
+        // For partial harvests, just update population
         const newPopulation = selectedPondBatch.current_population - populationValue;
         
         const { error: updateError } = await supabase

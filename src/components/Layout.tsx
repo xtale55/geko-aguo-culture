@@ -61,14 +61,6 @@ export function Layout({ children }: LayoutProps) {
               <Waves className="w-4 h-4 mr-2" />
               Fazenda
             </Button>
-            <Button
-              variant={isActive('/stocking') ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => navigate('/stocking')}
-            >
-              <Waves className="w-4 h-4 mr-2" />
-              Povoamento
-            </Button>
             <Button 
               variant={isActive('/manejos') ? 'default' : 'ghost'}
               size="sm"
@@ -139,15 +131,6 @@ export function Layout({ children }: LayoutProps) {
           >
             <Waves className="w-4 h-4" />
             <span className="text-xs">Fazenda</span>
-          </Button>
-          <Button
-            variant={isActive('/stocking') ? 'default' : 'ghost'}
-            size="sm"
-            onClick={() => navigate('/stocking')}
-            className="flex flex-col items-center space-y-1 h-16 min-w-16 px-3"
-          >
-            <Waves className="w-4 h-4" />
-            <span className="text-xs">Povoamento</span>
           </Button>
           <Button
             variant={isActive('/manejos') ? 'default' : 'ghost'}

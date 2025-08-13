@@ -6,11 +6,13 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Plus, Fish, Waves, Edit, Trash2, MapPin } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
+import Stocking from './Stocking';
 
 interface Farm {
   id: string;
@@ -315,131 +317,153 @@ export default function Farm() {
           </Dialog>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Total de Viveiros</p>
-                  <p className="text-2xl font-bold text-primary">{ponds.length}</p>
-                </div>
-                <Waves className="w-8 h-8 text-primary/70" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-success/10 to-success/5 border-success/20">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Viveiros Ativos</p>
-                  <p className="text-2xl font-bold text-success">{activePonds.length}</p>
-                </div>
-                <Fish className="w-8 h-8 text-success/70" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-secondary/30 to-secondary/10 border-secondary/40">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Viveiros Livres</p>
-                  <p className="text-2xl font-bold text-secondary-foreground">{freePonds.length}</p>
-                </div>
-                <Plus className="w-8 h-8 text-secondary-foreground/70" />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Ponds Grid */}
-        <div>
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-2xl font-semibold">Viveiros</h2>
-          </div>
-
-          {ponds.length === 0 ? (
-            <Card className="p-12 text-center">
-              <Waves className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-xl font-semibold mb-2">Nenhum viveiro cadastrado</h3>
-              <p className="text-muted-foreground mb-6">
-                Crie seus primeiros viveiros para começar a operação.
-              </p>
-              <Button onClick={() => setShowPondDialog(true)} className="bg-gradient-to-r from-accent to-accent-hover">
-                <Plus className="w-4 h-4 mr-2" />
-                Criar Primeiro Viveiro
-              </Button>
-            </Card>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {ponds.map((pond) => (
-                <Card key={pond.id} className="shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-ocean)] transition-shadow">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-lg">{pond.name}</CardTitle>
-                      <Badge 
-                        variant={pond.status === 'in_use' ? 'default' : 'secondary'}
-                        className={pond.status === 'in_use' ? 'bg-success' : ''}
-                      >
-                        {pond.status === 'in_use' ? 'Em Uso' : 'Livre'}
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Área:</span>
-                        <span className="font-medium">{pond.area.toLocaleString()} m²</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Profundidade:</span>
-                        <span className="font-medium">{pond.depth}m</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Volume:</span>
-                        <span className="font-medium">
-                          {(pond.area * pond.depth).toLocaleString()} m³
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="flex gap-2 pt-2 border-t border-border">
-                      {pond.status === 'free' && (
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          className="flex-1"
-                          onClick={() => navigate('/stocking')}
-                        >
-                          <Fish className="w-4 h-4 mr-1" />
-                          Povoar
-                        </Button>
-                      )}
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        disabled={pond.status === 'in_use'}
-                      >
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        disabled={pond.status === 'in_use'}
-                        onClick={() => handleDeletePond(pond.id)}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </div>
+        <Tabs defaultValue="ponds" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="ponds">Viveiros</TabsTrigger>
+            <TabsTrigger value="stocking">Povoamento</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="ponds" className="space-y-4">
+            {renderFarmContent()}
+          </TabsContent>
+          
+          <TabsContent value="stocking" className="space-y-4">
+            <Stocking />
+          </TabsContent>
+        </Tabs>
       </div>
     </Layout>
   );
+
+  function renderFarmContent() {
+    return (
+      <>
+
+      {/* Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Total de Viveiros</p>
+                <p className="text-2xl font-bold text-primary">{ponds.length}</p>
+              </div>
+              <Waves className="w-8 h-8 text-primary/70" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-success/10 to-success/5 border-success/20">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Viveiros Ativos</p>
+                <p className="text-2xl font-bold text-success">{activePonds.length}</p>
+              </div>
+              <Fish className="w-8 h-8 text-success/70" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-secondary/30 to-secondary/10 border-secondary/40">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Viveiros Livres</p>
+                <p className="text-2xl font-bold text-secondary-foreground">{freePonds.length}</p>
+              </div>
+              <Plus className="w-8 h-8 text-secondary-foreground/70" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Ponds Grid */}
+      <div>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-2xl font-semibold">Viveiros</h2>
+        </div>
+
+        {ponds.length === 0 ? (
+          <Card className="p-12 text-center">
+            <Waves className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-xl font-semibold mb-2">Nenhum viveiro cadastrado</h3>
+            <p className="text-muted-foreground mb-6">
+              Crie seus primeiros viveiros para começar a operação.
+            </p>
+            <Button onClick={() => setShowPondDialog(true)} className="bg-gradient-to-r from-accent to-accent-hover">
+              <Plus className="w-4 h-4 mr-2" />
+              Criar Primeiro Viveiro
+            </Button>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {ponds.map((pond) => (
+              <Card key={pond.id} className="shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-ocean)] transition-shadow">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg">{pond.name}</CardTitle>
+                    <Badge 
+                      variant={pond.status === 'in_use' ? 'default' : 'secondary'}
+                      className={pond.status === 'in_use' ? 'bg-success' : ''}
+                    >
+                      {pond.status === 'in_use' ? 'Em Uso' : 'Livre'}
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Área:</span>
+                      <span className="font-medium">{pond.area.toLocaleString()} m²</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Profundidade:</span>
+                      <span className="font-medium">{pond.depth}m</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Volume:</span>
+                      <span className="font-medium">
+                        {(pond.area * pond.depth).toLocaleString()} m³
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2 pt-2 border-t border-border">
+                    {pond.status === 'free' && (
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="flex-1"
+                        onClick={() => navigate('/stocking')}
+                      >
+                        <Fish className="w-4 h-4 mr-1" />
+                        Povoar
+                      </Button>
+                    )}
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      disabled={pond.status === 'in_use'}
+                    >
+                      <Edit className="w-4 h-4" />
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      disabled={pond.status === 'in_use'}
+                      onClick={() => handleDeletePond(pond.id)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
+    </>
+    );
+  }
 }

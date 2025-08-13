@@ -3,11 +3,12 @@ import { Layout } from '@/components/Layout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Scale, Droplets, Skull, Beaker } from 'lucide-react';
+import { ArrowLeft, Scale, Droplets, Skull, Beaker, Fish } from 'lucide-react';
 import { BiometryTab } from '@/components/BiometryTab';
 import { WaterQualityTab } from '@/components/WaterQualityTab';
 import { MortalityTab } from '@/components/MortalityTab';
 import { InputApplicationTab } from '@/components/InputApplicationTab';
+import HarvestTab from '@/components/HarvestTab';
 
 export default function Manejos() {
   const navigate = useNavigate();
@@ -29,14 +30,14 @@ export default function Manejos() {
             </Button>
             <h1 className="text-3xl font-bold text-foreground">Manejos</h1>
             <p className="text-muted-foreground">
-              Gerencie biometria, qualidade da água, mortalidade e aplicação de insumos
+              Gerencie biometria, qualidade da água, mortalidade, despesca e aplicação de insumos
             </p>
           </div>
         </div>
 
         {/* Tabs */}
         <Tabs defaultValue="biometry" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="biometry" className="flex items-center gap-2">
               <Scale className="w-4 h-4" />
               Biometria
@@ -48,6 +49,10 @@ export default function Manejos() {
             <TabsTrigger value="mortality" className="flex items-center gap-2">
               <Skull className="w-4 h-4" />
               Mortalidade
+            </TabsTrigger>
+            <TabsTrigger value="harvest" className="flex items-center gap-2">
+              <Fish className="w-4 h-4" />
+              Despesca
             </TabsTrigger>
             <TabsTrigger value="inputs" className="flex items-center gap-2">
               <Beaker className="w-4 h-4" />
@@ -65,6 +70,10 @@ export default function Manejos() {
           
           <TabsContent value="mortality" className="mt-6">
             <MortalityTab />
+          </TabsContent>
+          
+          <TabsContent value="harvest" className="mt-6">
+            <HarvestTab />
           </TabsContent>
           
           <TabsContent value="inputs" className="mt-6">

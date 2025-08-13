@@ -241,6 +241,48 @@ export type Database = {
           },
         ]
       }
+      harvest_records: {
+        Row: {
+          biomass_harvested: number
+          created_at: string
+          harvest_date: string
+          harvest_type: string
+          id: string
+          notes: string | null
+          pond_batch_id: string
+          population_harvested: number
+          price_per_kg: number | null
+          total_value: number | null
+          updated_at: string
+        }
+        Insert: {
+          biomass_harvested?: number
+          created_at?: string
+          harvest_date: string
+          harvest_type: string
+          id?: string
+          notes?: string | null
+          pond_batch_id: string
+          population_harvested?: number
+          price_per_kg?: number | null
+          total_value?: number | null
+          updated_at?: string
+        }
+        Update: {
+          biomass_harvested?: number
+          created_at?: string
+          harvest_date?: string
+          harvest_type?: string
+          id?: string
+          notes?: string | null
+          pond_batch_id?: string
+          population_harvested?: number
+          price_per_kg?: number | null
+          total_value?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       input_applications: {
         Row: {
           application_date: string

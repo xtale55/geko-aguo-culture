@@ -29,14 +29,27 @@ interface HarvestDetailData {
     stocking_date: string;
     final_survival_rate: number | null;
     cycle_status: string;
+    preparation_cost: number | null;
     pond: {
       name: string;
       area: number;
     };
     batch: {
       name: string;
+      pl_cost: number;
     };
   };
+  feeding_records: Array<{
+    actual_amount: number;
+    unit_cost: number | null;
+  }>;
+  input_applications: Array<{
+    total_cost: number | null;
+  }>;
+  biometrics: Array<{
+    measurement_date: string;
+    average_weight: number;
+  }>;
 }
 
 interface HarvestHistoryDetailProps {
@@ -62,7 +75,8 @@ const HarvestHistoryDetail = ({ harvestId, open, onOpenChange }: HarvestHistoryD
     try {
       setLoading(true);
 
-      const { data, error } = await supabase
+      // Fetch harvest data with related information
+      const { data: harvestRecord, error: harvestError } = await supabase
         .from('harvest_records')
         .select(`
           *,
@@ -72,21 +86,51 @@ const HarvestHistoryDetail = ({ harvestId, open, onOpenChange }: HarvestHistoryD
             stocking_date,
             final_survival_rate,
             cycle_status,
+            preparation_cost,
             pond:ponds!inner (
               name,
               area
             ),
             batch:batches!inner (
-              name
+              name,
+              pl_cost
             )
           )
         `)
         .eq('id', harvestId)
         .single();
 
-      if (error) throw error;
+      if (harvestError) throw harvestError;
 
-      setHarvestData(data as HarvestDetailData);
+      // Fetch feeding records for the cycle
+      const { data: feedingRecords } = await supabase
+        .from('feeding_records')
+        .select('actual_amount, unit_cost')
+        .eq('pond_batch_id', harvestRecord.pond_batch.id);
+
+      // Fetch input applications for the cycle
+      const { data: inputApplications } = await supabase
+        .from('input_applications')
+        .select('total_cost')
+        .eq('pond_batch_id', harvestRecord.pond_batch.id);
+
+      // Fetch biometry data for growth analysis
+      const { data: biometrics } = await supabase
+        .from('biometrics')
+        .select('measurement_date, average_weight')
+        .eq('pond_batch_id', harvestRecord.pond_batch.id)
+        .order('measurement_date');
+
+      // Combine all data
+      const combinedData: HarvestDetailData = {
+        ...harvestRecord,
+        harvest_type: harvestRecord.harvest_type as 'total' | 'partial',
+        feeding_records: feedingRecords || [],
+        input_applications: inputApplications || [],
+        biometrics: biometrics || []
+      };
+
+      setHarvestData(combinedData);
 
     } catch (error: any) {
       console.error('Error loading harvest detail:', error);
@@ -162,9 +206,80 @@ const HarvestHistoryDetail = ({ harvestId, open, onOpenChange }: HarvestHistoryD
     : null;
   const actualSurvivalRate = (harvestData.population_harvested / harvestData.pond_batch.pl_quantity) * 100;
 
+  // Calculate comprehensive cycle metrics
+  const plCost = (harvestData.pond_batch.batch.pl_cost * harvestData.pond_batch.pl_quantity) / 1000;
+  const preparationCost = harvestData.pond_batch.preparation_cost || 0;
+  
+  // Calculate feed costs and consumption
+  const totalFeedCost = harvestData.feeding_records.reduce((sum, record) => 
+    sum + (record.actual_amount * (record.unit_cost || 0)), 0);
+  const totalFeedConsumed = harvestData.feeding_records.reduce((sum, record) => 
+    sum + record.actual_amount, 0);
+  
+  // Calculate input costs
+  const totalInputCost = harvestData.input_applications.reduce((sum, input) => 
+    sum + (input.total_cost || 0), 0);
+  
+  // Calculate total costs
+  const totalCost = plCost + preparationCost + totalFeedCost + totalInputCost;
+  const costPerKg = totalCost / harvestData.biomass_harvested;
+  
+  // Calculate FCR (Feed Conversion Ratio)
+  const fca = calculateFCA(totalFeedConsumed, harvestData.biomass_harvested);
+  
+  // Calculate financial metrics
+  const revenue = harvestData.total_value || 0;
+  const profit = revenue - totalCost;
+  const profitMargin = revenue > 0 ? (profit / revenue) * 100 : 0;
+  const roi = totalCost > 0 ? (profit / totalCost) * 100 : 0;
+  
+  // Calculate density
+  const finalDensity = harvestData.population_harvested / harvestData.pond_batch.pond.area;
+  
+  // Calculate weekly growth
+  let weeklyGrowth = 0;
+  if (harvestData.biometrics.length >= 2) {
+    const firstBiometry = harvestData.biometrics[0];
+    const lastBiometry = harvestData.biometrics[harvestData.biometrics.length - 1];
+    const daysDiff = (new Date(lastBiometry.measurement_date).getTime() - 
+                     new Date(firstBiometry.measurement_date).getTime()) / (1000 * 60 * 60 * 24);
+    const weeksDiff = daysDiff / 7;
+    weeklyGrowth = weeksDiff > 0 ? (lastBiometry.average_weight - firstBiometry.average_weight) / weeksDiff : 0;
+  }
+  
+  // Performance score calculation
+  const getPerformanceScore = () => {
+    let score = 0;
+    
+    // Survival rate (40% weight)
+    if (actualSurvivalRate >= 90) score += 40;
+    else if (actualSurvivalRate >= 80) score += 30;
+    else if (actualSurvivalRate >= 70) score += 20;
+    else score += 10;
+    
+    // FCR (30% weight)
+    if (fca <= 1.3) score += 30;
+    else if (fca <= 1.5) score += 20;
+    else if (fca <= 1.8) score += 15;
+    else score += 5;
+    
+    // Growth rate (30% weight)
+    if (weeklyGrowth >= 1.5) score += 30;
+    else if (weeklyGrowth >= 1.0) score += 20;
+    else if (weeklyGrowth >= 0.5) score += 15;
+    else score += 5;
+    
+    if (score >= 90) return { label: 'Excelente', color: 'bg-green-500' };
+    if (score >= 75) return { label: 'Bom', color: 'bg-blue-500' };
+    if (score >= 60) return { label: 'Médio', color: 'bg-yellow-500' };
+    return { label: 'Ruim', color: 'bg-red-500' };
+  };
+  
+  const performanceScore = getPerformanceScore();
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             Detalhes da Despesca - {harvestData.pond_batch.pond.name}
@@ -228,6 +343,161 @@ const HarvestHistoryDetail = ({ harvestId, open, onOpenChange }: HarvestHistoryD
               )}
             </CardContent>
           </Card>
+
+          {/* Performance do Ciclo */}
+          {harvestData.harvest_type === 'total' && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  Performance do Ciclo
+                  <Badge className={`${performanceScore.color} text-white`}>
+                    {performanceScore.label}
+                  </Badge>
+                </CardTitle>
+                <CardDescription>
+                  Métricas de performance baseadas nos dados reconciliados
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">FCA Real</p>
+                    <p className="text-xl font-semibold">{fca.toFixed(2)}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Custo/kg</p>
+                    <p className="text-xl font-semibold">R$ {costPerKg.toFixed(2)}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Produtividade</p>
+                    <p className="text-xl font-semibold">{(productivity * 10000).toFixed(0)} kg/ha</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Densidade Final</p>
+                    <p className="text-xl font-semibold">{finalDensity.toFixed(1)} un/m²</p>
+                  </div>
+                </div>
+                <Separator className="my-4" />
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Crescimento Semanal</p>
+                    <p className="text-lg font-medium">{weeklyGrowth.toFixed(1)} g/semana</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Sobrevivência Real</p>
+                    <p className="text-lg font-medium">{actualSurvivalRate.toFixed(1)}%</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Análise de Custos */}
+          {harvestData.harvest_type === 'total' && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Análise de Custos</CardTitle>
+                <CardDescription>
+                  Detalhamento completo dos custos do ciclo
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="p-4 bg-muted/30 rounded-lg">
+                      <p className="text-sm text-muted-foreground">Custo PLs</p>
+                      <p className="text-lg font-medium">R$ {plCost.toFixed(2)}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {(harvestData.pond_batch.pl_quantity / 1000).toFixed(0)}k PLs × R$ {harvestData.pond_batch.batch.pl_cost.toFixed(2)}
+                      </p>
+                    </div>
+                    <div className="p-4 bg-muted/30 rounded-lg">
+                      <p className="text-sm text-muted-foreground">Preparação</p>
+                      <p className="text-lg font-medium">R$ {preparationCost.toFixed(2)}</p>
+                    </div>
+                    <div className="p-4 bg-muted/30 rounded-lg">
+                      <p className="text-sm text-muted-foreground">Ração</p>
+                      <p className="text-lg font-medium">R$ {totalFeedCost.toFixed(2)}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {totalFeedConsumed.toFixed(0)} kg consumidos
+                      </p>
+                    </div>
+                    <div className="p-4 bg-muted/30 rounded-lg">
+                      <p className="text-sm text-muted-foreground">Insumos</p>
+                      <p className="text-lg font-medium">R$ {totalInputCost.toFixed(2)}</p>
+                    </div>
+                  </div>
+                  <Separator />
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="p-4 bg-primary/10 rounded-lg">
+                      <p className="text-sm text-muted-foreground">Custo Total</p>
+                      <p className="text-2xl font-bold text-primary">R$ {totalCost.toFixed(2)}</p>
+                    </div>
+                    <div className="p-4 bg-primary/10 rounded-lg">
+                      <p className="text-sm text-muted-foreground">Custo por Kg</p>
+                      <p className="text-2xl font-bold text-primary">R$ {costPerKg.toFixed(2)}</p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Resultado Financeiro */}
+          {harvestData.harvest_type === 'total' && harvestData.price_per_kg && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Resultado Financeiro</CardTitle>
+                <CardDescription>
+                  Análise completa de receita, custos e lucratividade
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                      <p className="text-sm text-green-700">Receita Total</p>
+                      <p className="text-2xl font-bold text-green-800">R$ {revenue.toFixed(2)}</p>
+                      <p className="text-xs text-green-600">
+                        {harvestData.biomass_harvested.toFixed(1)} kg × R$ {harvestData.price_per_kg.toFixed(2)}
+                      </p>
+                    </div>
+                    <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                      <p className="text-sm text-red-700">Custo Total</p>
+                      <p className="text-2xl font-bold text-red-800">R$ {totalCost.toFixed(2)}</p>
+                    </div>
+                    <div className={`p-4 border rounded-lg ${profit >= 0 ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+                      <p className={`text-sm ${profit >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+                        {profit >= 0 ? 'Lucro' : 'Prejuízo'}
+                      </p>
+                      <p className={`text-2xl font-bold ${profit >= 0 ? 'text-green-800' : 'text-red-800'}`}>
+                        R$ {Math.abs(profit).toFixed(2)}
+                      </p>
+                    </div>
+                  </div>
+                  <Separator />
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="text-center">
+                      <p className="text-sm text-muted-foreground">Margem de Lucro</p>
+                      <p className={`text-xl font-semibold ${profitMargin >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {profitMargin.toFixed(1)}%
+                      </p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-sm text-muted-foreground">ROI do Ciclo</p>
+                      <p className={`text-xl font-semibold ${roi >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {roi.toFixed(1)}%
+                      </p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-sm text-muted-foreground">Preço Realizado</p>
+                      <p className="text-xl font-semibold">R$ {harvestData.price_per_kg.toFixed(2)}/kg</p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Reconciliação de Dados */}
           {harvestData.harvest_type === 'total' && (

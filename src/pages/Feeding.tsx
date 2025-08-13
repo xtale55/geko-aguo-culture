@@ -84,6 +84,8 @@ export default function Feeding() {
               id,
               current_population,
               stocking_date,
+              cycle_status,
+              created_at,
               batches!inner(name),
               biometrics(
                 average_weight,
@@ -94,22 +96,32 @@ export default function Feeding() {
           `)
           .eq('farm_id', farmsData[0].id)
           .eq('status', 'in_use')
+          .eq('pond_batches.cycle_status', 'active')
           .order('name');
 
         if (pondsError) throw pondsError;
 
-        // Process pond data
-        const processedPonds = pondsData?.map(pond => ({
-          ...pond,
-          current_batch: pond.pond_batches[0] ? {
-            id: pond.pond_batches[0].id,
-            batch_name: pond.pond_batches[0].batches.name,
-            stocking_date: pond.pond_batches[0].stocking_date,
-            current_population: pond.pond_batches[0].current_population,
-            latest_biometry: pond.pond_batches[0].biometrics
-              .sort((a, b) => new Date(b.created_at || b.measurement_date).getTime() - new Date(a.created_at || a.measurement_date).getTime())[0] || null
-          } : undefined
-        })) || [];
+        // Process pond data - get only the most recent active batch per pond
+        const processedPonds = pondsData?.map(pond => {
+          // Sort pond batches by created_at DESC to get the most recent first
+          const sortedBatches = pond.pond_batches
+            .filter(batch => batch.cycle_status === 'active')
+            .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+          
+          const latestBatch = sortedBatches[0];
+          
+          return {
+            ...pond,
+            current_batch: latestBatch ? {
+              id: latestBatch.id,
+              batch_name: latestBatch.batches.name,
+              stocking_date: latestBatch.stocking_date,
+              current_population: latestBatch.current_population,
+              latest_biometry: latestBatch.biometrics
+                .sort((a, b) => new Date(b.created_at || b.measurement_date).getTime() - new Date(a.created_at || a.measurement_date).getTime())[0] || null
+            } : undefined
+          };
+        }) || [];
 
         setPonds(processedPonds);
 

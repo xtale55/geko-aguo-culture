@@ -508,7 +508,7 @@ export function FeedingSchedule({
               variant="outline"
               size="sm"
               onClick={() => setIsHistoryDialogOpen(true)}
-              className="h-6 px-2 text-xs ml-4"
+              className="h-6 px-2 text-xs ml-4 border-border/60 bg-background/50 hover:bg-accent/80 hover:border-border"
             >
               <History className="w-3 h-3 mr-1" />
               Histórico

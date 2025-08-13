@@ -515,7 +515,18 @@ export function FeedingSchedule({
             </div>
           </div>
           <div className="border-l-4 border-success pl-4">
-            <div className="text-sm text-muted-foreground">Realizado hoje</div>
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-muted-foreground">Realizado hoje</div>
+              <Button 
+                variant="outline"
+                size="sm"
+                onClick={() => setIsHistoryDialogOpen(true)}
+                className="h-6 px-2 text-xs"
+              >
+                <History className="w-3 h-3 mr-1" />
+                Histórico
+              </Button>
+            </div>
             <div className="text-xl font-bold text-success">{totalActualFeed.toFixed(1)} kg</div>
             <div className="text-xs text-muted-foreground">
               {feedingsToday} alimentações
@@ -531,7 +542,7 @@ export function FeedingSchedule({
         </div>
 
         {/* Action Buttons */}
-        <div className="flex gap-3 justify-center">
+        <div className="flex justify-center">
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button 
@@ -599,8 +610,13 @@ export function FeedingSchedule({
                   <Input
                     type="number"
                     step="0.1"
-                    value={actualAmount}
-                    onChange={(e) => setActualAmount(e.target.value)}
+                    value={actualAmount ? parseFloat(actualAmount).toFixed(1) : ''}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (value === '' || /^\d+\.?\d{0,1}$/.test(value)) {
+                        setActualAmount(value);
+                      }
+                    }}
                     placeholder="Ex: 2.5"
                   />
                   <p className="text-xs text-muted-foreground mt-1">
@@ -633,14 +649,6 @@ export function FeedingSchedule({
               </div>
             </DialogContent>
           </Dialog>
-          <Button 
-            variant="outline"
-            size="lg"
-            onClick={() => setIsHistoryDialogOpen(true)}
-          >
-            <History className="w-4 h-4 mr-2" />
-            Histórico
-          </Button>
         </div>
 
         {/* Feeding History Dialog */}

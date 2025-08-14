@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, Fish, TrendingUp } from 'lucide-react';
+import { Calendar, Bug, TrendingUp } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -105,7 +105,7 @@ export function FeedingHistoryDialog({
       <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Fish className="h-5 w-5" />
+            <Bug className="h-5 w-5" />
             Histórico de Alimentação - {pondName} ({batchName})
           </DialogTitle>
         </DialogHeader>
@@ -115,7 +115,7 @@ export function FeedingHistoryDialog({
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-2">
-                <Fish className="h-4 w-4 text-primary" />
+                <Bug className="h-4 w-4 text-primary" />
                 <div>
                   <p className="text-sm text-muted-foreground">Total Consumido</p>
                   <p className="text-2xl font-bold">{totalQuantity.toFixed(1)} kg</p>
@@ -154,7 +154,7 @@ export function FeedingHistoryDialog({
           {historyRecords.length === 0 ? (
             <Card>
               <CardContent className="p-8 text-center">
-                <Fish className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                <Bug className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                 <h3 className="text-lg font-semibold mb-2">Nenhum registro encontrado</h3>
                 <p className="text-muted-foreground">
                   Ainda não há registros de alimentação para este viveiro.

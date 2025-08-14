@@ -1,14 +1,14 @@
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Fish, BarChart3, Users, Shield, Droplets, TrendingUp } from 'lucide-react';
+import { Bug, BarChart3, Users, Shield, Droplets, TrendingUp } from 'lucide-react';
 
 const Home = () => {
   const navigate = useNavigate();
 
   const features = [
     {
-      icon: Fish,
+      icon: Bug,
       title: "Gestão Completa de Tanques",
       description: "Monitore todos os seus tanques e lotes com controle detalhado de biomassa, densidade e crescimento."
     },

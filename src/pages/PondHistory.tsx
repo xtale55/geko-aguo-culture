@@ -11,7 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate, useParams } from "react-router-dom";
 import { 
   ArrowLeft, Calendar, DollarSign, Scale, TrendingUp, 
-  Package, Droplets, Skull, Fish, Edit2 
+  Package, Droplets, Skull, Bug, Edit2 
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -764,7 +764,7 @@ export default function PondHistory() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Fish className="w-4 h-4" />
+                <Bug className="w-4 h-4" />
                 Alimentação Recente
               </CardTitle>
             </CardHeader>

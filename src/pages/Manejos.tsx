@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Scale, Droplets, Skull, Beaker, Fish } from 'lucide-react';
+import { ArrowLeft, Scale, Droplets, Skull, Beaker, Bug } from 'lucide-react';
 import { BiometryTab } from '@/components/BiometryTab';
 import { WaterQualityTab } from '@/components/WaterQualityTab';
 import { MortalityTab } from '@/components/MortalityTab';
@@ -12,6 +13,15 @@ import HarvestTab from '@/components/HarvestTab';
 
 export default function Manejos() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const [activeTab, setActiveTab] = useState("biometry");
+
+  // Handle navigation state for tab switching
+  useEffect(() => {
+    if (location.state?.activeTab) {
+      setActiveTab(location.state.activeTab);
+    }
+  }, [location.state]);
 
   return (
     <Layout>
@@ -36,7 +46,7 @@ export default function Manejos() {
         </div>
 
         {/* Tabs */}
-        <Tabs defaultValue="biometry" className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="biometry" className="flex items-center gap-2">
               <Scale className="w-4 h-4" />
@@ -51,7 +61,7 @@ export default function Manejos() {
               Mortalidade
             </TabsTrigger>
             <TabsTrigger value="harvest" className="flex items-center gap-2">
-              <Fish className="w-4 h-4" />
+              <Bug className="w-4 h-4" />
               Despesca
             </TabsTrigger>
             <TabsTrigger value="inputs" className="flex items-center gap-2">

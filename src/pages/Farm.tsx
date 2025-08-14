@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { Plus, Fish, Waves, Edit, Trash2, MapPin, Activity, CheckCircle } from 'lucide-react';
+import { Plus, Bug, Waves, Edit, Trash2, MapPin, Activity, CheckCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { StockingContent } from '@/components/StockingContent';
@@ -35,6 +35,8 @@ export default function Farm() {
   const [loading, setLoading] = useState(true);
   const [showFarmDialog, setShowFarmDialog] = useState(false);
   const [showPondDialog, setShowPondDialog] = useState(false);
+  const [showEditPondDialog, setShowEditPondDialog] = useState(false);
+  const [editingPond, setEditingPond] = useState<Pond | null>(null);
   const [activeTab, setActiveTab] = useState("viveiros");
   const { user } = useAuth();
   const { toast } = useToast();
@@ -148,6 +150,46 @@ export default function Farm() {
     }
   };
 
+  const handleEditPond = (pond: Pond) => {
+    setEditingPond(pond);
+    setShowEditPondDialog(true);
+  };
+
+  const handleUpdatePond = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!editingPond) return;
+    
+    const formData = new FormData(e.currentTarget);
+    
+    try {
+      const { error } = await supabase
+        .from('ponds')
+        .update({
+          name: formData.get('name') as string,
+          area: parseFloat(formData.get('area') as string),
+          depth: parseFloat(formData.get('depth') as string)
+        })
+        .eq('id', editingPond.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Viveiro atualizado!",
+        description: "As informações do viveiro foram atualizadas com sucesso."
+      });
+
+      setShowEditPondDialog(false);
+      setEditingPond(null);
+      loadFarmData();
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: error.message
+      });
+    }
+  };
+
   const handleDeletePond = async (pondId: string) => {
     if (!confirm('Tem certeza que deseja excluir este viveiro?')) return;
 
@@ -193,7 +235,7 @@ export default function Farm() {
     return (
       <Layout>
         <div className="text-center py-12">
-          <Fish className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+          <Bug className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
           <h2 className="text-2xl font-semibold mb-2">Criar Primeira Fazenda</h2>
           <p className="text-muted-foreground mb-6">
             Configure sua fazenda para começar a gerenciar os viveiros.
@@ -316,6 +358,66 @@ export default function Farm() {
                 <Button type="submit" className="w-full">
                   Criar Viveiro
                 </Button>
+              </form>
+            </DialogContent>
+          </Dialog>
+
+          {/* Edit Pond Dialog */}
+          <Dialog open={showEditPondDialog} onOpenChange={setShowEditPondDialog}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Editar Viveiro</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleUpdatePond} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-pond-name">Nome/ID do Viveiro</Label>
+                  <Input
+                    id="edit-pond-name"
+                    name="name"
+                    defaultValue={editingPond?.name}
+                    placeholder="Ex: Viveiro 01 ou V1"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-area">Área (m²)</Label>
+                  <Input
+                    id="edit-area"
+                    name="area"
+                    type="number"
+                    step="0.1"
+                    defaultValue={editingPond?.area}
+                    placeholder="Ex: 2500"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-depth">Profundidade (m)</Label>
+                  <Input
+                    id="edit-depth"
+                    name="depth"
+                    type="number"
+                    step="0.1"
+                    defaultValue={editingPond?.depth}
+                    placeholder="Ex: 1.5"
+                    required
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button type="submit" className="flex-1">
+                    Salvar Alterações
+                  </Button>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => {
+                      setShowEditPondDialog(false);
+                      setEditingPond(null);
+                    }}
+                  >
+                    Cancelar
+                  </Button>
+                </div>
               </form>
             </DialogContent>
           </Dialog>
@@ -450,7 +552,7 @@ export default function Farm() {
                         className="flex-1"
                         onClick={() => navigate('/stocking')}
                       >
-                        <Fish className="w-4 h-4 mr-1" />
+                        <Bug className="w-4 h-4 mr-1" />
                         Povoar
                       </Button>
                     )}
@@ -458,6 +560,7 @@ export default function Farm() {
                       variant="outline" 
                       size="sm"
                       disabled={pond.status === 'in_use'}
+                      onClick={() => handleEditPond(pond)}
                     >
                       <Edit className="w-4 h-4" />
                     </Button>

@@ -384,7 +384,7 @@ export function FeedingSchedule({
 
       toast({
         title: "Alimentação registrada",
-        description: `${actualAmountNum}kg de ${selectedFeed.name} registrados às ${feedingTime}`
+        description: `${actualAmountNum.toFixed(1)}kg de ${selectedFeed.name} registrados às ${feedingTime}`
       });
 
       // Reset form and close dialog

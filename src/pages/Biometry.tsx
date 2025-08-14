@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
-import { Scale, Fish, TrendingUp, Calendar, ArrowLeft, Plus } from 'lucide-react';
+import { Scale, Bug, TrendingUp, Calendar, ArrowLeft, Plus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface PondWithBatch {

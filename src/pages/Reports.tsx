@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { 
   TrendingUp, Download, Calendar, DollarSign, Scale, 
-  Activity, BarChart3, PieChart, LineChart, FileText, Fish
+  Activity, BarChart3, PieChart, LineChart, FileText, Bug
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { FeedingHistoryPanel } from "@/components/FeedingHistoryPanel";
@@ -604,7 +604,7 @@ export default function Reports() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Fish className="w-5 h-5" />
+                  <Bug className="w-5 h-5" />
                   Viveiros Ativos
                 </CardTitle>
               </CardHeader>
@@ -739,7 +739,7 @@ export default function Reports() {
                 
                 {pondCards.length === 0 && (
                   <div className="text-center py-8">
-                    <Fish className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                    <Bug className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                     <p className="text-muted-foreground">Nenhum viveiro ativo encontrado</p>
                   </div>
                 )}

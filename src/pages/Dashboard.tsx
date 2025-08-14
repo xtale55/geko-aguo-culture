@@ -8,7 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { 
-  Plus, Fish, Waves, TrendingUp, Calendar, Scale, Utensils, 
+  Plus, Bug, Waves, TrendingUp, Calendar, Scale, Utensils, 
   Activity, Droplets, Package, AlertTriangle, Users, ClipboardList
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -236,7 +236,7 @@ export default function Dashboard() {
     return (
       <Layout>
         <div className="text-center py-12">
-          <Fish className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+          <Bug className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
           <h2 className="text-2xl font-semibold mb-2">Bem-vindo ao AquaHub!</h2>
           <p className="text-muted-foreground mb-6">
             Comece criando sua primeira fazenda para gerenciar seus viveiros e lotes.
@@ -261,10 +261,6 @@ export default function Dashboard() {
               Visão geral da fazenda {farms[0]?.name}
             </p>
           </div>
-          <Button onClick={() => navigate('/farm')} variant="outline">
-            <Waves className="w-4 h-4 mr-2" />
-            Gerenciar Fazenda
-          </Button>
         </div>
 
         {/* Critical Alerts */}
@@ -299,7 +295,7 @@ export default function Dashboard() {
                     className="mt-2"
                   />
                 </div>
-                <Fish className="w-8 h-8 text-primary/70" />
+                <Bug className="w-8 h-8 text-primary/70" />
               </div>
             </CardContent>
           </Card>
@@ -412,11 +408,11 @@ export default function Dashboard() {
                 className="w-full justify-start"
                 variant="outline"
               >
-                <Fish className="w-4 h-4 mr-2" />
+                <Bug className="w-4 h-4 mr-2" />
                 Novo Povoamento
               </Button>
               <Button 
-                onClick={() => navigate('/biometry')} 
+                onClick={() => navigate('/manejos', { state: { activeTab: 'biometry' } })} 
                 className="w-full justify-start"
                 variant="outline"
               >
@@ -424,7 +420,7 @@ export default function Dashboard() {
                 Registrar Biometria
               </Button>
               <Button 
-                onClick={() => navigate('/water-quality')} 
+                onClick={() => navigate('/manejos', { state: { activeTab: 'water-quality' } })} 
                 className="w-full justify-start"
                 variant="outline"
               >
@@ -440,7 +436,7 @@ export default function Dashboard() {
                 Plano de Arraçoamento
               </Button>
               <Button 
-                onClick={() => navigate('/mortality')} 
+                onClick={() => navigate('/manejos', { state: { activeTab: 'mortality' } })} 
                 className="w-full justify-start"
                 variant="outline"
               >

@@ -1,6 +1,6 @@
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { Fish, LogOut, Settings, Home, Waves, Scale, Skull, Utensils, Droplets, Package, BarChart3 } from 'lucide-react';
+import { Bug, LogOut, Settings, Home, Waves, Scale, Skull, Utensils, Droplets, Package, BarChart3 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 interface LayoutProps {
@@ -66,7 +66,7 @@ export function Layout({ children }: LayoutProps) {
               size="sm"
               onClick={() => navigate('/manejos')}
             >
-              <Fish className="w-4 h-4 mr-2" />
+              <Bug className="w-4 h-4 mr-2" />
               Manejos
             </Button>
             <Button 
@@ -138,7 +138,7 @@ export function Layout({ children }: LayoutProps) {
             onClick={() => navigate('/manejos')}
             className="flex flex-col items-center space-y-1 h-16 min-w-16 px-3"
           >
-            <Fish className="w-4 h-4" />
+            <Bug className="w-4 h-4" />
             <span className="text-xs">Manejos</span>
           </Button>
           <Button

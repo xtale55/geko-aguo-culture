@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "13.0.4"
@@ -188,6 +188,7 @@ export type Database = {
       feeding_records: {
         Row: {
           actual_amount: number
+          actual_amount_backup: number | null
           created_at: string
           feed_type_id: string | null
           feed_type_name: string | null
@@ -197,12 +198,14 @@ export type Database = {
           id: string
           notes: string | null
           planned_amount: number
+          planned_amount_backup: number | null
           pond_batch_id: string
           unit_cost: number | null
           updated_at: string
         }
         Insert: {
           actual_amount?: number
+          actual_amount_backup?: number | null
           created_at?: string
           feed_type_id?: string | null
           feed_type_name?: string | null
@@ -212,12 +215,14 @@ export type Database = {
           id?: string
           notes?: string | null
           planned_amount?: number
+          planned_amount_backup?: number | null
           pond_batch_id: string
           unit_cost?: number | null
           updated_at?: string
         }
         Update: {
           actual_amount?: number
+          actual_amount_backup?: number | null
           created_at?: string
           feed_type_id?: string | null
           feed_type_name?: string | null
@@ -227,6 +232,7 @@ export type Database = {
           id?: string
           notes?: string | null
           planned_amount?: number
+          planned_amount_backup?: number | null
           pond_batch_id?: string
           unit_cost?: number | null
           updated_at?: string
@@ -319,6 +325,7 @@ export type Database = {
           pond_batch_id: string
           purpose: string | null
           quantity_applied: number
+          quantity_applied_backup: number | null
           total_cost: number | null
           unit_cost: number | null
           updated_at: string
@@ -335,6 +342,7 @@ export type Database = {
           pond_batch_id: string
           purpose?: string | null
           quantity_applied: number
+          quantity_applied_backup?: number | null
           total_cost?: number | null
           unit_cost?: number | null
           updated_at?: string
@@ -351,6 +359,7 @@ export type Database = {
           pond_batch_id?: string
           purpose?: string | null
           quantity_applied?: number
+          quantity_applied_backup?: number | null
           total_cost?: number | null
           unit_cost?: number | null
           updated_at?: string
@@ -367,6 +376,7 @@ export type Database = {
           id: string
           name: string
           quantity: number
+          quantity_backup: number | null
           supplier: string | null
           total_value: number
           unit_price: number
@@ -381,6 +391,7 @@ export type Database = {
           id?: string
           name: string
           quantity?: number
+          quantity_backup?: number | null
           supplier?: string | null
           total_value?: number
           unit_price?: number
@@ -395,6 +406,7 @@ export type Database = {
           id?: string
           name?: string
           quantity?: number
+          quantity_backup?: number | null
           supplier?: string | null
           total_value?: number
           unit_price?: number

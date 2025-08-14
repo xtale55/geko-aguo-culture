@@ -12,6 +12,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Edit2, Clock, Plus, History } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { FeedingHistoryDialog } from './FeedingHistoryDialog';
+import { QuantityUtils } from '@/lib/quantityUtils';
 
 interface FeedingRecord {
   id: string;
@@ -181,10 +182,10 @@ export function FeedingSchedule({
             .single();
 
           if (inventory) {
-            await supabase
+          await supabase
               .from('inventory')
               .update({ 
-                quantity: parseFloat((inventory.quantity + record.actual_amount).toFixed(2)),
+                quantity: inventory.quantity + record.actual_amount,
                 updated_at: new Date().toISOString()
               })
               .eq('id', record.feed_type_id);
@@ -341,12 +342,13 @@ export function FeedingSchedule({
         return;
       }
 
-      // Check if there's enough stock
-      if (selectedFeed.quantity < actualAmountNum) {
+      // Check if there's enough stock (Anti-Drift: comparação com gramas)
+      const actualAmountGrams = QuantityUtils.kgToGrams(actualAmountNum);
+      if (selectedFeed.quantity < actualAmountGrams) {
         toast({
           variant: "destructive",
           title: "Estoque insuficiente",
-          description: `Disponível: ${selectedFeed.quantity}kg, Solicitado: ${actualAmountNum}kg`
+          description: `Disponível: ${QuantityUtils.formatKg(selectedFeed.quantity)}kg, Solicitado: ${actualAmountNum}kg`
         });
         return;
       }
@@ -355,8 +357,8 @@ export function FeedingSchedule({
         pond_batch_id: pondBatchId,
         feeding_date: feedingDate,
         feeding_time: feedingTime,
-        planned_amount: feedPerMeal,
-        actual_amount: actualAmountNum,
+        planned_amount: QuantityUtils.kgToGrams(feedPerMeal),
+        actual_amount: QuantityUtils.kgToGrams(actualAmountNum),
         feeding_rate_percentage: feedingRate,
         feed_type_id: selectedFeedType,
         feed_type_name: selectedFeed.name,
@@ -371,11 +373,11 @@ export function FeedingSchedule({
 
       if (error) throw error;
 
-      // Update inventory - reduce stock
+      // Update inventory - reduce stock (Anti-Drift: operação com inteiros)
       const { error: inventoryError } = await supabase
         .from('inventory')
         .update({ 
-          quantity: parseFloat((selectedFeed.quantity - actualAmountNum).toFixed(2)),
+          quantity: selectedFeed.quantity - actualAmountGrams,
           updated_at: new Date().toISOString()
         })
         .eq('id', selectedFeedType);
@@ -384,7 +386,7 @@ export function FeedingSchedule({
 
       toast({
         title: "Alimentação registrada",
-        description: `${actualAmountNum.toFixed(1)}kg de ${selectedFeed.name} registrados às ${feedingTime}`
+        description: `${QuantityUtils.formatKg(QuantityUtils.kgToGrams(actualAmountNum))}kg de ${selectedFeed.name} registrados às ${feedingTime}`
       });
 
       // Reset form and close dialog
@@ -406,7 +408,7 @@ export function FeedingSchedule({
   };
 
   const getTotalActualFeed = () => {
-    return feedingRecords.reduce((sum, record) => sum + record.actual_amount, 0);
+    return feedingRecords.reduce((sum, record) => sum + QuantityUtils.gramsToKg(record.actual_amount), 0);
   };
 
   const totalActualFeed = getTotalActualFeed();
@@ -603,7 +605,7 @@ export function FeedingSchedule({
                     <SelectContent>
                       {availableFeeds.map((feed) => (
                         <SelectItem key={feed.id} value={feed.id}>
-                          {feed.name} - Disponível: {feed.quantity}kg (R$ {feed.unit_price}/kg)
+                          {feed.name} - Disponível: {QuantityUtils.formatKg(feed.quantity)}kg (R$ {feed.unit_price}/kg)
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -681,7 +683,7 @@ export function FeedingSchedule({
                     <div>
                       <div className="font-medium">{record.feeding_time}</div>
                       <div className="text-sm text-muted-foreground">
-                        {record.actual_amount.toFixed(1)}kg de {record.feed_type_name}
+                        {QuantityUtils.formatKg(record.actual_amount)}kg de {record.feed_type_name}
                         {record.notes && (
                           <span className="block text-xs">{record.notes}</span>
                         )}

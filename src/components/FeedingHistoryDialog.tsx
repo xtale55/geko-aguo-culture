@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Calendar, Fish, TrendingUp } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { QuantityUtils } from '@/lib/quantityUtils';
 
 interface FeedingHistoryRecord {
   id: string;
@@ -58,9 +59,12 @@ export function FeedingHistoryDialog({
 
       setHistoryRecords(data || []);
       
-      // Calculate totals
-      const totalQty = (data || []).reduce((sum, record) => sum + record.actual_amount, 0);
-      const totalCostCalc = (data || []).reduce((sum, record) => sum + (record.actual_amount * (record.unit_cost || 0)), 0);
+      // Calculate totals (Anti-Drift: converter gramas para kg)
+      const totalQty = (data || []).reduce((sum, record) => sum + QuantityUtils.gramsToKg(record.actual_amount), 0);
+      const totalCostCalc = (data || []).reduce((sum, record) => {
+        const actualAmountKg = QuantityUtils.gramsToKg(record.actual_amount);
+        return sum + (actualAmountKg * (record.unit_cost || 0));
+      }, 0);
       
       setTotalQuantity(totalQty);
       setTotalCost(totalCostCalc);
@@ -184,22 +188,22 @@ export function FeedingHistoryDialog({
                         </Badge>
                       </div>
                       
-                      <div>
-                        <p className="text-sm text-muted-foreground">Quantidade</p>
-                        <p className="font-bold text-primary">
-                          {record.actual_amount.toFixed(1)} kg
-                        </p>
-                      </div>
+                       <div>
+                         <p className="text-sm text-muted-foreground">Quantidade</p>
+                         <p className="font-bold text-primary">
+                           {QuantityUtils.formatKg(record.actual_amount)} kg
+                         </p>
+                       </div>
                       
-                      <div>
-                        <p className="text-sm text-muted-foreground">Custo</p>
-                        <p className="font-medium">
-                          R$ {(record.actual_amount * (record.unit_cost || 0)).toFixed(2)}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          R$ {(record.unit_cost || 0).toFixed(2)}/kg
-                        </p>
-                      </div>
+                       <div>
+                         <p className="text-sm text-muted-foreground">Custo</p>
+                         <p className="font-medium">
+                           R$ {(QuantityUtils.gramsToKg(record.actual_amount) * (record.unit_cost || 0)).toFixed(2)}
+                         </p>
+                         <p className="text-xs text-muted-foreground">
+                           R$ {(record.unit_cost || 0).toFixed(2)}/kg
+                         </p>
+                       </div>
                     </div>
                   </div>
                   

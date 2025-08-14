@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Plus, Search, Package, Trash2, Edit, ArrowLeft } from "lucide-react";
+import { QuantityUtils } from "@/lib/quantityUtils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -115,9 +116,11 @@ export default function Inventory() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const quantity = parseFloat(formData.quantity.toString()) || 0;
+    // Anti-Drift: converter entrada do usuário para gramas
+    const quantityKg = parseFloat(formData.quantity.toString()) || 0;
     const unit_price = parseFloat(formData.unit_price.toString()) || 0;
-    const total_value = quantity * unit_price;
+    const quantity = QuantityUtils.kgToGrams(quantityKg);
+    const total_value = quantityKg * unit_price;
     const itemData = { ...formData, quantity, unit_price, total_value };
 
     try {
@@ -197,12 +200,14 @@ export default function Inventory() {
 
   const startEdit = (item: InventoryItem) => {
     setEditingItem(item);
+    // Anti-Drift: converter gramas para kg na interface
+    const quantityKg = QuantityUtils.gramsToKg(item.quantity);
     setFormData({
       name: item.name,
       category: item.category,
       brand: item.brand || "",
       supplier: item.supplier || "",
-      quantity: item.quantity.toString(),
+      quantity: quantityKg.toString(),
       unit_price: item.unit_price.toString(),
       entry_date: item.entry_date,
       farm_id: item.farm_id
@@ -218,7 +223,11 @@ export default function Inventory() {
     return matchesSearch && matchesCategory;
   });
 
-  const totalValue = filteredItems.reduce((sum, item) => sum + item.total_value, 0);
+  const totalValue = filteredItems.reduce((sum, item) => {
+    // Anti-Drift: usar quantidades em kg para cálculo de valor total
+    const quantityKg = QuantityUtils.gramsToKg(item.quantity);
+    return sum + (quantityKg * item.unit_price);
+  }, 0);
 
   if (loading) {
     return <div className="flex justify-center items-center h-64">Carregando...</div>;
@@ -457,7 +466,7 @@ export default function Inventory() {
                           
                           <div>
                             <p className="text-sm text-muted-foreground">Quantidade</p>
-                            <p className="font-medium">{item.quantity.toLocaleString('pt-BR')}</p>
+                            <p className="font-medium">{QuantityUtils.formatKg(item.quantity)} kg</p>
                           </div>
                           
                           <div>
@@ -467,7 +476,7 @@ export default function Inventory() {
                           
                           <div>
                             <p className="text-sm text-muted-foreground">Valor Total</p>
-                            <p className="font-bold text-primary">R$ {item.total_value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                            <p className="font-bold text-primary">R$ {(QuantityUtils.gramsToKg(item.quantity) * item.unit_price).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
                           </div>
                         </div>
                         

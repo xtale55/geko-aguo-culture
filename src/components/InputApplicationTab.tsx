@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { QuantityUtils } from '@/lib/quantityUtils';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -258,12 +259,13 @@ export function InputApplicationTab() {
         throw new Error('Fertilizante não encontrado');
       }
 
-      // Check if quantity is available
+      // Check if quantity is available (Anti-Drift: comparação com gramas)
       const quantityApplied = parseFloat(formData.quantity_applied);
-      if (quantityApplied > selectedFertilizer.quantity) {
+      const quantityAppliedGrams = QuantityUtils.kgToGrams(quantityApplied);
+      if (quantityAppliedGrams > selectedFertilizer.quantity) {
         toast({
           title: "Erro",
-          description: "Quantidade insuficiente em estoque",
+          description: `Quantidade insuficiente em estoque. Disponível: ${QuantityUtils.formatKg(selectedFertilizer.quantity)}kg`,
           variant: "destructive"
         });
         return;
@@ -286,7 +288,7 @@ export function InputApplicationTab() {
           input_item_name: selectedFertilizer.name,
           application_date: formData.application_date,
           application_time: formData.application_time || null,
-          quantity_applied: quantityApplied,
+          quantity_applied: quantityAppliedGrams,
           unit_cost: unitCost,
           total_cost: totalCost,
           dosage_per_hectare: dosagePerHectare,
@@ -296,8 +298,8 @@ export function InputApplicationTab() {
 
       if (insertError) throw insertError;
 
-      // Update inventory quantity
-      const newQuantity = selectedFertilizer.quantity - quantityApplied;
+      // Update inventory quantity (Anti-Drift: operação com inteiros)
+      const newQuantity = selectedFertilizer.quantity - quantityAppliedGrams;
       const { error: updateError } = await supabase
         .from('inventory')
         .update({ quantity: newQuantity })
@@ -428,7 +430,7 @@ export function InputApplicationTab() {
                   <SelectContent>
                     {fertilizers.map((fertilizer) => (
                       <SelectItem key={fertilizer.id} value={fertilizer.id}>
-                        {fertilizer.name} {fertilizer.brand && `(${fertilizer.brand})`} - {fertilizer.quantity}kg disponível
+                        {fertilizer.name} {fertilizer.brand && `(${fertilizer.brand})`} - {QuantityUtils.formatKg(fertilizer.quantity)}kg disponível
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -464,14 +466,14 @@ export function InputApplicationTab() {
                   type="number"
                   step="0.01"
                   min="0"
-                  max={selectedFertilizer?.quantity || 999999}
+                  max={selectedFertilizer ? QuantityUtils.gramsToKg(selectedFertilizer.quantity) : 999999}
                   value={formData.quantity_applied}
                   onChange={(e) => setFormData({...formData, quantity_applied: e.target.value})}
                   required
                 />
                 {selectedFertilizer && (
                   <p className="text-sm text-muted-foreground mt-1">
-                    Disponível: {selectedFertilizer.quantity}kg - Custo: R$ {selectedFertilizer.unit_price}/kg
+                    Disponível: {QuantityUtils.formatKg(selectedFertilizer.quantity)}kg - Custo: R$ {selectedFertilizer.unit_price}/kg
                   </p>
                 )}
               </div>
@@ -607,7 +609,7 @@ export function InputApplicationTab() {
                         </div>
                       )}
                     </TableCell>
-                    <TableCell>{application.quantity_applied} kg</TableCell>
+                    <TableCell>{QuantityUtils.formatKg(application.quantity_applied)} kg</TableCell>
                     <TableCell>
                       {application.purpose && (
                         <Badge variant="secondary">
@@ -629,7 +631,7 @@ export function InputApplicationTab() {
                           <AlertDialogHeader>
                             <AlertDialogTitle>Confirmar remoção</AlertDialogTitle>
                             <AlertDialogDescription>
-                              Esta ação irá remover o registro de aplicação e restaurar {application.quantity_applied}kg ao estoque. Esta ação não pode ser desfeita.
+                              Esta ação irá remover o registro de aplicação e restaurar {QuantityUtils.formatKg(application.quantity_applied)}kg ao estoque. Esta ação não pode ser desfeita.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>

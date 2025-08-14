@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { 
   TrendingUp, Download, Calendar, DollarSign, Scale, 
-  Activity, BarChart3, PieChart, LineChart, FileText, Bug
+  Activity, BarChart3, PieChart, LineChart, FileText, Fish
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { FeedingHistoryPanel } from "@/components/FeedingHistoryPanel";
@@ -595,16 +595,16 @@ export default function Reports() {
         {/* Detailed Analysis */}
         <Tabs defaultValue="overview" className="w-full">
           <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="overview">Visão Geral</TabsTrigger>
-            <TabsTrigger value="costs">Custos Operacionais</TabsTrigger>
-            <TabsTrigger value="financial">Análise Financeira</TabsTrigger>
+            <TabsTrigger value="overview" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm font-medium text-foreground/80 data-[state=active]:font-semibold transition-all">Visão Geral</TabsTrigger>
+            <TabsTrigger value="costs" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm font-medium text-foreground/80 data-[state=active]:font-semibold transition-all">Custos Operacionais</TabsTrigger>
+            <TabsTrigger value="financial" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm font-medium text-foreground/80 data-[state=active]:font-semibold transition-all">Análise Financeira</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-4">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Bug className="w-5 h-5" />
+                  <Fish className="w-5 h-5" />
                   Viveiros Ativos
                 </CardTitle>
               </CardHeader>
@@ -739,7 +739,7 @@ export default function Reports() {
                 
                 {pondCards.length === 0 && (
                   <div className="text-center py-8">
-                    <Bug className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                    <Fish className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                     <p className="text-muted-foreground">Nenhum viveiro ativo encontrado</p>
                   </div>
                 )}

@@ -4,7 +4,7 @@ import { Layout } from '@/components/Layout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Scale, Droplets, Skull, Beaker, Bug } from 'lucide-react';
+import { ArrowLeft, Scale, Droplets, Skull, Beaker, Fish } from 'lucide-react';
 import { BiometryTab } from '@/components/BiometryTab';
 import { WaterQualityTab } from '@/components/WaterQualityTab';
 import { MortalityTab } from '@/components/MortalityTab';
@@ -48,23 +48,23 @@ export default function Manejos() {
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="biometry" className="flex items-center gap-2">
+            <TabsTrigger value="biometry" className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm font-medium text-foreground/80 data-[state=active]:font-semibold transition-all">
               <Scale className="w-4 h-4" />
               Biometria
             </TabsTrigger>
-            <TabsTrigger value="water-quality" className="flex items-center gap-2">
+            <TabsTrigger value="water-quality" className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm font-medium text-foreground/80 data-[state=active]:font-semibold transition-all">
               <Droplets className="w-4 h-4" />
               Água
             </TabsTrigger>
-            <TabsTrigger value="mortality" className="flex items-center gap-2">
+            <TabsTrigger value="mortality" className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm font-medium text-foreground/80 data-[state=active]:font-semibold transition-all">
               <Skull className="w-4 h-4" />
               Mortalidade
             </TabsTrigger>
-            <TabsTrigger value="harvest" className="flex items-center gap-2">
-              <Bug className="w-4 h-4" />
+            <TabsTrigger value="harvest" className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm font-medium text-foreground/80 data-[state=active]:font-semibold transition-all">
+              <Fish className="w-4 h-4" />
               Despesca
             </TabsTrigger>
-            <TabsTrigger value="inputs" className="flex items-center gap-2">
+            <TabsTrigger value="inputs" className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm font-medium text-foreground/80 data-[state=active]:font-semibold transition-all">
               <Beaker className="w-4 h-4" />
               Insumos
             </TabsTrigger>

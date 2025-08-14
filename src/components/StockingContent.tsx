@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Bug, MapPin, Calendar, Package, Calculator, Percent, User } from "lucide-react";
+import { ArrowLeft, Fish, MapPin, Calendar, Package, Calculator, Percent, User } from "lucide-react";
 
 interface Farm {
   id: string;
@@ -214,7 +214,7 @@ export function StockingContent() {
   if (farms.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center p-8 text-center">
-        <Bug className="h-16 w-16 text-muted-foreground mb-4" />
+        <Fish className="h-16 w-16 text-muted-foreground mb-4" />
         <h3 className="text-lg font-semibold mb-2">Nenhuma fazenda encontrada</h3>
         <p className="text-muted-foreground mb-4">
           Você precisa criar uma fazenda antes de realizar o povoamento.
@@ -249,7 +249,7 @@ export function StockingContent() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Bug className="h-5 w-5" />
+              <Fish className="h-5 w-5" />
               Dados do Lote de PLs
             </CardTitle>
             <CardDescription>
@@ -461,7 +461,7 @@ export function StockingContent() {
             disabled={!canProceed()}
             size="lg"
           >
-            <Bug className="mr-2 h-4 w-4" />
+            <Fish className="mr-2 h-4 w-4" />
             Confirmar Povoamento
           </Button>
         </div>

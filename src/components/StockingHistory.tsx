@@ -3,7 +3,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { History, Bug, Calendar, MapPin } from 'lucide-react';
+import { History, Fish, Calendar, MapPin } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -144,7 +144,7 @@ export function StockingHistory() {
       <CardContent>
         {stockingRecords.length === 0 ? (
           <div className="text-center py-8">
-            <Bug className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+            <Fish className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-lg font-semibold mb-2">Nenhum povoamento encontrado</h3>
             <p className="text-muted-foreground">
               Os povoamentos realizados aparecerão aqui
@@ -158,7 +158,7 @@ export function StockingHistory() {
                   <div className="flex items-center justify-between">
                     <div>
                       <CardTitle className="text-lg flex items-center gap-2">
-                        <Bug className="h-4 w-4" />
+                        <Fish className="h-4 w-4" />
                         {record.batch_name}
                       </CardTitle>
                       <CardDescription className="flex items-center gap-2 mt-1">

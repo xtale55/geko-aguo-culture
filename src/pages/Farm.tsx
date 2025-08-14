@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { Plus, Bug, Waves, Edit, Trash2, MapPin, Activity, CheckCircle } from 'lucide-react';
+import { Plus, Fish, Waves, Edit, Trash2, MapPin, Activity, CheckCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { StockingContent } from '@/components/StockingContent';
@@ -235,7 +235,7 @@ export default function Farm() {
     return (
       <Layout>
         <div className="text-center py-12">
-          <Bug className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+          <Fish className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
           <h2 className="text-2xl font-semibold mb-2">Criar Primeira Fazenda</h2>
           <p className="text-muted-foreground mb-6">
             Configure sua fazenda para começar a gerenciar os viveiros.
@@ -552,7 +552,7 @@ export default function Farm() {
                         className="flex-1"
                         onClick={() => navigate('/stocking')}
                       >
-                        <Bug className="w-4 h-4 mr-1" />
+                        <Fish className="w-4 h-4 mr-1" />
                         Povoar
                       </Button>
                     )}

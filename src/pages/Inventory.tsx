@@ -415,68 +415,93 @@ export default function Inventory() {
         </Card>
       </div>
 
-      {/* Lista de Itens */}
-      <div className="grid gap-4">
-        {filteredItems.map((item) => (
-          <Card key={item.id}>
-            <CardContent className="p-4">
-              <div className="flex justify-between items-start">
-                <div className="flex-1 grid grid-cols-1 md:grid-cols-5 gap-4">
-                  <div>
-                    <h3 className="font-semibold">{item.name}</h3>
-                    <Badge variant="secondary" className="mt-1">
-                      {item.category}
-                    </Badge>
-                  </div>
-                  
-                  <div>
-                    <p className="text-sm text-muted-foreground">Marca</p>
-                    <p className="font-medium">{item.brand || "N/A"}</p>
-                  </div>
-                  
-                  <div>
-                    <p className="text-sm text-muted-foreground">Quantidade</p>
-                    <p className="font-medium">{item.quantity.toLocaleString('pt-BR')}</p>
-                  </div>
-                  
-                  <div>
-                    <p className="text-sm text-muted-foreground">Preço Unit.</p>
-                    <p className="font-medium">R$ {item.unit_price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
-                  </div>
-                  
-                  <div>
-                    <p className="text-sm text-muted-foreground">Valor Total</p>
-                    <p className="font-bold text-primary">R$ {item.total_value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
-                  </div>
-                </div>
-                
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => startEdit(item)}
-                  >
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleDelete(item.id)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
+      {/* Lista de Itens por Categoria */}
+      <div className="space-y-6">
+        {(() => {
+          const groupedItems = filteredItems.reduce((groups, item) => {
+            const category = item.category;
+            if (!groups[category]) {
+              groups[category] = [];
+            }
+            groups[category].push(item);
+            return groups;
+          }, {} as Record<string, typeof filteredItems>);
+
+          return Object.entries(groupedItems).map(([category, categoryItems]) => (
+            <div key={category} className="space-y-4">
+              <div className="flex items-center gap-2 pb-2 border-b">
+                <div className="h-2 w-2 rounded-full bg-primary"></div>
+                <h3 className="text-lg font-semibold">{category}</h3>
+                <Badge variant="outline" className="ml-auto">
+                  {categoryItems.length} {categoryItems.length === 1 ? 'item' : 'itens'}
+                </Badge>
               </div>
               
-              <div className="mt-3 pt-3 border-t grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-muted-foreground">
-                {item.supplier && (
-                  <p><span className="font-medium">Fornecedor:</span> {item.supplier}</p>
-                )}
-                <p><span className="font-medium">Data de Entrada:</span> {new Date(item.entry_date).toLocaleDateString('pt-BR')}</p>
+              <div className="grid gap-4">
+                {categoryItems.map((item) => (
+                  <Card key={item.id}>
+                    <CardContent className="p-4">
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1 grid grid-cols-1 md:grid-cols-5 gap-4">
+                          <div>
+                            <h3 className="font-semibold">{item.name}</h3>
+                            <Badge variant="secondary" className="mt-1">
+                              {item.category}
+                            </Badge>
+                          </div>
+                          
+                          <div>
+                            <p className="text-sm text-muted-foreground">Marca</p>
+                            <p className="font-medium">{item.brand || "N/A"}</p>
+                          </div>
+                          
+                          <div>
+                            <p className="text-sm text-muted-foreground">Quantidade</p>
+                            <p className="font-medium">{item.quantity.toLocaleString('pt-BR')}</p>
+                          </div>
+                          
+                          <div>
+                            <p className="text-sm text-muted-foreground">Preço Unit.</p>
+                            <p className="font-medium">R$ {item.unit_price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                          </div>
+                          
+                          <div>
+                            <p className="text-sm text-muted-foreground">Valor Total</p>
+                            <p className="font-bold text-primary">R$ {item.total_value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                          </div>
+                        </div>
+                        
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => startEdit(item)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDelete(item.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                      
+                      <div className="mt-3 pt-3 border-t grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-muted-foreground">
+                        {item.supplier && (
+                          <p><span className="font-medium">Fornecedor:</span> {item.supplier}</p>
+                        )}
+                        <p><span className="font-medium">Data de Entrada:</span> {new Date(item.entry_date).toLocaleDateString('pt-BR')}</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
-            </CardContent>
-          </Card>
-        ))}
+            </div>
+          ));
+        })()}
       </div>
 
       {filteredItems.length === 0 && (

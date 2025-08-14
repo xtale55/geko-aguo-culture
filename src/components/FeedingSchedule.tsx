@@ -302,9 +302,10 @@ export function FeedingSchedule({
 
   const handleSaveFeeding = async () => {
     try {
-      const actualAmountNum = parseFloat(actualAmount) || 0;
+      // Anti-Drift: usar QuantityUtils para converter entrada em gramas (inteiro)
+      const actualAmountGrams = QuantityUtils.parseInputToGrams(actualAmount);
       
-      if (actualAmountNum <= 0) {
+      if (actualAmountGrams <= 0) {
         toast({
           variant: "destructive",
           title: "Erro",
@@ -343,12 +344,11 @@ export function FeedingSchedule({
       }
 
       // Check if there's enough stock (Anti-Drift: comparação com gramas)
-      const actualAmountGrams = QuantityUtils.kgToGrams(actualAmountNum);
       if (selectedFeed.quantity < actualAmountGrams) {
         toast({
           variant: "destructive",
           title: "Estoque insuficiente",
-          description: `Disponível: ${QuantityUtils.formatKg(selectedFeed.quantity)}kg, Solicitado: ${actualAmountNum}kg`
+          description: `Disponível: ${QuantityUtils.formatKg(selectedFeed.quantity)}kg, Solicitado: ${QuantityUtils.formatKg(actualAmountGrams)}kg`
         });
         return;
       }
@@ -358,7 +358,7 @@ export function FeedingSchedule({
         feeding_date: feedingDate,
         feeding_time: feedingTime,
         planned_amount: QuantityUtils.kgToGrams(feedPerMeal),
-        actual_amount: QuantityUtils.kgToGrams(actualAmountNum),
+        actual_amount: actualAmountGrams,
         feeding_rate_percentage: feedingRate,
         feed_type_id: selectedFeedType,
         feed_type_name: selectedFeed.name,
@@ -386,7 +386,7 @@ export function FeedingSchedule({
 
       toast({
         title: "Alimentação registrada",
-        description: `${QuantityUtils.formatKg(QuantityUtils.kgToGrams(actualAmountNum))}kg de ${selectedFeed.name} registrados às ${feedingTime}`
+        description: `${QuantityUtils.formatKg(actualAmountGrams)}kg de ${selectedFeed.name} registrados às ${feedingTime}`
       });
 
       // Reset form and close dialog

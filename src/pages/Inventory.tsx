@@ -116,10 +116,10 @@ export default function Inventory() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Anti-Drift: converter entrada do usuário para gramas
-    const quantityKg = parseFloat(formData.quantity.toString()) || 0;
+    // Anti-Drift: usar QuantityUtils para conversão precisa
+    const quantity = QuantityUtils.parseInputToGrams(formData.quantity);
+    const quantityKg = QuantityUtils.gramsToKg(quantity);
     const unit_price = parseFloat(formData.unit_price.toString()) || 0;
-    const quantity = QuantityUtils.kgToGrams(quantityKg);
     const total_value = quantityKg * unit_price;
     const itemData = { ...formData, quantity, unit_price, total_value };
 

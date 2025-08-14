@@ -259,9 +259,9 @@ export function InputApplicationTab() {
         throw new Error('Fertilizante não encontrado');
       }
 
-      // Check if quantity is available (Anti-Drift: comparação com gramas)
-      const quantityApplied = parseFloat(formData.quantity_applied);
-      const quantityAppliedGrams = QuantityUtils.kgToGrams(quantityApplied);
+      // Check if quantity is available (Anti-Drift: usar QuantityUtils para conversão precisa)
+      const quantityAppliedGrams = QuantityUtils.parseInputToGrams(formData.quantity_applied);
+      const quantityApplied = QuantityUtils.gramsToKg(quantityAppliedGrams);
       if (quantityAppliedGrams > selectedFertilizer.quantity) {
         toast({
           title: "Erro",

@@ -774,7 +774,7 @@ export default function PondHistory() {
                 <div key={index} className="text-sm">
                   <div className="flex justify-between items-center">
                     <div>
-                      <p className="font-medium">{record.actual_amount.toFixed(1)}kg</p>
+                      <p className="font-medium">{QuantityUtils.formatKg(record.actual_amount)} kg</p>
                       <p className="text-muted-foreground">
                         {new Date(record.feeding_date).toLocaleDateString('pt-BR')} • {record.feeding_time}
                       </p>
@@ -782,7 +782,7 @@ export default function PondHistory() {
                     <div className="text-right">
                       <Badge variant="outline">{record.feed_type_name}</Badge>
                       <p className="text-muted-foreground text-xs mt-1">
-                        R$ {(record.actual_amount * record.unit_cost).toFixed(2)}
+                        R$ {(QuantityUtils.gramsToKg(record.actual_amount) * record.unit_cost).toFixed(2)}
                       </p>
                     </div>
                   </div>

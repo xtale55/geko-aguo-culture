@@ -14,6 +14,7 @@ import {
   Package, Droplets, Skull, Fish, Edit2 
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { QuantityUtils } from "@/lib/quantityUtils";
 
 interface CostBreakdown {
   pl_cost: number;
@@ -219,10 +220,10 @@ export default function PondHistory() {
           const plCostTotal = (cycle.batches?.pl_cost || 0) * (cycle.pl_quantity / 1000);
           const preparationCost = cycle.preparation_cost || 0;
           
-          // Calculate real feed cost from feeding records
+          // Calculate real feed cost from feeding records (Anti-Drift: converter gramas para kg)
           const realFeedCost = feedingData
             ?.filter(feed => feed.pond_batch_id === cycle.id)
-            ?.reduce((sum, feed) => sum + (feed.actual_amount * (feed.unit_cost || 0)), 0) || 0;
+            ?.reduce((sum, feed) => sum + (QuantityUtils.gramsToKg(feed.actual_amount) * (feed.unit_cost || 0)), 0) || 0;
           
           // Calculate operational costs for this specific cycle
           const operationalCost = operationalCostsData
@@ -242,11 +243,11 @@ export default function PondHistory() {
           const productivityPerHa = pondArea > 0 ? biomass / (pondArea / 10000) : 0; // kg/ha
           const pondResult = estimatedRevenue - totalCost;
           
-          // Calculate FCA and weekly growth (simplified)
-          const totalFeedUsed = feedingData
+          // Calculate FCA and weekly growth (simplified) (Anti-Drift: converter gramas para kg)
+          const totalFeedUsedKg = feedingData
             ?.filter(feed => feed.pond_batch_id === cycle.id)
-            ?.reduce((sum, feed) => sum + feed.actual_amount, 0) || 0;
-          const realFca = biomass > 0 ? totalFeedUsed / biomass : 0;
+            ?.reduce((sum, feed) => sum + QuantityUtils.gramsToKg(feed.actual_amount), 0) || 0;
+          const realFca = biomass > 0 ? totalFeedUsedKg / biomass : 0;
           
           // Calculate weekly growth (estimate based on DOC)
           const weeklyGrowth = doc > 0 ? (latestBiometry.average_weight / (doc / 7)) : 0;

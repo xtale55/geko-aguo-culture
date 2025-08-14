@@ -15,6 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { FeedingHistoryPanel } from "@/components/FeedingHistoryPanel";
 import { GrowthAnalysis } from "@/components/GrowthAnalysis";
 import { OperationalCosts } from "@/components/OperationalCosts";
+import { QuantityUtils } from "@/lib/quantityUtils";
 
 interface ProductionReport {
   totalCycles: number;
@@ -215,9 +216,9 @@ export default function Reports() {
       // Calculate operational costs
       const calculatedOpCosts = operationalCosts?.reduce((sum, cost) => sum + cost.amount, 0) || 0;
       
-      // Calculate consumed materials costs
+      // Calculate consumed materials costs (Anti-Drift: converter gramas para kg)
       const calculatedFeedConsumed = feeding?.reduce((sum, feed) => {
-        return sum + (feed.actual_amount * (feed.unit_cost || 0));
+        return sum + (QuantityUtils.gramsToKg(feed.actual_amount) * (feed.unit_cost || 0));
       }, 0) || 0;
       
       const calculatedInputsConsumed = inputApplications?.reduce((sum, input) => {
@@ -263,13 +264,13 @@ export default function Reports() {
           const biomass = (cycle.current_population * latestBiometry.average_weight) / 1000;
           totalProduction += biomass;
           
-          // Calculate real feed consumption and cost
+          // Calculate real feed consumption and cost (Anti-Drift: converter gramas para kg)
           const totalFeedConsumed = Array.isArray(cycle.feeding_records)
-            ? cycle.feeding_records.reduce((sum, fr) => sum + fr.actual_amount, 0)
+            ? cycle.feeding_records.reduce((sum, fr) => sum + QuantityUtils.gramsToKg(fr.actual_amount), 0)
             : 0;
             
           const realFeedCost = Array.isArray(cycle.feeding_records)
-            ? cycle.feeding_records.reduce((sum, fr) => sum + (fr.actual_amount * (fr.unit_cost || 7)), 0)
+            ? cycle.feeding_records.reduce((sum, fr) => sum + (QuantityUtils.gramsToKg(fr.actual_amount) * (fr.unit_cost || 7)), 0)
             : 0;
           
           // Calculate real FCA if we have feed data and weight growth
@@ -281,7 +282,7 @@ export default function Reports() {
             const initialBiomass = (cycle.current_population * firstBiometry.average_weight) / 1000;
             const biomassGain = biomass - initialBiomass;
             if (biomassGain > 0) {
-              realFCA = totalFeedConsumed / biomassGain;
+              realFCA = totalFeedConsumed / biomassGain; // totalFeedConsumed já está em kg
             }
           }
           

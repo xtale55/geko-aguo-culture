@@ -5,6 +5,7 @@ import { Clock, Utensils, TrendingUp } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { QuantityUtils } from "@/lib/quantityUtils";
 
 interface FeedingRecord {
   id: string;
@@ -127,9 +128,10 @@ export function FeedingHistoryPanel() {
         .gte('feeding_date', thirtyDaysAgo.toISOString().split('T')[0]);
 
       if (summaryRecords) {
-        const totalPlanned = summaryRecords.reduce((sum, r) => sum + r.planned_amount, 0);
-        const totalActual = summaryRecords.reduce((sum, r) => sum + r.actual_amount, 0);
-        const totalCost = summaryRecords.reduce((sum, r) => sum + (r.actual_amount * (r.unit_cost || 0)), 0);
+        // Anti-Drift: converter gramas para kg antes dos cálculos
+        const totalPlanned = summaryRecords.reduce((sum, r) => sum + QuantityUtils.gramsToKg(r.planned_amount), 0);
+        const totalActual = summaryRecords.reduce((sum, r) => sum + QuantityUtils.gramsToKg(r.actual_amount), 0);
+        const totalCost = summaryRecords.reduce((sum, r) => sum + (QuantityUtils.gramsToKg(r.actual_amount) * (r.unit_cost || 0)), 0);
         const efficiency = totalPlanned > 0 ? (totalActual / totalPlanned) * 100 : 0;
 
         setFeedingSummary({
@@ -225,15 +227,15 @@ export function FeedingHistoryPanel() {
                 <div className="grid grid-cols-3 gap-4 text-xs">
                   <div>
                     <p className="text-muted-foreground">Planejado</p>
-                    <p className="font-medium">{feeding.planned_amount.toFixed(1)} kg</p>
+                    <p className="font-medium">{QuantityUtils.formatKg(feeding.planned_amount)} kg</p>
                   </div>
                   <div>
                     <p className="text-muted-foreground">Realizado</p>
-                    <p className="font-medium">{feeding.actual_amount.toFixed(1)} kg</p>
+                    <p className="font-medium">{QuantityUtils.formatKg(feeding.actual_amount)} kg</p>
                   </div>
                   <div>
                     <p className="text-muted-foreground">Custo</p>
-                    <p className="font-medium">R$ {(feeding.actual_amount * feeding.unit_cost).toFixed(2)}</p>
+                    <p className="font-medium">R$ {(QuantityUtils.gramsToKg(feeding.actual_amount) * feeding.unit_cost).toFixed(2)}</p>
                   </div>
                 </div>
               </div>

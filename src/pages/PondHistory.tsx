@@ -248,15 +248,10 @@ export default function PondHistory() {
             ?.filter(feed => feed.pond_batch_id === cycle.id)
             ?.reduce((sum, feed) => sum + QuantityUtils.gramsToKg(feed.actual_amount), 0) || 0;
           
-          // Calculate real FCA = total feed / total biomass gain
-          // Get initial weight from first biometry or assume 0.01g PL weight
-          const sortedBiometries = cycle.biometrics?.sort((a, b) => 
-            new Date(a.measurement_date).getTime() - new Date(b.measurement_date).getTime()
-          ) || [];
-          const initialWeight = sortedBiometries.length > 0 ? sortedBiometries[0].average_weight : 0.01; // 0.01g for PL
+          // Calculate real FCA = total feed / current total biomass in pond
           const currentWeight = latestBiometry.average_weight;
-          const totalBiomassGain = (cycle.current_population * (currentWeight - initialWeight)) / 1000; // kg
-          const realFca = totalBiomassGain > 0 ? totalFeedUsedKg / totalBiomassGain : 0;
+          const currentTotalBiomass = (cycle.current_population * currentWeight) / 1000; // kg
+          const realFca = currentTotalBiomass > 0 ? totalFeedUsedKg / currentTotalBiomass : 0;
           
           // Calculate weekly growth (Anti-Drift: usar toda a série de biometrias)
           let weeklyGrowth = 0;

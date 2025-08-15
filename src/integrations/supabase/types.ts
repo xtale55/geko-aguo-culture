@@ -250,6 +250,10 @@ export type Database = {
       harvest_records: {
         Row: {
           actual_mortality_detected: number | null
+          allocated_feed_cost: number | null
+          allocated_input_cost: number | null
+          allocated_pl_cost: number | null
+          allocated_preparation_cost: number | null
           average_weight_at_harvest: number | null
           biomass_harvested: number
           created_at: string
@@ -268,6 +272,10 @@ export type Database = {
         }
         Insert: {
           actual_mortality_detected?: number | null
+          allocated_feed_cost?: number | null
+          allocated_input_cost?: number | null
+          allocated_pl_cost?: number | null
+          allocated_preparation_cost?: number | null
           average_weight_at_harvest?: number | null
           biomass_harvested?: number
           created_at?: string
@@ -286,6 +294,10 @@ export type Database = {
         }
         Update: {
           actual_mortality_detected?: number | null
+          allocated_feed_cost?: number | null
+          allocated_input_cost?: number | null
+          allocated_pl_cost?: number | null
+          allocated_preparation_cost?: number | null
           average_weight_at_harvest?: number | null
           biomass_harvested?: number
           created_at?: string

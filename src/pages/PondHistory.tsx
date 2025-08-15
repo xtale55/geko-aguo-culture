@@ -243,11 +243,20 @@ export default function PondHistory() {
           const productivityPerHa = pondArea > 0 ? biomass / (pondArea / 10000) : 0; // kg/ha
           const pondResult = estimatedRevenue - totalCost;
           
-          // Calculate FCA and weekly growth (simplified) (Anti-Drift: converter gramas para kg)
+          // Calculate total feed used and real FCA (Anti-Drift: converter gramas para kg)
           const totalFeedUsedKg = feedingData
             ?.filter(feed => feed.pond_batch_id === cycle.id)
             ?.reduce((sum, feed) => sum + QuantityUtils.gramsToKg(feed.actual_amount), 0) || 0;
-          const realFca = biomass > 0 ? totalFeedUsedKg / biomass : 0;
+          
+          // Calculate real FCA = total feed / total biomass gain
+          // Get initial weight from first biometry or assume 0.01g PL weight
+          const sortedBiometries = cycle.biometrics?.sort((a, b) => 
+            new Date(a.measurement_date).getTime() - new Date(b.measurement_date).getTime()
+          ) || [];
+          const initialWeight = sortedBiometries.length > 0 ? sortedBiometries[0].average_weight : 0.01; // 0.01g for PL
+          const currentWeight = latestBiometry.average_weight;
+          const totalBiomassGain = (cycle.current_population * (currentWeight - initialWeight)) / 1000; // kg
+          const realFca = totalBiomassGain > 0 ? totalFeedUsedKg / totalBiomassGain : 0;
           
           // Calculate weekly growth (Anti-Drift: usar toda a série de biometrias)
           let weeklyGrowth = 0;
@@ -736,19 +745,75 @@ export default function PondHistory() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              {biometryRecords.slice(0, 5).map((record, index) => (
-                <div key={index} className="flex justify-between items-center text-sm">
-                  <div>
-                    <p className="font-medium">{record.average_weight.toFixed(1)}g</p>
-                    <p className="text-muted-foreground">
-                      {new Date(record.measurement_date).toLocaleDateString('pt-BR')}
-                    </p>
+              {biometryRecords.slice(0, 5).map((record, index) => {
+                // Encontrar o ciclo ativo para calcular FCA
+                const activeCycle = cycles.find(c => c.status === 'active');
+                let fcaReal = 0;
+                let fcaSemanal = 0;
+                
+                if (activeCycle) {
+                  // FCA Real: total de ração / ganho total de biomassa
+                  const totalFeedKg = feedingRecords
+                    .filter(feed => new Date(feed.feeding_date) <= new Date(record.measurement_date))
+                    .reduce((sum, feed) => sum + QuantityUtils.gramsToKg(feed.actual_amount), 0);
+                  
+                  // Peso inicial (primeira biometria ou PL = 0.01g)
+                  const firstBiometry = biometryRecords
+                    .slice()
+                    .sort((a, b) => new Date(a.measurement_date).getTime() - new Date(b.measurement_date).getTime())[0];
+                  const initialWeight = firstBiometry ? firstBiometry.average_weight : 0.01;
+                  const totalBiomassGain = (activeCycle.current_population * (record.average_weight - initialWeight)) / 1000;
+                  fcaReal = totalBiomassGain > 0 ? totalFeedKg / totalBiomassGain : 0;
+                  
+                  // FCA Semanal: ração entre última e atual biometria / ganho de biomassa
+                  const previousBiometry = biometryRecords
+                    .filter(b => new Date(b.measurement_date) < new Date(record.measurement_date))
+                    .sort((a, b) => new Date(b.measurement_date).getTime() - new Date(a.measurement_date).getTime())[0];
+                  
+                  if (previousBiometry) {
+                    const weeklyFeedKg = feedingRecords
+                      .filter(feed => {
+                        const feedDate = new Date(feed.feeding_date);
+                        return feedDate > new Date(previousBiometry.measurement_date) && 
+                               feedDate <= new Date(record.measurement_date);
+                      })
+                      .reduce((sum, feed) => sum + QuantityUtils.gramsToKg(feed.actual_amount), 0);
+                    
+                    const weeklyBiomassGain = (activeCycle.current_population * (record.average_weight - previousBiometry.average_weight)) / 1000;
+                    fcaSemanal = weeklyBiomassGain > 0 ? weeklyFeedKg / weeklyBiomassGain : 0;
+                  }
+                }
+                
+                return (
+                  <div key={index} className="border-b border-border pb-3 last:border-b-0">
+                    <div className="flex justify-between items-start text-sm">
+                      <div>
+                        <p className="font-medium">{record.average_weight.toFixed(1)}g</p>
+                        <p className="text-muted-foreground">
+                          {new Date(record.measurement_date).toLocaleDateString('pt-BR')}
+                        </p>
+                      </div>
+                      {record.uniformity > 0 && (
+                        <Badge variant="outline">{record.uniformity}% unif.</Badge>
+                      )}
+                    </div>
+                    {activeCycle && (
+                      <div className="mt-2 space-y-1">
+                        <div className="flex justify-between text-xs text-muted-foreground">
+                          <span>FCA Real:</span>
+                          <span className="font-medium">{fcaReal > 0 ? fcaReal.toFixed(2) : '-'}</span>
+                        </div>
+                        {fcaSemanal > 0 && (
+                          <div className="flex justify-between text-xs text-muted-foreground">
+                            <span>FCA Semanal:</span>
+                            <span className="font-medium">{fcaSemanal.toFixed(2)}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
-                  {record.uniformity > 0 && (
-                    <Badge variant="outline">{record.uniformity}% unif.</Badge>
-                  )}
-                </div>
-              ))}
+                );
+              })}
             </CardContent>
           </Card>
 

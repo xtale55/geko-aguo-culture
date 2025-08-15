@@ -273,17 +273,10 @@ export default function Reports() {
             ? cycle.feeding_records.reduce((sum, fr) => sum + (QuantityUtils.gramsToKg(fr.actual_amount) * (fr.unit_cost || 7)), 0)
             : 0;
           
-          // Calculate real FCA if we have feed data and weight growth
-          const firstBiometry = cycle.biometrics
-            ?.sort((a, b) => new Date(a.measurement_date).getTime() - new Date(b.measurement_date).getTime())[0];
-          
+          // Calculate real FCA: Total ração / Biomassa atual
           let realFCA: number | null = null;
-          if (firstBiometry && totalFeedConsumed > 0) {
-            const initialBiomass = (cycle.current_population * firstBiometry.average_weight) / 1000;
-            const biomassGain = biomass - initialBiomass;
-            if (biomassGain > 0) {
-              realFCA = totalFeedConsumed / biomassGain; // totalFeedConsumed já está em kg
-            }
+          if (totalFeedConsumed > 0 && biomass > 0) {
+            realFCA = totalFeedConsumed / biomass; // totalFeedConsumed já está em kg
           }
           
           // Calculate weekly growth

@@ -756,22 +756,29 @@ export default function PondHistory() {
                   const currentTotalBiomass = (activeCycle.current_population * record.average_weight) / 1000; // kg
                   fcaReal = currentTotalBiomass > 0 ? totalFeedKg / currentTotalBiomass : 0;
                   
-                  // FCA Semanal: ração entre última e atual biometria / ganho de biomassa
+                  // FCA Semanal: ração entre biometrias / ((ganho de biomassa / dias) x 7)
                   const previousBiometry = biometryRecords
                     .filter(b => new Date(b.measurement_date) < new Date(record.measurement_date))
                     .sort((a, b) => new Date(b.measurement_date).getTime() - new Date(a.measurement_date).getTime())[0];
                   
                   if (previousBiometry) {
-                    const weeklyFeedKg = feedingRecords
+                    const periodStart = new Date(previousBiometry.measurement_date);
+                    const periodEnd = new Date(record.measurement_date);
+                    const daysBetween = Math.ceil((periodEnd.getTime() - periodStart.getTime()) / (1000 * 60 * 60 * 24));
+                    
+                    const periodFeedKg = feedingRecords
                       .filter(feed => {
                         const feedDate = new Date(feed.feeding_date);
-                        return feedDate > new Date(previousBiometry.measurement_date) && 
-                               feedDate <= new Date(record.measurement_date);
+                        return feedDate > periodStart && feedDate <= periodEnd;
                       })
                       .reduce((sum, feed) => sum + QuantityUtils.gramsToKg(feed.actual_amount), 0);
                     
-                    const weeklyBiomassGain = (activeCycle.current_population * (record.average_weight - previousBiometry.average_weight)) / 1000;
-                    fcaSemanal = weeklyBiomassGain > 0 ? weeklyFeedKg / weeklyBiomassGain : 0;
+                    const biomassGain = (activeCycle.current_population * (record.average_weight - previousBiometry.average_weight)) / 1000;
+                    
+                    if (biomassGain > 0 && daysBetween > 0) {
+                      const weeklyBiomassGain = (biomassGain / daysBetween) * 7;
+                      fcaSemanal = periodFeedKg / weeklyBiomassGain;
+                    }
                   }
                 }
                 

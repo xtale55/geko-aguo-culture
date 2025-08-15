@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { QuantityUtils } from '@/lib/quantityUtils';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -210,11 +211,11 @@ const HarvestHistoryDetail = ({ harvestId, open, onOpenChange }: HarvestHistoryD
   const plCost = (harvestData.pond_batch.batch.pl_cost * harvestData.pond_batch.pl_quantity) / 1000;
   const preparationCost = harvestData.pond_batch.preparation_cost || 0;
   
-  // Calculate feed costs and consumption
+  // Calculate feed costs and consumption (Anti-Drift: converter gramas para kg)
   const totalFeedCost = harvestData.feeding_records.reduce((sum, record) => 
-    sum + (record.actual_amount * (record.unit_cost || 0)), 0);
+    sum + (QuantityUtils.gramsToKg(record.actual_amount) * (record.unit_cost || 0)), 0);
   const totalFeedConsumed = harvestData.feeding_records.reduce((sum, record) => 
-    sum + record.actual_amount, 0);
+    sum + QuantityUtils.gramsToKg(record.actual_amount), 0);
   
   // Calculate input costs
   const totalInputCost = harvestData.input_applications.reduce((sum, input) => 
@@ -419,7 +420,7 @@ const HarvestHistoryDetail = ({ harvestId, open, onOpenChange }: HarvestHistoryD
                       <p className="text-sm text-muted-foreground">Ração</p>
                       <p className="text-lg font-medium">R$ {totalFeedCost.toFixed(2)}</p>
                       <p className="text-xs text-muted-foreground">
-                        {totalFeedConsumed.toFixed(0)} kg consumidos
+                        {totalFeedConsumed.toFixed(1)} kg consumidos
                       </p>
                     </div>
                     <div className="p-4 bg-muted/30 rounded-lg">

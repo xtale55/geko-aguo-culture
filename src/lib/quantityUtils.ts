@@ -45,5 +45,43 @@ export const QuantityUtils = {
   isValidKg: (input: string | number): boolean => {
     const kg = typeof input === 'string' ? parseFloat(input) : input;
     return !isNaN(kg) && kg >= 0;
+  },
+
+  /**
+   * Calcular FCA (Feed Conversion Ratio) corretamente
+   * @param totalFeedGrams Total de ração consumida em gramas
+   * @param biomassGainKg Ganho de biomassa em kg
+   * @returns FCA
+   */
+  calculateFCA: (totalFeedGrams: number, biomassGainKg: number): number => {
+    if (!biomassGainKg || biomassGainKg <= 0) return 0;
+    const totalFeedKg = totalFeedGrams / 1000;
+    return totalFeedKg / biomassGainKg;
+  },
+
+  /**
+   * Calcular crescimento semanal
+   * @param initialWeight Peso inicial em gramas
+   * @param finalWeight Peso final em gramas
+   * @param daysBetween Dias entre as medições
+   * @returns Crescimento semanal em gramas
+   */
+  calculateWeeklyGrowth: (initialWeight: number, finalWeight: number, daysBetween: number): number => {
+    if (!daysBetween || daysBetween <= 0) return 0;
+    const weightGain = finalWeight - initialWeight;
+    const weeksBetween = daysBetween / 7;
+    return weeksBetween > 0 ? weightGain / weeksBetween : 0;
+  },
+
+  /**
+   * Calcular custos proporcionais para despesca parcial
+   * @param totalCost Custo total do ciclo
+   * @param harvestedBiomass Biomassa despescada
+   * @param totalBiomassProduced Biomassa total produzida no ciclo
+   * @returns Custo proporcional
+   */
+  calculateProportionalCost: (totalCost: number, harvestedBiomass: number, totalBiomassProduced: number): number => {
+    if (!totalBiomassProduced || totalBiomassProduced <= 0) return 0;
+    return totalCost * (harvestedBiomass / totalBiomassProduced);
   }
 };

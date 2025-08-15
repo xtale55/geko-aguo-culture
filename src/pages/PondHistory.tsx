@@ -249,8 +249,24 @@ export default function PondHistory() {
             ?.reduce((sum, feed) => sum + QuantityUtils.gramsToKg(feed.actual_amount), 0) || 0;
           const realFca = biomass > 0 ? totalFeedUsedKg / biomass : 0;
           
-          // Calculate weekly growth (estimate based on DOC)
-          const weeklyGrowth = doc > 0 ? (latestBiometry.average_weight / (doc / 7)) : 0;
+          // Calculate weekly growth (Anti-Drift: usar toda a série de biometrias)
+          let weeklyGrowth = 0;
+          if (cycle.biometrics && cycle.biometrics.length >= 2) {
+            const sortedBio = cycle.biometrics.sort((a, b) => 
+              new Date(a.measurement_date).getTime() - new Date(b.measurement_date).getTime()
+            );
+            const firstBio = sortedBio[0];
+            const lastBio = sortedBio[sortedBio.length - 1];
+            const daysBetween = Math.ceil(
+              (new Date(lastBio.measurement_date).getTime() - new Date(firstBio.measurement_date).getTime()) 
+              / (1000 * 60 * 60 * 24)
+            );
+            weeklyGrowth = QuantityUtils.calculateWeeklyGrowth(
+              firstBio.average_weight, 
+              lastBio.average_weight, 
+              daysBetween
+            );
+          }
 
           processedCycles.push({
             cycle_id: cycle.id,

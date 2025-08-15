@@ -747,18 +747,14 @@ export default function PondHistory() {
                 let fcaSemanal = 0;
                 
                 if (activeCycle) {
-                  // FCA Real: total de ração / ganho total de biomassa
+                  // FCA Real: total de ração / biomassa total atual no viveiro
                   const totalFeedKg = feedingRecords
                     .filter(feed => new Date(feed.feeding_date) <= new Date(record.measurement_date))
                     .reduce((sum, feed) => sum + QuantityUtils.gramsToKg(feed.actual_amount), 0);
                   
-                  // Peso inicial (primeira biometria ou PL = 0.01g)
-                  const firstBiometry = biometryRecords
-                    .slice()
-                    .sort((a, b) => new Date(a.measurement_date).getTime() - new Date(b.measurement_date).getTime())[0];
-                  const initialWeight = firstBiometry ? firstBiometry.average_weight : 0.01;
-                  const totalBiomassGain = (activeCycle.current_population * (record.average_weight - initialWeight)) / 1000;
-                  fcaReal = totalBiomassGain > 0 ? totalFeedKg / totalBiomassGain : 0;
+                  // Calcular biomassa total atual no viveiro
+                  const currentTotalBiomass = (activeCycle.current_population * record.average_weight) / 1000; // kg
+                  fcaReal = currentTotalBiomass > 0 ? totalFeedKg / currentTotalBiomass : 0;
                   
                   // FCA Semanal: ração entre última e atual biometria / ganho de biomassa
                   const previousBiometry = biometryRecords

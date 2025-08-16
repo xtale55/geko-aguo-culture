@@ -6,12 +6,14 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate, useParams } from "react-router-dom";
 import { 
   ArrowLeft, Calendar, DollarSign, Scale, TrendingUp, 
-  Package, Droplets, Skull, Fish, Edit2 
+  Package, Droplets, Skull, Fish, Edit2, Trash2 
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { QuantityUtils } from "@/lib/quantityUtils";
@@ -93,6 +95,31 @@ export default function PondHistory() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  const handleDeleteCycle = async (cycleId: string) => {
+    try {
+      // Delete all related records first
+      const { error: deleteError } = await supabase
+        .from('pond_batches')
+        .delete()
+        .eq('id', cycleId);
+
+      if (deleteError) throw deleteError;
+
+      toast({
+        title: "Sucesso",
+        description: "Ciclo excluído com sucesso!"
+      });
+
+      loadPondHistory(); // Reload data
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: error.message
+      });
+    }
+  };
+
   const calculatePriceByWeight = (weight: number, tableValue: number): number => {
     return tableValue + (weight - 10); // Correct formula: table + (weight - 10g)
   };
@@ -159,11 +186,14 @@ export default function PondHistory() {
               .then(({ data }) => data?.map(pb => pb.id) || [])
           );
 
-        // Process cycles
+      // Process cycles
       const processedCycles: PondCycleHistory[] = [];
       const allBiometry: BiometryRecord[] = [];
       const allMortality: MortalityRecord[] = [];
       const allFeeding: FeedingRecord[] = [];
+      
+      // Find active cycle to filter recent data
+      let activeCycleId: string | null = null;
 
       cyclesData?.forEach(cycle => {
         const stocking = new Date(cycle.stocking_date);
@@ -174,29 +204,31 @@ export default function PondHistory() {
         const latestBiometry = cycle.biometrics
           ?.sort((a, b) => new Date(b.measurement_date).getTime() - new Date(a.measurement_date).getTime())[0];
 
-        // Add all biometry records
-        cycle.biometrics?.forEach(bio => {
-          allBiometry.push({
-            measurement_date: bio.measurement_date,
-            average_weight: bio.average_weight,
-            uniformity: bio.uniformity || 0,
-            sample_size: bio.sample_size || 0
+        // Add biometry records only from active cycle for recent data
+        if (cycle.current_population > 0) {
+          cycle.biometrics?.forEach(bio => {
+            allBiometry.push({
+              measurement_date: bio.measurement_date,
+              average_weight: bio.average_weight,
+              uniformity: bio.uniformity || 0,
+              sample_size: bio.sample_size || 0
+            });
           });
-        });
 
-        // Add all mortality records
-        cycle.mortality_records?.forEach(mort => {
-          allMortality.push({
-            record_date: mort.record_date,
-            dead_count: mort.dead_count,
-            notes: mort.notes || ''
+          // Add mortality records only from active cycle for recent data
+          cycle.mortality_records?.forEach(mort => {
+            allMortality.push({
+              record_date: mort.record_date,
+              dead_count: mort.dead_count,
+              notes: mort.notes || ''
+            });
           });
-        });
+        }
 
-        // Add all feeding records from separate query
-        if (feedingData) {
+        // Add feeding records only from active cycle for recent data
+        if (feedingData && cycle.current_population > 0) {
           feedingData
-            .filter(feed => cyclesData.some(c => c.id === feed.pond_batch_id))
+            .filter(feed => feed.pond_batch_id === cycle.id)
             .forEach(feed => {
               allFeeding.push({
                 feeding_date: feed.feeding_date,
@@ -253,8 +285,8 @@ export default function PondHistory() {
           const currentTotalBiomass = (cycle.current_population * currentWeight) / 1000; // kg
           const realFca = currentTotalBiomass > 0 ? totalFeedUsedKg / currentTotalBiomass : 0;
           
-          // Calculate weekly growth (Anti-Drift: usar toda a série de biometrias)
-          let weeklyGrowth = 0;
+          // Calculate total growth from start to now (growth since beginning)
+          let totalGrowth = 0;
           if (cycle.biometrics && cycle.biometrics.length >= 2) {
             const sortedBio = cycle.biometrics.sort((a, b) => 
               new Date(a.measurement_date).getTime() - new Date(b.measurement_date).getTime()
@@ -265,7 +297,7 @@ export default function PondHistory() {
               (new Date(lastBio.measurement_date).getTime() - new Date(firstBio.measurement_date).getTime()) 
               / (1000 * 60 * 60 * 24)
             );
-            weeklyGrowth = QuantityUtils.calculateWeeklyGrowth(
+            totalGrowth = QuantityUtils.calculateWeeklyGrowth(
               firstBio.average_weight, 
               lastBio.average_weight, 
               daysBetween
@@ -286,7 +318,7 @@ export default function PondHistory() {
             density,
             cost_per_kg: costPerKg,
             real_fca: realFca,
-            weekly_growth: weeklyGrowth,
+            weekly_growth: totalGrowth,
             productivity_per_ha: productivityPerHa,
             pond_result: pondResult,
             costs: {
@@ -300,6 +332,11 @@ export default function PondHistory() {
             profit_margin: profitMargin,
             status: cycle.current_population > 0 ? 'active' : 'harvested'
           });
+          
+          // Store active cycle ID for filtering recent data
+          if (cycle.current_population > 0) {
+            activeCycleId = cycle.id;
+          }
         }
       });
 
@@ -314,7 +351,7 @@ export default function PondHistory() {
         new Date(b.feeding_date).getTime() - new Date(a.feeding_date).getTime()
       ));
       
-      // Get water quality records
+      // Get water quality records (all for the pond, not filtered by active cycle)
       const { data: waterData } = await supabase
         .from('water_quality')
         .select('measurement_date, oxygen_level, temperature, ph_level')
@@ -515,18 +552,46 @@ export default function PondHistory() {
           <CardContent className="space-y-4">
             {cycles.map((cycle) => (
               <div key={cycle.cycle_id} className="border rounded-lg p-4 space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-semibold text-lg">{cycle.batch_name}</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Povoamento: {new Date(cycle.stocking_date).toLocaleDateString('pt-BR')} 
-                      • DOC: {cycle.doc} dias
-                    </p>
-                  </div>
-                  <Badge variant={cycle.status === 'active' ? 'default' : 'secondary'}>
-                    {cycle.status === 'active' ? 'Ativo' : 'Finalizado'}
-                  </Badge>
-                </div>
+                 <div className="flex items-center justify-between">
+                   <div>
+                     <h3 className="font-semibold text-lg">{cycle.batch_name}</h3>
+                     <p className="text-sm text-muted-foreground">
+                       Povoamento: {new Date(cycle.stocking_date).toLocaleDateString('pt-BR')} 
+                       • DOC: {cycle.doc} dias
+                     </p>
+                   </div>
+                   <div className="flex items-center gap-2">
+                     <Badge variant={cycle.status === 'active' ? 'default' : 'secondary'}>
+                       {cycle.status === 'active' ? 'Ativo' : 'Finalizado'}
+                     </Badge>
+                     {cycle.status === 'harvested' && (
+                       <AlertDialog>
+                         <AlertDialogTrigger asChild>
+                           <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive hover:bg-destructive/10">
+                             <Trash2 className="w-3 h-3" />
+                           </Button>
+                         </AlertDialogTrigger>
+                         <AlertDialogContent>
+                           <AlertDialogHeader>
+                             <AlertDialogTitle>Excluir Ciclo</AlertDialogTitle>
+                             <AlertDialogDescription>
+                               Tem certeza que deseja excluir o ciclo "{cycle.batch_name}"? Esta ação não pode ser desfeita e todos os dados relacionados serão removidos.
+                             </AlertDialogDescription>
+                           </AlertDialogHeader>
+                           <AlertDialogFooter>
+                             <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                             <AlertDialogAction 
+                               onClick={() => handleDeleteCycle(cycle.cycle_id)}
+                               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                             >
+                               Excluir
+                             </AlertDialogAction>
+                           </AlertDialogFooter>
+                         </AlertDialogContent>
+                       </AlertDialog>
+                     )}
+                   </div>
+                 </div>
 
                 {/* Main Performance Metrics */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
@@ -539,7 +604,7 @@ export default function PondHistory() {
                     <p className="font-medium">{cycle.average_weight.toFixed(1)}g</p>
                   </div>
                   <div>
-                    <p className="text-muted-foreground">Crescimento</p>
+                    <p className="text-muted-foreground">Crescimento Total</p>
                     <p className="font-medium">{cycle.weekly_growth.toFixed(1)}g/sem</p>
                   </div>
                   <div>
@@ -739,8 +804,10 @@ export default function PondHistory() {
                 Biometrias Recentes
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
-              {biometryRecords.slice(0, 5).map((record, index) => {
+            <CardContent>
+              <ScrollArea className="h-64">
+                <div className="space-y-3">
+                  {biometryRecords.map((record, index) => {
                 // Encontrar o ciclo ativo para calcular FCA
                 const activeCycle = cycles.find(c => c.status === 'active');
                 let fcaReal = 0;
@@ -811,7 +878,12 @@ export default function PondHistory() {
                     )}
                   </div>
                 );
-              })}
+                  })}
+                  {biometryRecords.length === 0 && (
+                    <p className="text-muted-foreground text-sm">Nenhum registro de biometria encontrado.</p>
+                  )}
+                </div>
+              </ScrollArea>
             </CardContent>
           </Card>
 
@@ -823,8 +895,10 @@ export default function PondHistory() {
                 Mortalidade Recente
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
-              {mortalityRecords.slice(0, 5).map((record, index) => (
+            <CardContent>
+              <ScrollArea className="h-64">
+                <div className="space-y-3">
+                  {mortalityRecords.map((record, index) => (
                 <div key={index} className="text-sm">
                   <div className="flex justify-between items-center">
                     <p className="font-medium text-red-600">{record.dead_count.toLocaleString()} mortos</p>
@@ -836,7 +910,12 @@ export default function PondHistory() {
                     <p className="text-muted-foreground text-xs mt-1">{record.notes}</p>
                   )}
                 </div>
-              ))}
+                  ))}
+                  {mortalityRecords.length === 0 && (
+                    <p className="text-muted-foreground text-sm">Nenhum registro de mortalidade encontrado.</p>
+                  )}
+                </div>
+              </ScrollArea>
             </CardContent>
           </Card>
 
@@ -848,8 +927,10 @@ export default function PondHistory() {
                 Alimentação Recente
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
-              {feedingRecords.slice(0, 5).map((record, index) => (
+            <CardContent>
+              <ScrollArea className="h-64">
+                <div className="space-y-3">
+                  {feedingRecords.map((record, index) => (
                 <div key={index} className="text-sm">
                   <div className="flex justify-between items-center">
                     <div>
@@ -866,10 +947,12 @@ export default function PondHistory() {
                     </div>
                   </div>
                 </div>
-              ))}
-              {feedingRecords.length === 0 && (
-                <p className="text-muted-foreground text-sm">Nenhum registro de alimentação encontrado.</p>
-              )}
+                  ))}
+                  {feedingRecords.length === 0 && (
+                    <p className="text-muted-foreground text-sm">Nenhum registro de alimentação encontrado.</p>
+                  )}
+                </div>
+              </ScrollArea>
             </CardContent>
           </Card>
 
@@ -881,8 +964,10 @@ export default function PondHistory() {
                 Qualidade da Água
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
-              {waterQualityRecords.slice(0, 5).map((record, index) => (
+            <CardContent>
+              <ScrollArea className="h-64">
+                <div className="space-y-3">
+                  {waterQualityRecords.map((record, index) => (
                 <div key={index} className="text-sm">
                   <div className="flex justify-between items-center">
                     <div>
@@ -898,7 +983,12 @@ export default function PondHistory() {
                     </p>
                   </div>
                 </div>
-              ))}
+                  ))}
+                  {waterQualityRecords.length === 0 && (
+                    <p className="text-muted-foreground text-sm">Nenhum registro de qualidade da água encontrado.</p>
+                  )}
+                </div>
+              </ScrollArea>
             </CardContent>
           </Card>
         </div>

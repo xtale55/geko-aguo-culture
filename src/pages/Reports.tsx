@@ -637,12 +637,12 @@ export default function Reports() {
                             <p className="text-muted-foreground">Peso Atual</p>
                             <p className="font-medium text-primary">{pond.current_weight.toFixed(1)}g</p>
                           </div>
-                          <div>
-                            <p className="text-muted-foreground">Crescimento</p>
-                            <p className={`font-medium ${pond.weekly_growth >= 1.5 ? 'text-success' : pond.weekly_growth >= 1.0 ? 'text-warning' : 'text-destructive'}`}>
-                              {pond.weekly_growth.toFixed(1)}g/sem
-                            </p>
-                          </div>
+                           <div>
+                             <p className="text-muted-foreground">Crescimento Semanal</p>
+                             <p className={`font-medium ${pond.weekly_growth >= 1.5 ? 'text-success' : pond.weekly_growth >= 1.0 ? 'text-warning' : 'text-destructive'}`}>
+                               {pond.weekly_growth.toFixed(1)}g/sem
+                             </p>
+                           </div>
                            <div>
                              <p className="text-muted-foreground">FCA Real</p>
                              <p className={`font-medium ${

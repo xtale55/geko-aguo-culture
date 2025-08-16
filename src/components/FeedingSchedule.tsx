@@ -129,7 +129,7 @@ export function FeedingSchedule({
 
   const handleOpenFeedingDialog = async () => {
     // Reset form
-    setActualAmount(feedPerMeal.toString());
+    setActualAmount(parseFloat(feedPerMeal.toFixed(1)).toString());
     setNotes("");
     setFeedingDate(selectedDate);
     

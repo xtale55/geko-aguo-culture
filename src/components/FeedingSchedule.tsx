@@ -621,14 +621,10 @@ export function FeedingSchedule({
                   <Input
                     type="number"
                     step="0.1"
-                    value={actualAmount ? parseFloat(actualAmount).toFixed(1) : ''}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      if (value === '' || /^\d+\.?\d{0,1}$/.test(value)) {
-                        setActualAmount(value);
-                      }
-                    }}
+                    value={actualAmount}
+                    onChange={(e) => setActualAmount(e.target.value)}
                     placeholder="Ex: 2.5"
+                    onFocus={(e) => e.target.select()}
                   />
                   <p className="text-xs text-muted-foreground mt-1">
                     Sugerido por refeição: {feedPerMeal.toFixed(1)}kg

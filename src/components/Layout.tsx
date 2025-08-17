@@ -1,16 +1,20 @@
+import { memo } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Fish, LogOut, Settings, Home, Waves, Scale, Skull, Utensils, Droplets, Package, BarChart3 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { cn } from '@/lib/utils';
 
 interface LayoutProps {
   children: React.ReactNode;
 }
 
-export function Layout({ children }: LayoutProps) {
+export const Layout = memo(function Layout({ children }: LayoutProps) {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const isMobile = useIsMobile();
 
   const handleSignOut = async () => {
     await signOut();
@@ -106,70 +110,45 @@ export function Layout({ children }: LayoutProps) {
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="container mx-auto px-4 py-6">
+      {/* Main Content - Mobile optimized padding */}
+      <main className={cn(
+        "container mx-auto px-3 md:px-6 py-4 md:py-6",
+        isMobile && "pb-20" // Extra padding for mobile bottom nav
+      )}>
         {children}
       </main>
 
-      {/* Mobile Bottom Navigation */}
-      <div className="xl:hidden fixed bottom-0 left-0 right-0 bg-card border-t border-border overflow-x-auto">
-        <div className="flex min-w-max">
-          <Button
-            variant={isActive('/dashboard') ? 'default' : 'ghost'}
-            size="sm"
-            onClick={() => navigate('/dashboard')}
-            className="flex flex-col items-center space-y-1 h-16 min-w-16 px-3"
-          >
-            <Home className="w-4 h-4" />
-            <span className="text-xs">Home</span>
-          </Button>
-          <Button
-            variant={isActive('/farm') ? 'default' : 'ghost'}
-            size="sm"
-            onClick={() => navigate('/farm')}
-            className="flex flex-col items-center space-y-1 h-16 min-w-16 px-3"
-          >
-            <Waves className="w-4 h-4" />
-            <span className="text-xs">Fazenda</span>
-          </Button>
-          <Button
-            variant={isActive('/manejos') ? 'default' : 'ghost'}
-            size="sm"
-            onClick={() => navigate('/manejos')}
-            className="flex flex-col items-center space-y-1 h-16 min-w-16 px-3"
-          >
-            <Fish className="w-4 h-4" />
-            <span className="text-xs">Manejos</span>
-          </Button>
-          <Button
-            variant={isActive('/feeding') ? 'default' : 'ghost'}
-            size="sm"
-            onClick={() => navigate('/feeding')}
-            className="flex flex-col items-center space-y-1 h-16 min-w-16 px-3"
-          >
-            <Utensils className="w-4 h-4" />
-            <span className="text-xs">Ração</span>
-          </Button>
-          <Button
-            variant={isActive('/inventory') ? 'default' : 'ghost'}
-            size="sm"
-            onClick={() => navigate('/inventory')}
-            className="flex flex-col items-center space-y-1 h-16 min-w-16 px-3"
-          >
-            <Package className="w-4 h-4" />
-            <span className="text-xs">Estoque</span>
-          </Button>
-          <Button
-            variant={isActive('/reports') ? 'default' : 'ghost'}
-            size="sm"
-            onClick={() => navigate('/reports')}
-            className="flex flex-col items-center space-y-1 h-16 min-w-16 px-3"
-          >
-            <BarChart3 className="w-4 h-4" />
-            <span className="text-xs">Relatórios</span>
-          </Button>
-        </div>
-      </div>
+      {/* Mobile Bottom Navigation - Enhanced */}
+      {isMobile && (
+        <nav className="fixed bottom-0 left-0 right-0 bg-card/98 backdrop-blur-md border-t border-border z-50 shadow-xl">
+          <div className="flex items-center justify-around py-1 px-2">
+            {[
+              { path: '/dashboard', icon: Home, label: 'Home' },
+              { path: '/farm', icon: Waves, label: 'Fazenda' },
+              { path: '/manejos', icon: Fish, label: 'Manejos' },
+              { path: '/feeding', icon: Utensils, label: 'Ração' },
+              { path: '/inventory', icon: Package, label: 'Estoque' },
+              { path: '/reports', icon: BarChart3, label: 'Relatórios' }
+            ].map(({ path, icon: Icon, label }) => (
+              <Button
+                key={path}
+                variant={isActive(path) ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => navigate(path)}
+                className={cn(
+                  "flex-1 flex-col h-12 px-1 min-w-0 transition-all duration-200",
+                  isActive(path) 
+                    ? "bg-primary text-primary-foreground shadow-md scale-105" 
+                    : "hover:bg-muted/50"
+                )}
+              >
+                <Icon className="w-4 h-4 mb-1" />
+                <span className="text-xs leading-none truncate">{label}</span>
+              </Button>
+            ))}
+          </div>
+        </nav>
+      )}
     </div>
   );
-}
+});

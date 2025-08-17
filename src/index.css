@@ -64,6 +64,9 @@
 
     --radius: 0.75rem;
 
+    /* Mobile touch targets */
+    --touch-target: 44px;
+
     --sidebar-background: 0 0% 98%;
 
     --sidebar-foreground: 240 5.3% 26.1%;

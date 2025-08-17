@@ -1,0 +1,18 @@
+{
+  "name": "AquaHub - ERP Aquicultura",
+  "short_name": "AquaHub",
+  "description": "Sistema completo de gestão para aquicultura",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#185b7a",
+  "theme_color": "#185b7a",
+  "orientation": "portrait",
+  "categories": ["business", "productivity"],
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    }
+  ]
+}

@@ -60,7 +60,7 @@ const Dashboard = memo(function Dashboard() {
   // Create recent activities from cached data
   const recentActivities = [
     ...(inventoryData?.slice(0, 4).map(item => ({
-      id: `inv-${item.entry_date}`,
+      id: `inv-${item.id}`, // Use unique item ID instead of date
       type: 'inventory' as const,
       description: `${item.name} adicionado ao estoque`,
       date: item.entry_date,

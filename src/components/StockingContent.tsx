@@ -149,6 +149,39 @@ export function StockingContent() {
       return;
     }
 
+    // Additional validation
+    if (!farms || farms.length === 0) {
+      toast.error('Nenhuma fazenda encontrada');
+      return;
+    }
+
+    if (!batchData.name || !batchData.arrival_date || batchData.initial_quantity <= 0) {
+      toast.error('Dados do lote incompletos');
+      return;
+    }
+
+    // Validate numeric fields
+    if (isNaN(batchData.survival_rate) || batchData.survival_rate < 0 || batchData.survival_rate > 100) {
+      toast.error('Taxa de sobrevivência deve estar entre 0 e 100%');
+      return;
+    }
+
+    if (isNaN(batchData.size_cm) || batchData.size_cm <= 0) {
+      toast.error('Tamanho das PLs deve ser maior que zero');
+      return;
+    }
+
+    if (isNaN(batchData.cost_per_thousand) || batchData.cost_per_thousand <= 0) {
+      toast.error('Custo por milheiro deve ser maior que zero');
+      return;
+    }
+
+    const allocatedPonds = allocations.filter(a => a.quantity > 0);
+    if (allocatedPonds.length === 0) {
+      toast.error('Nenhum viveiro alocado');
+      return;
+    }
+
     try {
       // Create batch record
       const { data: batchResult, error: batchError } = await supabase
@@ -165,23 +198,35 @@ export function StockingContent() {
         .select()
         .single();
 
-      if (batchError) throw batchError;
+      if (batchError) {
+        console.error('Batch creation error:', batchError);
+        throw batchError;
+      }
 
       // Create pond_batches and update pond status for allocated ponds
-      for (const allocation of allocations.filter(a => a.quantity > 0)) {
+      for (const allocation of allocatedPonds) {
+        console.log('Processing pond allocation:', allocation);
+        
         // Create pond_batch record
+        const pondBatchData = {
+          pond_id: allocation.pond_id,
+          batch_id: batchResult.id,
+          pl_quantity: allocation.quantity,
+          current_population: Math.floor(allocation.quantity * (batchData.survival_rate / 100)),
+          stocking_date: batchData.arrival_date,
+          preparation_cost: allocation.preparation_cost || 0
+        };
+        
+        console.log('Creating pond_batch with data:', pondBatchData);
+        
         const { error: pondBatchError } = await supabase
           .from('pond_batches')
-          .insert({
-            pond_id: allocation.pond_id,
-            batch_id: batchResult.id,
-            pl_quantity: allocation.quantity,
-            current_population: Math.floor(allocation.quantity * (batchData.survival_rate / 100)),
-            stocking_date: batchData.arrival_date,
-            preparation_cost: allocation.preparation_cost
-          });
+          .insert(pondBatchData);
 
-        if (pondBatchError) throw pondBatchError;
+        if (pondBatchError) {
+          console.error('Pond batch creation error:', pondBatchError);
+          throw pondBatchError;
+        }
 
         // Update pond status
         const { error: pondUpdateError } = await supabase
@@ -189,14 +234,30 @@ export function StockingContent() {
           .update({ status: 'in_use' })
           .eq('id', allocation.pond_id);
 
-        if (pondUpdateError) throw pondUpdateError;
+        if (pondUpdateError) {
+          console.error('Pond update error:', pondUpdateError);
+          throw pondUpdateError;
+        }
       }
 
       toast.success('Povoamento realizado com sucesso!');
       navigate('/farm');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error during stocking:', error);
-      toast.error('Erro ao realizar povoamento');
+      
+      // Provide more specific error messages
+      let errorMessage = 'Erro ao realizar povoamento';
+      if (error?.message) {
+        if (error.message.includes('duplicate')) {
+          errorMessage = 'Este viveiro já possui um lote ativo';
+        } else if (error.message.includes('foreign key')) {
+          errorMessage = 'Erro de relacionamento nos dados';
+        } else if (error.message.includes('not null')) {
+          errorMessage = 'Alguns campos obrigatórios não foram preenchidos';
+        }
+      }
+      
+      toast.error(errorMessage);
     }
   };
 

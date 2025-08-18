@@ -5,13 +5,20 @@ interface PondData {
   name: string;
   status: string;
   pond_batches?: Array<{
+    id: string;
     current_population: number;
+    stocking_date: string;
+    cycle_status: string;
+    batches: {
+      name: string;
+    };
     biometrics: Array<{
       average_weight: number;
       measurement_date: string;
-      created_at?: string;
+      uniformity: number;
+      created_at: string;
     }>;
-    mortality_records: Array<{
+    mortality_records?: Array<{
       dead_count: number;
       record_date: string;
     }>;

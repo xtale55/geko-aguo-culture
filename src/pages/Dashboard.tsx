@@ -297,8 +297,8 @@ const Dashboard = memo(function Dashboard() {
                       <p className="text-sm font-medium">{activity.description}</p>
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <span>{new Date(activity.date).toLocaleDateString('pt-BR')}</span>
-                        {activity.pond && <span>• {activity.pond}</span>}
-                        {activity.value && (
+                        {'pond' in activity && activity.pond && <span>• {activity.pond}</span>}
+                        {'value' in activity && activity.value && (
                           <span>• R$ {activity.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
                         )}
                       </div>

@@ -11,6 +11,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { Utensils, Calculator, ArrowLeft, BarChart3 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { QuantityUtils } from '@/lib/quantityUtils';
 
 interface PondWithBatch {
   id: string;
@@ -301,7 +302,8 @@ export default function Feeding() {
         .select('actual_amount')
         .eq('pond_batch_id', pondBatchId);
 
-      return data?.reduce((sum, record) => sum + record.actual_amount, 0) || 0;
+      const totalGrams = data?.reduce((sum, record) => sum + record.actual_amount, 0) || 0;
+      return QuantityUtils.gramsToKg(totalGrams);
     } catch (error) {
       console.error('Error getting total feed consumed:', error);
       return 0;

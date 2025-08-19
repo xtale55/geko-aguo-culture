@@ -186,6 +186,18 @@ export default function PondHistory() {
               .then(({ data }) => data?.map(pb => pb.id) || [])
           );
 
+        // Get harvest records to consider partial harvests
+        const { data: harvestRecords } = await supabase
+          .from('harvest_records')
+          .select('*')
+          .in('pond_batch_id', 
+            await supabase
+              .from('pond_batches')
+              .select('id')
+              .eq('pond_id', actualPondId)
+              .then(({ data }) => data?.map(pb => pb.id) || [])
+          );
+
       // Process cycles
       const processedCycles: PondCycleHistory[] = [];
       const allBiometry: BiometryRecord[] = [];
@@ -248,21 +260,45 @@ export default function PondHistory() {
           const biomass = (cycle.current_population * latestBiometry.average_weight) / 1000;
           const pondArea = cycle.ponds?.area || 0;
           
-          // Calculate detailed costs
+          // Calculate detailed costs, considerando custos já alocados em despescas parciais
           const plCostTotal = (cycle.batches?.pl_cost || 0) * (cycle.pl_quantity / 1000);
           const preparationCost = cycle.preparation_cost || 0;
           
           // Calculate real feed cost from feeding records (Anti-Drift: converter gramas para kg)
-          const realFeedCost = feedingData
+          const totalRealFeedCost = feedingData
             ?.filter(feed => feed.pond_batch_id === cycle.id)
             ?.reduce((sum, feed) => sum + (QuantityUtils.gramsToKg(feed.actual_amount) * (feed.unit_cost || 0)), 0) || 0;
+          
+          // Calculate allocated costs from harvests
+          const allocatedFeedCost = harvestRecords
+            ?.filter(hr => hr.pond_batch_id === cycle.id)
+            ?.reduce((sum, hr) => sum + (hr.allocated_feed_cost || 0), 0) || 0;
+          
+          const allocatedPlCost = harvestRecords
+            ?.filter(hr => hr.pond_batch_id === cycle.id)
+            ?.reduce((sum, hr) => sum + (hr.allocated_pl_cost || 0), 0) || 0;
+          
+          const allocatedPrepCost = harvestRecords
+            ?.filter(hr => hr.pond_batch_id === cycle.id)
+            ?.reduce((sum, hr) => sum + (hr.allocated_preparation_cost || 0), 0) || 0;
+          
+          const allocatedInputCost = harvestRecords
+            ?.filter(hr => hr.pond_batch_id === cycle.id)
+            ?.reduce((sum, hr) => sum + (hr.allocated_input_cost || 0), 0) || 0;
+          
+          // For active cycles, use remaining costs (total - allocated)
+          // For completed cycles, use allocated costs if available, otherwise total
+          const isActiveCase = cycle.current_population > 0;
+          const realFeedCost = isActiveCase ? Math.max(0, totalRealFeedCost - allocatedFeedCost) : (allocatedFeedCost > 0 ? allocatedFeedCost : totalRealFeedCost);
+          const effectivePlCost = isActiveCase ? Math.max(0, plCostTotal - allocatedPlCost) : (allocatedPlCost > 0 ? allocatedPlCost : plCostTotal);
+          const effectivePrepCost = isActiveCase ? Math.max(0, preparationCost - allocatedPrepCost) : (allocatedPrepCost > 0 ? allocatedPrepCost : preparationCost);
           
           // Calculate operational costs for this specific cycle
           const operationalCost = operationalCostsData
             ?.filter(cost => cost.pond_batch_id === cycle.id)
             ?.reduce((sum, cost) => sum + cost.amount, 0) || 0;
           
-          const totalCost = plCostTotal + preparationCost + realFeedCost + operationalCost;
+          const totalCost = effectivePlCost + effectivePrepCost + realFeedCost + operationalCost;
           
           // Calculate estimated revenue using dynamic price table
           const pricePerKg = calculatePriceByWeight(latestBiometry.average_weight, priceTable);
@@ -280,10 +316,17 @@ export default function PondHistory() {
             ?.filter(feed => feed.pond_batch_id === cycle.id)
             ?.reduce((sum, feed) => sum + QuantityUtils.gramsToKg(feed.actual_amount), 0) || 0;
           
-          // Calculate real FCA = total feed / current total biomass in pond
+          // Calculate total biomass produced (current + harvested) para FCA correto
+          const harvestedBiomass = harvestRecords
+            ?.filter(hr => hr.pond_batch_id === cycle.id)
+            ?.reduce((sum, hr) => sum + hr.biomass_harvested, 0) || 0;
+          
           const currentWeight = latestBiometry.average_weight;
           const currentTotalBiomass = (cycle.current_population * currentWeight) / 1000; // kg
-          const realFca = currentTotalBiomass > 0 ? totalFeedUsedKg / currentTotalBiomass : 0;
+          const totalBiomassProduced = currentTotalBiomass + harvestedBiomass;
+          
+          // Calculate real FCA = total feed / total biomass produced (not just current)
+          const realFca = totalBiomassProduced > 0 ? totalFeedUsedKg / totalBiomassProduced : 0;
           
           // Calculate total growth from start to now (growth since beginning)
           let totalGrowth = 0;

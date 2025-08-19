@@ -184,6 +184,12 @@ export default function Reports() {
         .select('*')
         .in('pond_batch_id', pondBatchIds);
 
+      // Get harvest records to consider partial harvests
+      const { data: harvestRecords } = await supabase
+        .from('harvest_records')
+        .select('*')
+        .in('pond_batch_id', pondBatchIds);
+
       const cycles = pondBatches.map(pb => {
         const pond = ponds.find(p => p.id === pb.pond_id);
         const batch = batches?.find(b => b.id === pb.batch_id);
@@ -273,10 +279,17 @@ export default function Reports() {
             ? cycle.feeding_records.reduce((sum, fr) => sum + (QuantityUtils.gramsToKg(fr.actual_amount) * (fr.unit_cost || 7)), 0)
             : 0;
           
-          // Calculate real FCA: Total ração / Biomassa atual
+          // Calculate total biomass produced (current + harvested)
+          const harvestedBiomass = harvestRecords
+            ?.filter(hr => hr.pond_batch_id === cycle.id)
+            ?.reduce((sum, hr) => sum + hr.biomass_harvested, 0) || 0;
+          
+          const totalBiomassProduced = biomass + harvestedBiomass;
+          
+          // Calculate real FCA: Total ração / Biomassa total produzida
           let realFCA: number | null = null;
-          if (totalFeedConsumed > 0 && biomass > 0) {
-            realFCA = totalFeedConsumed / biomass; // totalFeedConsumed já está em kg
+          if (totalFeedConsumed > 0 && totalBiomassProduced > 0) {
+            realFCA = totalFeedConsumed / totalBiomassProduced; // Usar biomassa total produzida
           }
           
           // Calculate weekly growth
@@ -296,12 +309,17 @@ export default function Reports() {
             }
           }
           
-          // Calculate costs (PL cost + preparation + real feed cost + operational costs)
+          // Calculate costs considerando custos já alocados em despescas parciais
           const plCost = cycle.batches?.pl_cost || 0;
           const preparationCost = cycle.preparation_cost || 0;
           
-          // Use real feed cost if available, otherwise estimate
-          const feedCost = realFeedCost > 0 ? realFeedCost : (biomass * (realFCA || 1.5) * 7);
+          // Calculate allocated costs from harvests
+          const allocatedCosts = harvestRecords
+            ?.filter(hr => hr.pond_batch_id === cycle.id)
+            ?.reduce((sum, hr) => sum + (hr.allocated_feed_cost || 0) + (hr.allocated_input_cost || 0) + (hr.allocated_pl_cost || 0) + (hr.allocated_preparation_cost || 0), 0) || 0;
+          
+          // Use real feed cost if available, otherwise estimate, minus already allocated
+          const feedCost = Math.max(0, (realFeedCost > 0 ? realFeedCost : (totalBiomassProduced * (realFCA || 1.5) * 7)) - (harvestRecords?.filter(hr => hr.pond_batch_id === cycle.id)?.reduce((sum, hr) => sum + (hr.allocated_feed_cost || 0), 0) || 0));
           
           const cycleCost = (plCost * cycle.pl_quantity / 1000) + preparationCost + feedCost;
           totalCosts += cycleCost;

@@ -823,8 +823,8 @@ export default function Reports() {
                     </div>
                     <div className="flex justify-between items-center p-3 bg-primary/10 rounded">
                       <span className="text-muted-foreground">Lucro Líquido:</span>
-                      <span className={`font-bold text-lg ${(productionReport.totalRevenue - productionReport.operationalCosts) > 0 ? 'text-success' : 'text-destructive'}`}>
-                        R$ {(productionReport.totalRevenue - productionReport.operationalCosts).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      <span className={`font-bold text-lg ${(productionReport.totalRevenue - operationalCosts - materialsConsumed) > 0 ? 'text-success' : 'text-destructive'}`}>
+                        R$ {(productionReport.totalRevenue - operationalCosts - materialsConsumed).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                       </span>
                     </div>
                   </div>
@@ -843,19 +843,19 @@ export default function Reports() {
                     <div className="flex justify-between items-center">
                       <span className="text-muted-foreground">ROI Estimado:</span>
                       <span className={`font-medium ${productionReport.profitMargin > 0 ? 'text-success' : 'text-destructive'}`}>
-                        {((productionReport.totalRevenue - productionReport.operationalCosts) / productionReport.operationalCosts * 100).toFixed(1)}%
+                        {productionReport.profitMargin.toFixed(1)}%
                       </span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-muted-foreground">Custo por kg produzido:</span>
                       <span className="font-medium">
-                        R$ {productionReport.totalProduction > 0 ? (productionReport.operationalCosts / productionReport.totalProduction).toFixed(2) : '0.00'}
+                        R$ {pondCards.length > 0 ? (pondCards.reduce((sum, card) => sum + card.cost_per_kg, 0) / pondCards.length).toFixed(2) : '0.00'}
                       </span>
                     </div>
                     <div className="flex justify-between items-center">
                        <span className="text-muted-foreground">Receita por hectare:</span>
                        <span className="font-medium text-success">
-                         R$ {productionReport.totalRevenue && farmArea ? (productionReport.totalRevenue / farmArea).toLocaleString('pt-BR', { minimumFractionDigits: 0 }) : '0'}
+                         R$ {pondCards.length > 0 ? (pondCards.reduce((sum, card) => sum + card.productivity_per_ha, 0) / pondCards.length * (pondCards.reduce((sum, card) => sum + (card.estimated_revenue / card.biomass), 0) / pondCards.length)).toLocaleString('pt-BR', { minimumFractionDigits: 0 }) : '0'}
                        </span>
                      </div>
                    </div>

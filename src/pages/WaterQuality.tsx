@@ -13,6 +13,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { Droplets, Plus, ArrowLeft, TrendingUp, TrendingDown, AlertTriangle, ThermometerSun } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { getCurrentDateForInput, formatDateForDisplay } from '@/lib/utils';
 
 interface Pond {
   id: string;
@@ -284,7 +285,7 @@ export default function WaterQuality() {
                       id="measurement_date"
                       name="measurement_date"
                       type="date"
-                      defaultValue={new Date().toISOString().split('T')[0]}
+                      defaultValue={getCurrentDateForInput()}
                       required
                     />
                   </div>
@@ -404,7 +405,7 @@ export default function WaterQuality() {
                     {latestRecord ? (
                       <>
                         <div className="text-sm text-muted-foreground">
-                          Última medição: {new Date(latestRecord.measurement_date).toLocaleDateString('pt-BR')}
+                          Última medição: {formatDateForDisplay(latestRecord.measurement_date)}
                         </div>
                         <div className="grid grid-cols-2 gap-2 text-sm">
                           {Object.entries(parameterRanges).map(([key, range]) => {
@@ -458,7 +459,7 @@ export default function WaterQuality() {
                         <div>
                           <div className="font-medium">{record.pond_name}</div>
                           <div className="text-sm text-muted-foreground">
-                            {new Date(record.measurement_date).toLocaleDateString('pt-BR')}
+                            {formatDateForDisplay(record.measurement_date)}
                           </div>
                         </div>
                       </div>

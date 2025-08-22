@@ -11,6 +11,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { Utensils, Calculator, ArrowLeft, BarChart3 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { getCurrentDateForInput, formatDateForDisplay } from '@/lib/utils';
 import { QuantityUtils } from '@/lib/quantityUtils';
 
 interface PondWithBatch {
@@ -55,7 +56,7 @@ export default function Feeding() {
   const [ponds, setPonds] = useState<PondWithBatch[]>([]);
   const [feedingTasks, setFeedingTasks] = useState<FeedingTask[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedDate, setSelectedDate] = useState(getCurrentDateForInput());
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();

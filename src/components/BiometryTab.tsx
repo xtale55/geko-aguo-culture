@@ -11,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Scale, History, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { getCurrentDateForInput, formatDateForDisplay } from '@/lib/utils';
 
 interface PondWithBatch {
   id: string;
@@ -367,7 +368,7 @@ export function BiometryTab() {
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">Última Medição:</span>
                         <span className="font-medium">
-                          {new Date(batch.latest_biometry.measurement_date).toLocaleDateString('pt-BR')}
+                          {formatDateForDisplay(batch.latest_biometry.measurement_date)}
                         </span>
                       </div>
                       {batch.latest_biometry.uniformity > 0 && (
@@ -436,7 +437,7 @@ export function BiometryTab() {
                         <TableCell className="font-medium">{record.pond_name}</TableCell>
                         <TableCell>{record.batch_name}</TableCell>
                         <TableCell>
-                          {new Date(record.measurement_date).toLocaleDateString('pt-BR')}
+                          {formatDateForDisplay(record.measurement_date)}
                         </TableCell>
                         <TableCell className="font-medium text-primary">
                           {record.average_weight}g
@@ -484,7 +485,7 @@ export function BiometryTab() {
                 id="measurement_date"
                 name="measurement_date"
                 type="date"
-                defaultValue={new Date().toISOString().split('T')[0]}
+                defaultValue={getCurrentDateForInput()}
                 required
               />
             </div>
@@ -551,7 +552,7 @@ export function BiometryTab() {
               <div className="bg-muted p-4 rounded-md space-y-2">
                 <p><strong>Viveiro:</strong> {recordToDelete.pond_name}</p>
                 <p><strong>Lote:</strong> {recordToDelete.batch_name}</p>
-                <p><strong>Data:</strong> {new Date(recordToDelete.measurement_date).toLocaleDateString('pt-BR')}</p>
+                <p><strong>Data:</strong> {formatDateForDisplay(recordToDelete.measurement_date)}</p>
                 <p><strong>Peso Médio:</strong> {recordToDelete.average_weight}g</p>
               </div>
             )}

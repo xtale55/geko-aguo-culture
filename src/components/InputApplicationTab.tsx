@@ -16,6 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Plus, Calendar, Beaker, Trash2, Package } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { getCurrentDateForInput, formatDateForDisplay } from '@/lib/utils';
 
 interface PondBatch {
   id: string;
@@ -87,7 +88,7 @@ export function InputApplicationTab() {
   const [formData, setFormData] = useState({
     pond_batch_id: '',
     input_item_id: '',
-    application_date: new Date().toISOString().split('T')[0],
+    application_date: getCurrentDateForInput(),
     application_time: '',
     quantity_applied: '',
     purpose: '',
@@ -315,7 +316,7 @@ export function InputApplicationTab() {
       setFormData({
         pond_batch_id: '',
         input_item_id: '',
-        application_date: new Date().toISOString().split('T')[0],
+        application_date: getCurrentDateForInput(),
         application_time: '',
         quantity_applied: '',
         purpose: '',

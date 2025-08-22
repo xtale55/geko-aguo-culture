@@ -12,6 +12,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { Skull, AlertTriangle, TrendingDown, Calendar, ArrowLeft, Plus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { getCurrentDateForInput, formatDateForDisplay } from '@/lib/utils';
 
 interface PondWithBatch {
   id: string;
@@ -350,7 +351,7 @@ export default function Mortality() {
                         <div>
                           <div className="font-medium">{record.pond_name}</div>
                           <div className="text-sm text-muted-foreground">
-                            {new Date(record.record_date).toLocaleDateString('pt-BR')}
+                            {formatDateForDisplay(record.record_date)}
                           </div>
                         </div>
                       </div>
@@ -398,7 +399,7 @@ export default function Mortality() {
                   id="record_date"
                   name="record_date"
                   type="date"
-                  defaultValue={new Date().toISOString().split('T')[0]}
+                  defaultValue={getCurrentDateForInput()}
                   required
                 />
               </div>

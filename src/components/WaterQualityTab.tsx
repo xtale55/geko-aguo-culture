@@ -13,6 +13,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Droplets, Plus, TrendingUp, AlertTriangle, History, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { getCurrentDateForInput, formatDateForDisplay } from '@/lib/utils';
 
 interface Pond {
   id: string;
@@ -365,7 +366,7 @@ export function WaterQualityTab() {
                     id="measurement_date"
                     name="measurement_date"
                     type="date"
-                    defaultValue={new Date().toISOString().split('T')[0]}
+                    defaultValue={getCurrentDateForInput()}
                     required
                   />
                 </div>
@@ -485,7 +486,7 @@ export function WaterQualityTab() {
                   {latestRecord ? (
                     <>
                       <div className="text-sm text-muted-foreground">
-                        Última medição: {new Date(latestRecord.measurement_date).toLocaleDateString('pt-BR')}
+                        Última medição: {formatDateForDisplay(latestRecord.measurement_date)}
                       </div>
                       <div className="grid grid-cols-2 gap-2 text-sm">
                         {Object.entries(parameterRanges).map(([key, range]) => {
@@ -539,7 +540,7 @@ export function WaterQualityTab() {
                       <div>
                         <div className="font-medium">{record.pond_name}</div>
                         <div className="text-sm text-muted-foreground">
-                          {new Date(record.measurement_date).toLocaleDateString('pt-BR')}
+                          {formatDateForDisplay(record.measurement_date)}
                         </div>
                       </div>
                     </div>
@@ -600,7 +601,7 @@ export function WaterQualityTab() {
                       <TableRow key={record.id}>
                         <TableCell className="font-medium">{record.pond_name}</TableCell>
                         <TableCell>
-                          {new Date(record.measurement_date).toLocaleDateString('pt-BR')}
+                          {formatDateForDisplay(record.measurement_date)}
                         </TableCell>
                         <TableCell>
                           {record.temperature ? `${record.temperature}°C` : '-'}
@@ -656,7 +657,7 @@ export function WaterQualityTab() {
             {recordToDelete && (
               <div className="p-3 bg-muted rounded-lg">
                 <p><strong>Viveiro:</strong> {recordToDelete.pond_name}</p>
-                <p><strong>Data:</strong> {new Date(recordToDelete.measurement_date).toLocaleDateString('pt-BR')}</p>
+                <p><strong>Data:</strong> {formatDateForDisplay(recordToDelete.measurement_date)}</p>
               </div>
             )}
             <div className="flex gap-2 pt-4">

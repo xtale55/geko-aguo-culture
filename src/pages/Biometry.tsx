@@ -11,6 +11,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { Scale, Fish, TrendingUp, Calendar, ArrowLeft, Plus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { getCurrentDateForInput, formatDateForDisplay } from '@/lib/utils';
 
 interface PondWithBatch {
   id: string;
@@ -280,7 +281,7 @@ export default function Biometry() {
                         <div className="flex justify-between text-sm">
                           <span className="text-muted-foreground">Última Medição:</span>
                           <span className="font-medium">
-                            {new Date(batch.latest_biometry.measurement_date).toLocaleDateString('pt-BR')}
+                            {formatDateForDisplay(batch.latest_biometry.measurement_date)}
                           </span>
                         </div>
                         {batch.latest_biometry.uniformity > 0 && (
@@ -326,7 +327,7 @@ export default function Biometry() {
                   id="measurement_date"
                   name="measurement_date"
                   type="date"
-                  defaultValue={new Date().toISOString().split('T')[0]}
+                  defaultValue={getCurrentDateForInput()}
                   required
                 />
               </div>

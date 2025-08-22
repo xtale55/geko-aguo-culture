@@ -12,6 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Skull, History, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { getCurrentDateForInput, formatDateForDisplay } from '@/lib/utils';
 
 interface PondWithBatch {
   id: string;
@@ -465,7 +466,7 @@ export function MortalityTab() {
                         <TableCell className="font-medium">{record.pond_name}</TableCell>
                         <TableCell>{record.batch_name}</TableCell>
                         <TableCell>
-                          {new Date(record.record_date).toLocaleDateString('pt-BR')}
+                          {formatDateForDisplay(record.record_date)}
                         </TableCell>
                         <TableCell className="font-medium text-red-600">
                           {record.dead_count}
@@ -510,7 +511,7 @@ export function MortalityTab() {
                 id="record_date"
                 name="record_date"
                 type="date"
-                defaultValue={new Date().toISOString().split('T')[0]}
+                defaultValue={getCurrentDateForInput()}
                 required
               />
             </div>
@@ -570,7 +571,7 @@ export function MortalityTab() {
             {recordToDelete && (
               <div className="p-3 bg-muted rounded-lg">
                 <p><strong>Viveiro:</strong> {recordToDelete.pond_name}</p>
-                <p><strong>Data:</strong> {new Date(recordToDelete.record_date).toLocaleDateString('pt-BR')}</p>
+                <p><strong>Data:</strong> {formatDateForDisplay(recordToDelete.record_date)}</p>
                 <p><strong>Quantidade:</strong> {recordToDelete.dead_count} mortos</p>
               </div>
             )}

@@ -1,11 +1,11 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'app.lovable.c4c0bdcad9424109bdb18569081be53d',
+  appId: 'com.aquahub.app',
   appName: 'AquaHub',
   webDir: 'dist',
   server: {
-    url: 'https://c4c0bdca-d942-4109-bdb1-8569081be53d.lovableproject.com?forceHideBadge=true',
+    url: 'https://aquahub.app',
     cleartext: true
   },
   plugins: {

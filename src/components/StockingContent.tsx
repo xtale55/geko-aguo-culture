@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { getCurrentDateForInput } from "@/lib/utils";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -52,11 +53,11 @@ export function StockingContent() {
   
   const [batchData, setBatchData] = useState<BatchData>({
     name: '',
-    arrival_date: '',
+    arrival_date: getCurrentDateForInput(),
     initial_quantity: 0,
     size_cm: 0,
     cost_per_thousand: 0,
-    survival_rate: 0
+    survival_rate: 85
   });
 
   const [allocations, setAllocations] = useState<PondAllocation[]>([]);
@@ -116,10 +117,44 @@ export function StockingContent() {
   };
 
   const handleBatchSubmit = () => {
-    if (!batchData.name || !batchData.arrival_date || batchData.initial_quantity <= 0) {
-      toast.error('Preencha todos os campos obrigatórios');
+    // Validação de campos obrigatórios
+    if (!batchData.name) {
+      toast.error('Nome do lote é obrigatório');
       return;
     }
+    
+    if (!batchData.arrival_date) {
+      toast.error('Data de chegada é obrigatória');
+      return;
+    }
+    
+    if (batchData.initial_quantity <= 0) {
+      toast.error('Quantidade inicial deve ser maior que zero');
+      return;
+    }
+    
+    if (batchData.size_cm <= 0) {
+      toast.error('PLs por grama deve ser maior que zero');
+      return;
+    }
+    
+    if (batchData.cost_per_thousand <= 0) {
+      toast.error('Custo por milheiro deve ser maior que zero');
+      return;
+    }
+    
+    if (batchData.survival_rate <= 0 || batchData.survival_rate > 100) {
+      toast.error('Taxa de sobrevivência deve estar entre 0,1% e 100%');
+      return;
+    }
+    
+    // Validar formato da data
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateRegex.test(batchData.arrival_date)) {
+      toast.error('Formato de data inválido');
+      return;
+    }
+    
     setStep('allocation');
   };
 
@@ -145,45 +180,32 @@ export function StockingContent() {
 
   const handleStocking = async () => {
     if (!canProceed()) {
-      toast.error('Verificar alocação de PLs');
-      return;
-    }
-
-    // Additional validation
-    if (!farms || farms.length === 0) {
-      toast.error('Nenhuma fazenda encontrada');
-      return;
-    }
-
-    if (!batchData.name || !batchData.arrival_date || batchData.initial_quantity <= 0) {
-      toast.error('Dados do lote incompletos');
-      return;
-    }
-
-    // Validate numeric fields
-    if (isNaN(batchData.survival_rate) || batchData.survival_rate < 0 || batchData.survival_rate > 100) {
-      toast.error('Taxa de sobrevivência deve estar entre 0 e 100%');
-      return;
-    }
-
-    if (isNaN(batchData.size_cm) || batchData.size_cm <= 0) {
-      toast.error('Tamanho das PLs deve ser maior que zero');
-      return;
-    }
-
-    if (isNaN(batchData.cost_per_thousand) || batchData.cost_per_thousand <= 0) {
-      toast.error('Custo por milheiro deve ser maior que zero');
+      toast.error('Verifique a alocação de PLs nos viveiros');
       return;
     }
 
     const allocatedPonds = allocations.filter(a => a.quantity > 0);
+    
+    // Validações detalhadas
+    if (!farms || farms.length === 0) {
+      toast.error('Nenhuma fazenda encontrada para o povoamento');
+      return;
+    }
+
     if (allocatedPonds.length === 0) {
-      toast.error('Nenhum viveiro alocado');
+      toast.error('Você precisa alocar PLs em pelo menos um viveiro');
+      return;
+    }
+
+    // Verificar se alguma alocação excede o disponível
+    const totalAllocated = getTotalAllocated();
+    if (totalAllocated > batchData.initial_quantity) {
+      toast.error(`Total alocado (${totalAllocated.toLocaleString()}) excede quantidade disponível (${batchData.initial_quantity.toLocaleString()})`);
       return;
     }
 
     try {
-      // Create batch record
+      // Usar transação do Supabase para operações múltiplas
       const { data: batchResult, error: batchError } = await supabase
         .from('batches')
         .insert({
@@ -199,15 +221,34 @@ export function StockingContent() {
         .single();
 
       if (batchError) {
-        console.error('Batch creation error:', batchError);
-        throw batchError;
+        console.error('Erro ao criar lote:', batchError);
+        if (batchError.code === '23505') {
+          throw new Error('Já existe um lote com este nome na fazenda');
+        }
+        if (batchError.code === '23502') {
+          throw new Error('Dados obrigatórios do lote não foram preenchidos');
+        }
+        throw new Error(`Erro ao criar lote: ${batchError.message}`);
       }
 
-      // Create pond_batches and update pond status for allocated ponds
+      // Processar cada viveiro em sequência para evitar conflitos
       for (const allocation of allocatedPonds) {
-        console.log('Processing pond allocation:', allocation);
+        // Verificar se o viveiro ainda está livre
+        const { data: pondCheck, error: pondCheckError } = await supabase
+          .from('ponds')
+          .select('status')
+          .eq('id', allocation.pond_id)
+          .single();
+
+        if (pondCheckError) {
+          throw new Error(`Erro ao verificar viveiro: ${pondCheckError.message}`);
+        }
+
+        if (pondCheck.status !== 'free') {
+          throw new Error(`O viveiro não está mais disponível para povoamento`);
+        }
         
-        // Create pond_batch record
+        // Criar pond_batch record
         const pondBatchData = {
           pond_id: allocation.pond_id,
           batch_id: batchResult.id,
@@ -217,43 +258,57 @@ export function StockingContent() {
           preparation_cost: allocation.preparation_cost || 0
         };
         
-        console.log('Creating pond_batch with data:', pondBatchData);
-        
         const { error: pondBatchError } = await supabase
           .from('pond_batches')
           .insert(pondBatchData);
 
         if (pondBatchError) {
-          console.error('Pond batch creation error:', pondBatchError);
-          throw pondBatchError;
+          console.error('Erro ao criar pond_batch:', pondBatchError);
+          if (pondBatchError.code === '23505') {
+            throw new Error('Este viveiro já possui um lote ativo');
+          }
+          throw new Error(`Erro ao registrar lote no viveiro: ${pondBatchError.message}`);
         }
 
-        // Update pond status
+        // Atualizar status do viveiro
         const { error: pondUpdateError } = await supabase
           .from('ponds')
           .update({ status: 'in_use' })
           .eq('id', allocation.pond_id);
 
         if (pondUpdateError) {
-          console.error('Pond update error:', pondUpdateError);
-          throw pondUpdateError;
+          console.error('Erro ao atualizar viveiro:', pondUpdateError);
+          throw new Error(`Erro ao atualizar status do viveiro: ${pondUpdateError.message}`);
         }
       }
 
-      toast.success('Povoamento realizado com sucesso!');
+      toast.success(`Povoamento realizado com sucesso! ${allocatedPonds.length} viveiro(s) povoado(s).`);
       navigate('/farm');
-    } catch (error: any) {
-      console.error('Error during stocking:', error);
       
-      // Provide more specific error messages
-      let errorMessage = 'Erro ao realizar povoamento';
-      if (error?.message) {
-        if (error.message.includes('duplicate')) {
-          errorMessage = 'Este viveiro já possui um lote ativo';
-        } else if (error.message.includes('foreign key')) {
-          errorMessage = 'Erro de relacionamento nos dados';
-        } else if (error.message.includes('not null')) {
-          errorMessage = 'Alguns campos obrigatórios não foram preenchidos';
+    } catch (error: any) {
+      console.error('Erro durante povoamento:', error);
+      
+      // Mensagens de erro mais claras em português
+      let errorMessage = 'Erro inesperado ao realizar o povoamento';
+      
+      if (error.message) {
+        errorMessage = error.message;
+      } else if (error?.code) {
+        switch (error.code) {
+          case '23505':
+            errorMessage = 'Dados duplicados encontrados. Verifique se o viveiro já possui um lote.';
+            break;
+          case '23502':
+            errorMessage = 'Campos obrigatórios não foram preenchidos corretamente.';
+            break;
+          case '23503':
+            errorMessage = 'Erro de relacionamento nos dados. Verifique se a fazenda e viveiros existem.';
+            break;
+          case 'PGRST116':
+            errorMessage = 'Dados não encontrados. Verifique se a fazenda e viveiros ainda existem.';
+            break;
+          default:
+            errorMessage = `Erro do sistema (${error.code}). Tente novamente.`;
         }
       }
       
@@ -351,15 +406,18 @@ export function StockingContent() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="size_cm">PL/g *</Label>
+                <Label htmlFor="size_cm">PLs por Grama *</Label>
                 <Input
                   id="size_cm"
                   type="number"
-                  step="0.1"
-                  placeholder="Ex: 1000 (PLs por grama)"
+                  step="1"
+                  placeholder="Ex: 1000 (quantas PLs por grama)"
                   value={batchData.size_cm || ''}
                   onChange={(e) => setBatchData(prev => ({ ...prev, size_cm: parseFloat(e.target.value) || 0 }))}
                 />
+                <p className="text-xs text-muted-foreground">
+                  Número de pós-larvas por grama
+                </p>
               </div>
 
               <div className="space-y-2">
@@ -375,15 +433,16 @@ export function StockingContent() {
               </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="survival_rate">Taxa de Sobrevivência (%)</Label>
+                  <Label htmlFor="survival_rate">Taxa de Sobrevivência (%) *</Label>
                   <Input
                     id="survival_rate"
                     type="number"
                     min="0"
                     max="100"
-                    placeholder="Ex: 85"
+                    step="0.1"
+                    placeholder="Ex: 85.5"
                     value={batchData.survival_rate || ''}
-                    onChange={(e) => setBatchData(prev => ({ ...prev, survival_rate: parseInt(e.target.value) || 0 }))}
+                    onChange={(e) => setBatchData(prev => ({ ...prev, survival_rate: parseFloat(e.target.value) || 0 }))}
                   />
                 </div>
             </div>
@@ -517,14 +576,26 @@ export function StockingContent() {
       {/* Actions */}
       <div className="sticky bottom-0 bg-background border-t p-4">
         <div className="flex justify-end">
-          <Button 
-            onClick={handleStocking}
-            disabled={!canProceed()}
-            size="lg"
-          >
-            <Fish className="mr-2 h-4 w-4" />
-            Confirmar Povoamento
-          </Button>
+          <div className="space-y-2">
+            {!canProceed() && (
+              <p className="text-sm text-muted-foreground text-right">
+                {getTotalAllocated() === 0 
+                  ? "Distribua as PLs entre os viveiros para continuar" 
+                  : getRemainingPL() < 0 
+                    ? "Quantidade alocada excede o disponível" 
+                    : "Verifique a distribuição"}
+              </p>
+            )}
+            <Button 
+              onClick={handleStocking}
+              disabled={!canProceed()}
+              size="lg"
+              className="w-full md:w-auto"
+            >
+              <Fish className="mr-2 h-4 w-4" />
+              Confirmar Povoamento
+            </Button>
+          </div>
         </div>
       </div>
     </div>

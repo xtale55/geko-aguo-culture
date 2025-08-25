@@ -30,12 +30,8 @@ export const Layout = memo(function Layout({ children }: LayoutProps) {
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <div className="flex items-center space-x-2">
-              <div className="w-10 h-10 bg-gradient-to-br from-accent to-accent-hover rounded-full flex items-center justify-center p-1">
-                <img 
-                  src="/lovable-uploads/eec2c2fa-76d5-4815-91cb-62b4aebebb0e.png" 
-                  alt="AquaHub Logo" 
-                  className="w-full h-full object-contain"
-                />
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-emerald-500 rounded-full flex items-center justify-center">
+                <Fish className="w-6 h-6 text-white" />
               </div>
               <div>
                 <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
@@ -48,7 +44,7 @@ export const Layout = memo(function Layout({ children }: LayoutProps) {
             </div>
           </div>
 
-          <nav className="hidden xl:flex items-center space-x-2">
+          <nav className="hidden lg:flex items-center space-x-2">
             <Button
               variant={isActive('/dashboard') ? 'default' : 'ghost'}
               size="sm"

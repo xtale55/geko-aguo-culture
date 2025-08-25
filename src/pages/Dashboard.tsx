@@ -106,12 +106,15 @@ const Dashboard = memo(function Dashboard() {
 
   return (
     <Layout>
-      <div className="space-y-6">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-emerald-50/20">
+        <div className="space-y-6">
         {/* Header */}
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
-            <p className="text-muted-foreground">
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-primary to-emerald-600 bg-clip-text text-transparent mb-2">
+              Dashboard
+            </h1>
+            <p className="text-slate-600">
               Visão geral da fazenda {farms[0]?.name}
             </p>
           </div>
@@ -119,15 +122,15 @@ const Dashboard = memo(function Dashboard() {
 
         {/* Critical Alerts */}
         {stats.criticalAlerts > 0 && (
-          <Card className="border-destructive/50 bg-destructive/5">
+          <Card className="border-red-200 bg-gradient-to-r from-red-50 to-orange-50 backdrop-blur-sm shadow-lg">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <AlertTriangle className="w-5 h-5 text-destructive" />
+                <AlertTriangle className="w-5 h-5 text-red-600" />
                 <div>
-                  <p className="font-medium text-destructive">
+                  <p className="font-medium text-red-700">
                     {stats.criticalAlerts} alerta{stats.criticalAlerts > 1 ? 's' : ''} crítico{stats.criticalAlerts > 1 ? 's' : ''}
                   </p>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-red-600/70">
                     Verifique os parâmetros de qualidade da água e mortalidade
                   </p>
                 </div>
@@ -169,49 +172,49 @@ const Dashboard = memo(function Dashboard() {
 
         {/* Secondary Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card>
+          <Card className="backdrop-blur-sm bg-white/80 border-slate-200 hover:shadow-lg transition-all duration-300">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <Scale className="w-6 h-6 text-primary" />
+                <Scale className="w-6 h-6 text-blue-600" />
                 <div>
-                  <p className="text-sm text-muted-foreground">Peso Médio</p>
-                  <p className="text-lg font-bold">{stats.averageWeight.toFixed(1)}g</p>
+                  <p className="text-sm text-slate-600">Peso Médio</p>
+                  <p className="text-lg font-bold text-slate-800">{stats.averageWeight.toFixed(1)}g</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="backdrop-blur-sm bg-white/80 border-slate-200 hover:shadow-lg transition-all duration-300">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <Activity className="w-6 h-6 text-destructive" />
+                <Activity className="w-6 h-6 text-red-600" />
                 <div>
-                  <p className="text-sm text-muted-foreground">Mortalidade Hoje</p>
-                  <p className="text-lg font-bold">{stats.todayMortality}</p>
+                  <p className="text-sm text-slate-600">Mortalidade Hoje</p>
+                  <p className="text-lg font-bold text-slate-800">{stats.todayMortality}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="backdrop-blur-sm bg-white/80 border-slate-200 hover:shadow-lg transition-all duration-300">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <ClipboardList className="w-6 h-6 text-warning" />
+                <ClipboardList className="w-6 h-6 text-orange-600" />
                 <div>
-                  <p className="text-sm text-muted-foreground">Tarefas Pendentes</p>
-                  <p className="text-lg font-bold">{stats.pendingTasks.length}</p>
+                  <p className="text-sm text-slate-600">Tarefas Pendentes</p>
+                  <p className="text-lg font-bold text-slate-800">{stats.pendingTasks.length}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="backdrop-blur-sm bg-white/80 border-slate-200 hover:shadow-lg transition-all duration-300">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <AlertTriangle className="w-6 h-6 text-destructive" />
+                <AlertTriangle className="w-6 h-6 text-red-600" />
                 <div>
-                  <p className="text-sm text-muted-foreground">Alertas Críticos</p>
-                  <p className="text-lg font-bold">{stats.criticalAlerts}</p>
+                  <p className="text-sm text-slate-600">Alertas Críticos</p>
+                  <p className="text-lg font-bold text-slate-800">{stats.criticalAlerts}</p>
                 </div>
               </div>
             </CardContent>
@@ -221,10 +224,10 @@ const Dashboard = memo(function Dashboard() {
         {/* Management Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Quick Actions */}
-          <Card>
+          <Card className="backdrop-blur-sm bg-white/80 border-slate-200 hover:shadow-lg transition-all duration-300">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Plus className="w-5 h-5" />
+              <CardTitle className="flex items-center gap-2 text-slate-800">
+                <Plus className="w-5 h-5 text-blue-600" />
                 Ações Rápidas
               </CardTitle>
             </CardHeader>
@@ -281,10 +284,10 @@ const Dashboard = memo(function Dashboard() {
           </Card>
 
           {/* Recent Activities */}
-          <Card>
+          <Card className="backdrop-blur-sm bg-white/80 border-slate-200 hover:shadow-lg transition-all duration-300">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Calendar className="w-5 h-5" />
+              <CardTitle className="flex items-center gap-2 text-slate-800">
+                <Calendar className="w-5 h-5 text-blue-600" />
                 Atividades Recentes
               </CardTitle>
             </CardHeader>
@@ -314,10 +317,10 @@ const Dashboard = memo(function Dashboard() {
           </Card>
 
           {/* Pending Tasks */}
-          <Card>
+          <Card className="backdrop-blur-sm bg-white/80 border-slate-200 hover:shadow-lg transition-all duration-300">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <ClipboardList className="w-5 h-5" />
+              <CardTitle className="flex items-center gap-2 text-slate-800">
+                <ClipboardList className="w-5 h-5 text-blue-600" />
                 Tarefas Pendentes
               </CardTitle>
             </CardHeader>
@@ -342,10 +345,10 @@ const Dashboard = memo(function Dashboard() {
         </div>
 
         {/* Performance Summary */}
-        <Card>
+        <Card className="backdrop-blur-sm bg-white/80 border-slate-200 hover:shadow-lg transition-all duration-300">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="w-5 h-5" />
+            <CardTitle className="flex items-center gap-2 text-slate-800">
+              <TrendingUp className="w-5 h-5 text-blue-600" />
               Resumo de Performance
             </CardTitle>
           </CardHeader>
@@ -378,6 +381,7 @@ const Dashboard = memo(function Dashboard() {
             </div>
           </CardContent>
         </Card>
+        </div>
       </div>
     </Layout>
   );

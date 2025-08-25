@@ -491,13 +491,16 @@ export default function Reports() {
 
   return (
     <Layout>
-      <div className="space-y-6">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-emerald-50/20">
+        <div className="space-y-6">
         {/* Header */}
-        <div className="flex justify-between items-center">
+        <div className="flex justify-between items-start">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Relatórios e Análises</h1>
-            <p className="text-muted-foreground">
-              Análise completa de performance e produtividade
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-primary to-emerald-600 bg-clip-text text-transparent mb-2">
+              Relatórios de Produção
+            </h1>
+            <p className="text-slate-600">
+              Análise detalhada dos ciclos de produção e performance
             </p>
           </div>
           <Button onClick={exportReport} variant="outline">
@@ -866,6 +869,7 @@ export default function Reports() {
             </TabsContent>
           </Tabs>
         </div>
-      </Layout>
+      </div>
+    </Layout>
     );
  }

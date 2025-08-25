@@ -299,12 +299,15 @@ export default function Farm() {
 
   return (
     <Layout>
-      <div className="space-y-6">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-emerald-50/20">
+        <div className="space-y-6">
         {/* Farm Header */}
         <div className="flex justify-between items-start">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">{currentFarm.name}</h1>
-            <div className="flex items-center text-muted-foreground mt-1">
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-primary to-emerald-600 bg-clip-text text-transparent mb-2">
+              {currentFarm.name}
+            </h1>
+            <div className="flex items-center text-slate-600 mt-1">
               <MapPin className="w-4 h-4 mr-1" />
               <span>{currentFarm.location}</span>
               <span className="mx-2">•</span>
@@ -425,54 +428,54 @@ export default function Farm() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-          <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
+          <Card className="backdrop-blur-sm bg-gradient-to-br from-blue-50 to-blue-100/80 border-blue-200 hover:shadow-lg transition-all duration-300">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Total de Viveiros</p>
-                  <p className="text-2xl font-bold text-primary">{ponds.length}</p>
+                  <p className="text-sm font-medium text-slate-600">Total de Viveiros</p>
+                  <p className="text-2xl font-bold text-blue-700">{ponds.length}</p>
                 </div>
-                <Waves className="w-8 h-8 text-primary/70" />
+                <Waves className="w-8 h-8 text-blue-600/70" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-success/10 to-success/5 border-success/20">
+          <Card className="backdrop-blur-sm bg-gradient-to-br from-emerald-50 to-emerald-100/80 border-emerald-200 hover:shadow-lg transition-all duration-300">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Viveiros Ativos</p>
-                  <p className="text-2xl font-bold text-success">{activePonds.length}</p>
+                  <p className="text-sm font-medium text-slate-600">Viveiros Ativos</p>
+                  <p className="text-2xl font-bold text-emerald-700">{activePonds.length}</p>
                 </div>
-                <Activity className="w-8 h-8 text-success/70" />
+                <Activity className="w-8 h-8 text-emerald-600/70" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-secondary/30 to-secondary/10 border-secondary/40">
+          <Card className="backdrop-blur-sm bg-gradient-to-br from-slate-50 to-slate-100/80 border-slate-200 hover:shadow-lg transition-all duration-300">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Viveiros Livres</p>
-                  <p className="text-2xl font-bold text-secondary-foreground">{freePonds.length}</p>
+                  <p className="text-sm font-medium text-slate-600">Viveiros Livres</p>
+                  <p className="text-2xl font-bold text-slate-700">{freePonds.length}</p>
                 </div>
-                <CheckCircle className="w-8 h-8 text-secondary-foreground/70" />
+                <CheckCircle className="w-8 h-8 text-slate-600/70" />
               </div>
             </CardContent>
           </Card>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 h-12 p-1 bg-muted/50 border border-border/50">
+          <TabsList className="grid w-full grid-cols-2 h-12 p-1 bg-white/60 backdrop-blur-sm border border-slate-200 rounded-lg">
             <TabsTrigger 
               value="viveiros" 
-              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm font-medium text-foreground/80 data-[state=active]:font-semibold transition-all"
+              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-blue-700 data-[state=active]:text-white data-[state=active]:shadow-lg font-medium text-slate-700 data-[state=active]:font-semibold transition-all rounded-md"
             >
               Viveiros
             </TabsTrigger>
             <TabsTrigger 
               value="povoamento" 
-              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm font-medium text-foreground/80 data-[state=active]:font-semibold transition-all"
+              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-blue-700 data-[state=active]:text-white data-[state=active]:shadow-lg font-medium text-slate-700 data-[state=active]:font-semibold transition-all rounded-md"
             >
               Povoamento
             </TabsTrigger>
@@ -486,6 +489,7 @@ export default function Farm() {
             <StockingContent />
           </TabsContent>
         </Tabs>
+        </div>
       </div>
     </Layout>
   );

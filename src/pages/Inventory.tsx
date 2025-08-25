@@ -235,7 +235,8 @@ export default function Inventory() {
 
   return (
     <Layout>
-      <div className="space-y-6">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-emerald-50/20">
+        <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
             <Button 
@@ -247,7 +248,9 @@ export default function Inventory() {
               <ArrowLeft className="w-4 h-4 mr-2" />
               Voltar
             </Button>
-            <h1 className="text-3xl font-bold">Controle de Estoque</h1>
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-primary to-emerald-600 bg-clip-text text-transparent mb-2">
+              Controle de Estoque
+            </h1>
           </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
@@ -526,6 +529,7 @@ export default function Inventory() {
           </CardContent>
         </Card>
         )}
+        </div>
       </div>
     </Layout>
   );

@@ -25,7 +25,8 @@ export default function Manejos() {
 
   return (
     <Layout>
-      <div className="space-y-6">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-emerald-50/20">
+        <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
@@ -38,8 +39,10 @@ export default function Manejos() {
               <ArrowLeft className="w-4 h-4 mr-2" />
               Voltar
             </Button>
-            <h1 className="text-3xl font-bold text-foreground">Manejos</h1>
-            <p className="text-muted-foreground">
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-primary to-emerald-600 bg-clip-text text-transparent mb-2">
+              Manejos
+            </h1>
+            <p className="text-slate-600">
               Gerencie biometria, qualidade da água, mortalidade, despesca e aplicação de insumos
             </p>
           </div>
@@ -47,24 +50,24 @@ export default function Manejos() {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="biometry" className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm font-medium text-foreground/80 data-[state=active]:font-semibold transition-all">
+          <TabsList className="grid w-full grid-cols-5 h-14 p-1 bg-white/60 backdrop-blur-sm border border-slate-200 rounded-lg">
+            <TabsTrigger value="biometry" className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-blue-700 data-[state=active]:text-white data-[state=active]:shadow-lg font-medium text-slate-700 data-[state=active]:font-semibold transition-all rounded-md">
               <Scale className="w-4 h-4" />
               Biometria
             </TabsTrigger>
-            <TabsTrigger value="water-quality" className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm font-medium text-foreground/80 data-[state=active]:font-semibold transition-all">
+            <TabsTrigger value="water-quality" className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-blue-700 data-[state=active]:text-white data-[state=active]:shadow-lg font-medium text-slate-700 data-[state=active]:font-semibold transition-all rounded-md">
               <Droplets className="w-4 h-4" />
               Água
             </TabsTrigger>
-            <TabsTrigger value="mortality" className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm font-medium text-foreground/80 data-[state=active]:font-semibold transition-all">
+            <TabsTrigger value="mortality" className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-blue-700 data-[state=active]:text-white data-[state=active]:shadow-lg font-medium text-slate-700 data-[state=active]:font-semibold transition-all rounded-md">
               <Skull className="w-4 h-4" />
               Mortalidade
             </TabsTrigger>
-            <TabsTrigger value="harvest" className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm font-medium text-foreground/80 data-[state=active]:font-semibold transition-all">
+            <TabsTrigger value="harvest" className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-blue-700 data-[state=active]:text-white data-[state=active]:shadow-lg font-medium text-slate-700 data-[state=active]:font-semibold transition-all rounded-md">
               <Fish className="w-4 h-4" />
               Despesca
             </TabsTrigger>
-            <TabsTrigger value="inputs" className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm font-medium text-foreground/80 data-[state=active]:font-semibold transition-all">
+            <TabsTrigger value="inputs" className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-blue-700 data-[state=active]:text-white data-[state=active]:shadow-lg font-medium text-slate-700 data-[state=active]:font-semibold transition-all rounded-md">
               <Beaker className="w-4 h-4" />
               Insumos
             </TabsTrigger>
@@ -90,6 +93,7 @@ export default function Manejos() {
             <InputApplicationTab />
           </TabsContent>
         </Tabs>
+        </div>
       </div>
     </Layout>
   );

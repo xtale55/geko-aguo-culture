@@ -375,7 +375,8 @@ export default function Feeding() {
 
   return (
     <Layout>
-      <div className="space-y-6">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-emerald-50/20">
+        <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
@@ -388,8 +389,10 @@ export default function Feeding() {
               <ArrowLeft className="w-4 h-4 mr-2" />
               Voltar
             </Button>
-            <h1 className="text-3xl font-bold text-foreground">Arraçoamento Inteligente</h1>
-            <p className="text-muted-foreground">
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-primary to-emerald-600 bg-clip-text text-transparent mb-2">
+              Arraçoamento Inteligente
+            </h1>
+            <p className="text-slate-600">
               Sistema avançado de controle de alimentação com FCA
             </p>
           </div>
@@ -407,56 +410,56 @@ export default function Feeding() {
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
+          <Card className="backdrop-blur-sm bg-gradient-to-br from-blue-50 to-blue-100/80 border-blue-200 hover:shadow-lg transition-all duration-300">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Ração Diária</p>
-                  <p className="text-2xl font-bold text-primary">
+                  <p className="text-sm font-medium text-slate-600">Ração Diária</p>
+                  <p className="text-2xl font-bold text-blue-700">
                     {getTotalDailyFeed().toFixed(1)} kg
                   </p>
                 </div>
-                <Utensils className="w-8 h-8 text-primary/70" />
+                <Utensils className="w-8 h-8 text-blue-600/70" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-success/10 to-success/5 border-success/20">
+          <Card className="backdrop-blur-sm bg-gradient-to-br from-emerald-50 to-emerald-100/80 border-emerald-200 hover:shadow-lg transition-all duration-300">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Total Consumido</p>
-                  <p className="text-2xl font-bold text-success">
+                  <p className="text-sm font-medium text-slate-600">Total Consumido</p>
+                  <p className="text-2xl font-bold text-emerald-700">
                     {getTotalFeedConsumedAll().toFixed(1)} kg
                   </p>
                 </div>
-                <Calculator className="w-8 h-8 text-success/70" />
+                <Calculator className="w-8 h-8 text-emerald-600/70" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-accent/10 to-accent/5 border-accent/20">
+          <Card className="backdrop-blur-sm bg-gradient-to-br from-purple-50 to-purple-100/80 border-purple-200 hover:shadow-lg transition-all duration-300">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">FCA Médio</p>
-                  <p className="text-2xl font-bold text-accent-hover">
+                  <p className="text-sm font-medium text-slate-600">FCA Médio</p>
+                  <p className="text-2xl font-bold text-purple-700">
                     {getAverageFCA().toFixed(2)}
                   </p>
                 </div>
-                <BarChart3 className="w-8 h-8 text-accent/70" />
+                <BarChart3 className="w-8 h-8 text-purple-600/70" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-orange-500/10 to-orange-500/5 border-orange-500/20">
+          <Card className="backdrop-blur-sm bg-gradient-to-br from-orange-50 to-orange-100/80 border-orange-200 hover:shadow-lg transition-all duration-300">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Viveiros Ativos</p>
-                  <p className="text-2xl font-bold text-orange-600">{feedingTasks.length}</p>
+                  <p className="text-sm font-medium text-slate-600">Viveiros Ativos</p>
+                  <p className="text-2xl font-bold text-orange-700">{feedingTasks.length}</p>
                 </div>
-                <Utensils className="w-8 h-8 text-orange-500/70" />
+                <Utensils className="w-8 h-8 text-orange-600/70" />
               </div>
             </CardContent>
           </Card>
@@ -496,6 +499,7 @@ export default function Feeding() {
               />
             ))}
           </div>
+        </div>
         </div>
       </div>
     </Layout>

@@ -138,6 +138,11 @@ export function StockingContent() {
       return;
     }
     
+    if (batchData.size_cm > 999) {
+      toast.error('PLs por grama deve ser no máximo 999');
+      return;
+    }
+    
     if (batchData.cost_per_thousand <= 0) {
       toast.error('Custo por milheiro deve ser maior que zero');
       return;
@@ -406,18 +411,43 @@ export function StockingContent() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="size_cm">PLs por Grama *</Label>
+                <Label htmlFor="size_cm" className="flex items-center gap-2">
+                  PLs por Grama *
+                  <span className="text-xs font-normal text-muted-foreground" title="Típico: 8-15 PLs/g para cultivo padrão">
+                    (1-999 PLs/g)
+                  </span>
+                </Label>
                 <Input
                   id="size_cm"
                   type="number"
                   step="1"
-                  placeholder="Ex: 1000 (quantas PLs por grama)"
+                  min="1"
+                  max="999"
+                  placeholder="Ex: 10"
                   value={batchData.size_cm || ''}
-                  onChange={(e) => setBatchData(prev => ({ ...prev, size_cm: parseFloat(e.target.value) || 0 }))}
+                  onChange={(e) => {
+                    const value = parseFloat(e.target.value) || 0;
+                    if (value <= 999) {
+                      setBatchData(prev => ({ ...prev, size_cm: value }));
+                    }
+                  }}
+                  className={batchData.size_cm > 999 ? "border-destructive" : ""}
                 />
-                <p className="text-xs text-muted-foreground">
-                  Número de pós-larvas por grama
-                </p>
+                <div className="flex flex-col gap-1">
+                  <p className="text-xs text-muted-foreground">
+                    Número de pós-larvas por grama (peso)
+                  </p>
+                  {batchData.size_cm > 999 && (
+                    <p className="text-xs text-destructive">
+                      Valor máximo é 999 PLs/g
+                    </p>
+                  )}
+                  {batchData.size_cm >= 1 && batchData.size_cm <= 15 && (
+                    <p className="text-xs text-green-600">
+                      ✓ Valor dentro do range recomendado
+                    </p>
+                  )}
+                </div>
               </div>
 
               <div className="space-y-2">
@@ -481,8 +511,8 @@ export function StockingContent() {
               <p className="font-medium">{batchData.initial_quantity.toLocaleString()} PLs</p>
             </div>
             <div>
-              <p className="text-muted-foreground">Tamanho</p>
-              <p className="font-medium">{batchData.size_cm} cm</p>
+              <p className="text-muted-foreground">PLs/g</p>
+              <p className="font-medium">{batchData.size_cm} PLs/g</p>
             </div>
             <div>
               <p className="text-muted-foreground">Sobrevivência</p>

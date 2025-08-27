@@ -297,53 +297,131 @@ const HarvestHistoryDetail = ({ harvestId, open, onOpenChange }: HarvestHistoryD
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* Dados Principais */}
+          {/* Informações do Ciclo */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Dados da Despesca</CardTitle>
+              <CardTitle className="text-lg">Informações do Ciclo</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div>
-                  <p className="text-sm text-muted-foreground">Biomassa</p>
-                  <p className="text-xl font-semibold">{harvestData.biomass_harvested.toFixed(1)} kg</p>
+                  <p className="text-sm text-muted-foreground">PLs Estocadas</p>
+                  <p className="text-lg font-medium">{harvestData.pond_batch.pl_quantity.toLocaleString()}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">População</p>
-                  <p className="text-xl font-semibold">{harvestData.population_harvested.toLocaleString()}</p>
+                  <p className="text-sm text-muted-foreground">Data de Estocagem</p>
+                  <p className="text-lg font-medium">
+                    {format(new Date(harvestData.pond_batch.stocking_date), 'dd/MM/yyyy', { locale: ptBR })}
+                  </p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Peso Médio</p>
-                  <p className="text-xl font-semibold">{harvestData.average_weight_at_harvest.toFixed(1)}g</p>
+                  <p className="text-sm text-muted-foreground">Área do Viveiro</p>
+                  <p className="text-lg font-medium">{harvestData.pond_batch.pond.area} m²</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">DOC</p>
-                  <p className="text-xl font-semibold">{docDays} dias</p>
+                  <p className="text-sm text-muted-foreground">Status</p>
+                  <Badge variant={harvestData.pond_batch.cycle_status === 'completed' ? 'default' : 'secondary'}>
+                    {harvestData.pond_batch.cycle_status === 'completed' ? 'Finalizado' : 'Ativo'}
+                  </Badge>
                 </div>
               </div>
-
-              {harvestData.price_per_kg && (
-                <Separator className="my-4" />
-              )}
-
-              {harvestData.price_per_kg && (
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Preço/kg</p>
-                    <p className="text-lg font-semibold text-green-600">R$ {harvestData.price_per_kg.toFixed(2)}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Receita Total</p>
-                    <p className="text-lg font-semibold text-green-600">R$ {harvestData.total_value?.toFixed(2)}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Produtividade</p>
-                    <p className="text-lg font-semibold">{productivity.toFixed(2)} kg/m²</p>
-                  </div>
-                </div>
-              )}
             </CardContent>
           </Card>
+
+          {/* Reconciliação de Dados */}
+          {harvestData.harvest_type === 'total' && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  {getReconciliationIcon(harvestData.actual_mortality_detected)}
+                  Reconciliação de Dados
+                </CardTitle>
+                <CardDescription>
+                  Comparação entre dados esperados vs. dados reais da despesca
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {/* Comparação de População */}
+                  <div className="grid grid-cols-3 gap-4 p-4 bg-muted/30 rounded-lg">
+                    <div>
+                      <p className="text-sm text-muted-foreground">População Esperada</p>
+                      <p className="text-lg font-medium">{harvestData.expected_population?.toLocaleString()}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">População Real</p>
+                      <p className="text-lg font-medium">{harvestData.population_harvested.toLocaleString()}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Diferença</p>
+                      <p className={`text-lg font-medium flex items-center gap-1 ${
+                        (harvestData.actual_mortality_detected || 0) > 0 ? 'text-red-600' : 
+                        (harvestData.actual_mortality_detected || 0) < 0 ? 'text-green-600' : 'text-gray-600'
+                      }`}>
+                        {harvestData.actual_mortality_detected ? (
+                          <>
+                            {harvestData.actual_mortality_detected > 0 ? '-' : '+'}
+                            {Math.abs(harvestData.actual_mortality_detected).toLocaleString()}
+                          </>
+                        ) : '0'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Comparação de Biomassa */}
+                  <div className="grid grid-cols-3 gap-4 p-4 bg-muted/30 rounded-lg">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Biomassa Esperada</p>
+                      <p className="text-lg font-medium">{harvestData.expected_biomass?.toFixed(1)} kg</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Biomassa Real</p>
+                      <p className="text-lg font-medium">{harvestData.biomass_harvested.toFixed(1)} kg</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Variação</p>
+                      <p className={`text-lg font-medium flex items-center gap-1 ${
+                        (harvestData.biomass_harvested - (harvestData.expected_biomass || 0)) > 0 ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        {getVariationIcon(harvestData.biomass_harvested - (harvestData.expected_biomass || 0))}
+                        {(harvestData.biomass_harvested - (harvestData.expected_biomass || 0)) > 0 ? '+' : ''}
+                        {(harvestData.biomass_harvested - (harvestData.expected_biomass || 0)).toFixed(1)} kg
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Taxa de Sobrevivência */}
+                  <div className="grid grid-cols-3 gap-4 p-4 bg-muted/30 rounded-lg">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Sobrevivência Esperada</p>
+                      <p className="text-lg font-medium">{expectedSurvivalRate?.toFixed(1)}%</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Sobrevivência Real</p>
+                      <p className="text-lg font-medium">{actualSurvivalRate.toFixed(1)}%</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Diferença</p>
+                      <p className={`text-lg font-medium ${
+                        (actualSurvivalRate - (expectedSurvivalRate || 0)) > 0 ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        {(actualSurvivalRate - (expectedSurvivalRate || 0)) > 0 ? '+' : ''}
+                        {(actualSurvivalRate - (expectedSurvivalRate || 0)).toFixed(1)}%
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Notas de Reconciliação */}
+                  {harvestData.reconciliation_notes && (
+                    <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                      <h4 className="font-medium text-blue-900 mb-2">Análise Automática</h4>
+                      <p className="text-sm text-blue-800">{harvestData.reconciliation_notes}</p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Performance do Ciclo */}
           {harvestData.harvest_type === 'total' && (
@@ -444,6 +522,54 @@ const HarvestHistoryDetail = ({ harvestId, open, onOpenChange }: HarvestHistoryD
             </Card>
           )}
 
+          {/* Dados da Despesca */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Dados da Despesca</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div>
+                  <p className="text-sm text-muted-foreground">Biomassa</p>
+                  <p className="text-xl font-semibold">{harvestData.biomass_harvested.toFixed(1)} kg</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">População</p>
+                  <p className="text-xl font-semibold">{harvestData.population_harvested.toLocaleString()}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Peso Médio</p>
+                  <p className="text-xl font-semibold">{harvestData.average_weight_at_harvest.toFixed(1)}g</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">DOC</p>
+                  <p className="text-xl font-semibold">{docDays} dias</p>
+                </div>
+              </div>
+
+              {harvestData.price_per_kg && (
+                <Separator className="my-4" />
+              )}
+
+              {harvestData.price_per_kg && (
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Preço/kg</p>
+                    <p className="text-lg font-semibold text-green-600">R$ {harvestData.price_per_kg.toFixed(2)}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Receita Total</p>
+                    <p className="text-lg font-semibold text-green-600">R$ {harvestData.total_value?.toFixed(2)}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Produtividade</p>
+                    <p className="text-lg font-semibold">{productivity.toFixed(2)} kg/m²</p>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           {/* Resultado Financeiro */}
           {harvestData.harvest_type === 'total' && harvestData.price_per_kg && (
             <Card>
@@ -499,132 +625,6 @@ const HarvestHistoryDetail = ({ harvestId, open, onOpenChange }: HarvestHistoryD
               </CardContent>
             </Card>
           )}
-
-          {/* Reconciliação de Dados */}
-          {harvestData.harvest_type === 'total' && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  {getReconciliationIcon(harvestData.actual_mortality_detected)}
-                  Reconciliação de Dados
-                </CardTitle>
-                <CardDescription>
-                  Comparação entre dados esperados vs. dados reais da despesca
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {/* Comparação de População */}
-                  <div className="grid grid-cols-3 gap-4 p-4 bg-muted/30 rounded-lg">
-                    <div>
-                      <p className="text-sm text-muted-foreground">População Esperada</p>
-                      <p className="text-lg font-medium">{harvestData.expected_population?.toLocaleString()}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">População Real</p>
-                      <p className="text-lg font-medium">{harvestData.population_harvested.toLocaleString()}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Diferença</p>
-                      <p className={`text-lg font-medium flex items-center gap-1 ${
-                        (harvestData.actual_mortality_detected || 0) > 0 ? 'text-red-600' : 
-                        (harvestData.actual_mortality_detected || 0) < 0 ? 'text-green-600' : 'text-gray-600'
-                      }`}>
-                        {harvestData.actual_mortality_detected ? (
-                          <>
-                            {harvestData.actual_mortality_detected > 0 ? '-' : '+'}
-                            {Math.abs(harvestData.actual_mortality_detected).toLocaleString()}
-                          </>
-                        ) : '0'}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Comparação de Biomassa */}
-                  <div className="grid grid-cols-3 gap-4 p-4 bg-muted/30 rounded-lg">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Biomassa Esperada</p>
-                      <p className="text-lg font-medium">{harvestData.expected_biomass?.toFixed(1)} kg</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Biomassa Real</p>
-                      <p className="text-lg font-medium">{harvestData.biomass_harvested.toFixed(1)} kg</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Variação</p>
-                      <p className={`text-lg font-medium flex items-center gap-1 ${
-                        (harvestData.biomass_harvested - (harvestData.expected_biomass || 0)) > 0 ? 'text-green-600' : 'text-red-600'
-                      }`}>
-                        {getVariationIcon(harvestData.biomass_harvested - (harvestData.expected_biomass || 0))}
-                        {(harvestData.biomass_harvested - (harvestData.expected_biomass || 0)) > 0 ? '+' : ''}
-                        {(harvestData.biomass_harvested - (harvestData.expected_biomass || 0)).toFixed(1)} kg
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Taxa de Sobrevivência */}
-                  <div className="grid grid-cols-3 gap-4 p-4 bg-muted/30 rounded-lg">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Sobrevivência Esperada</p>
-                      <p className="text-lg font-medium">{expectedSurvivalRate?.toFixed(1)}%</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Sobrevivência Real</p>
-                      <p className="text-lg font-medium">{actualSurvivalRate.toFixed(1)}%</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Diferença</p>
-                      <p className={`text-lg font-medium ${
-                        (actualSurvivalRate - (expectedSurvivalRate || 0)) > 0 ? 'text-green-600' : 'text-red-600'
-                      }`}>
-                        {(actualSurvivalRate - (expectedSurvivalRate || 0)) > 0 ? '+' : ''}
-                        {(actualSurvivalRate - (expectedSurvivalRate || 0)).toFixed(1)}%
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Notas de Reconciliação */}
-                  {harvestData.reconciliation_notes && (
-                    <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                      <h4 className="font-medium text-blue-900 mb-2">Análise Automática</h4>
-                      <p className="text-sm text-blue-800">{harvestData.reconciliation_notes}</p>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Dados do Ciclo */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Informações do Ciclo</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div>
-                  <p className="text-sm text-muted-foreground">PLs Estocadas</p>
-                  <p className="text-lg font-medium">{harvestData.pond_batch.pl_quantity.toLocaleString()}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Data de Estocagem</p>
-                  <p className="text-lg font-medium">
-                    {format(new Date(harvestData.pond_batch.stocking_date), 'dd/MM/yyyy', { locale: ptBR })}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Área do Viveiro</p>
-                  <p className="text-lg font-medium">{harvestData.pond_batch.pond.area} m²</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Status</p>
-                  <Badge variant={harvestData.pond_batch.cycle_status === 'completed' ? 'default' : 'secondary'}>
-                    {harvestData.pond_batch.cycle_status === 'completed' ? 'Finalizado' : 'Ativo'}
-                  </Badge>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
 
           {/* Observações */}
           {harvestData.notes && (

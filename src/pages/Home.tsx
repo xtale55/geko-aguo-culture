@@ -75,7 +75,7 @@ const Home = () => {
         <div className="text-center max-w-4xl mx-auto">
           <div className="inline-flex items-center space-x-2 bg-gradient-to-r from-blue-100 to-emerald-100 px-4 py-2 rounded-full mb-8 border border-blue-200/50">
             <Sparkles className="h-4 w-4 text-blue-600" />
-            <span className="text-sm font-medium text-slate-700">Powered by AI & Blockchain</span>
+            <span className="text-sm font-medium text-slate-700">Plataforma Inteligente</span>
           </div>
           
           <h1 className="text-6xl md:text-7xl font-bold mb-6 leading-tight">

@@ -472,26 +472,27 @@ export function BiometryTab() {
 
       {/* Biometry Dialog */}
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
-        <DialogContent>
-          <DialogHeader>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogHeader className="flex-shrink-0">
             <DialogTitle>
               Nova Biometria - {selectedPond?.name}
             </DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleBiometrySubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="measurement_date">Data da Medição</Label>
-              <Input
-                id="measurement_date"
-                name="measurement_date"
-                type="date"
-                defaultValue={getCurrentDateForInput()}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="average_weight">Peso Médio (g)</Label>
-              <Input
+          <div className="overflow-y-auto flex-1">
+            <form id="biometry-form" onSubmit={handleBiometrySubmit} className="space-y-4 p-1">
+              <div className="space-y-2">
+                <Label htmlFor="measurement_date">Data da Medição</Label>
+                <Input
+                  id="measurement_date"
+                  name="measurement_date"
+                  type="date"
+                  defaultValue={getCurrentDateForInput()}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="average_weight">Peso Médio (g)</Label>
+                <Input
                 id="average_weight"
                 name="average_weight"
                 type="number"

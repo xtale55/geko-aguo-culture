@@ -498,13 +498,14 @@ export function MortalityTab() {
 
       {/* Mortality Dialog */}
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
-        <DialogContent>
-          <DialogHeader>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogHeader className="flex-shrink-0">
             <DialogTitle>
               Registrar Mortalidade - {selectedPond?.name}
             </DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleMortalitySubmit} className="space-y-4">
+          <div className="overflow-y-auto flex-1">
+            <form id="mortality-form" onSubmit={handleMortalitySubmit} className="space-y-4 p-1">
             <div className="space-y-2">
               <Label htmlFor="record_date">Data do Registro</Label>
               <Input
@@ -539,24 +540,26 @@ export function MortalityTab() {
                 rows={3}
               />
             </div>
-            <div className="flex gap-2 pt-4">
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={() => setShowDialog(false)}
-                className="flex-1"
-              >
-                Cancelar
-              </Button>
-              <Button 
-                type="submit" 
-                disabled={submitting}
-                className="flex-1"
-              >
-                {submitting ? 'Salvando...' : 'Salvar Registro'}
-              </Button>
-            </div>
-          </form>
+            </form>
+          </div>
+          <div className="flex gap-2 pt-4 border-t bg-background flex-shrink-0">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => setShowDialog(false)}
+              className="flex-1"
+            >
+              Cancelar
+            </Button>
+            <Button 
+              type="submit" 
+              disabled={submitting}
+              className="flex-1"
+              form="mortality-form"
+            >
+              {submitting ? 'Salvando...' : 'Salvar Registro'}
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
 

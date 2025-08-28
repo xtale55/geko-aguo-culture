@@ -652,15 +652,16 @@ const HarvestTab = () => {
               />
             </div>
 
-            <div className="flex gap-2 pt-4">
-              <Button type="button" variant="outline" onClick={() => setDialogOpen(false)} className="flex-1">
-                Cancelar
-              </Button>
-              <Button type="submit" className="flex-1">
-                Registrar Despesca
-              </Button>
-            </div>
-          </form>
+            </form>
+          </div>
+          <div className="flex gap-2 pt-4 border-t bg-background flex-shrink-0">
+            <Button type="button" variant="outline" onClick={() => setDialogOpen(false)} className="flex-1">
+              Cancelar
+            </Button>
+            <Button type="submit" className="flex-1" form="harvest-form">
+              Registrar Despesca
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
 

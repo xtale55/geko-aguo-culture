@@ -520,24 +520,26 @@ export function BiometryTab() {
                 placeholder="Ex: 100"
               />
             </div>
-            <div className="flex gap-2 pt-4">
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={() => setShowDialog(false)}
-                className="flex-1"
-              >
-                Cancelar
-              </Button>
-              <Button 
-                type="submit" 
-                disabled={submitting}
-                className="flex-1"
-              >
-                {submitting ? 'Salvando...' : 'Salvar Biometria'}
-              </Button>
-            </div>
           </form>
+          </div>
+          <div className="flex gap-2 pt-4 border-t bg-background flex-shrink-0">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => setShowDialog(false)}
+              className="flex-1"
+            >
+              Cancelar
+            </Button>
+            <Button 
+              type="submit" 
+              disabled={submitting}
+              className="flex-1"
+              form="biometry-form"
+            >
+              {submitting ? 'Salvando...' : 'Salvar Biometria'}
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
 

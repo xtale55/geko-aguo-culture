@@ -538,8 +538,8 @@ const HarvestTab = () => {
 
       {/* Harvest Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogHeader className="flex-shrink-0">
             <DialogTitle>Registrar Despesca</DialogTitle>
             <DialogDescription>
               {selectedPondBatch && (
@@ -551,8 +551,8 @@ const HarvestTab = () => {
               )}
             </DialogDescription>
           </DialogHeader>
-          
-          <form onSubmit={handleHarvestSubmit} className="space-y-4">
+          <div className="overflow-y-auto flex-1">
+            <form id="harvest-form" onSubmit={handleHarvestSubmit} className="space-y-4 p-1">
             <div>
               <Label htmlFor="harvest_date">Data da Despesca</Label>
               <Input

@@ -401,11 +401,12 @@ export function InputApplicationTab() {
               Nova Aplicação
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
+          <DialogContent className="max-w-md max-h-[90vh] overflow-hidden flex flex-col">
+            <DialogHeader className="flex-shrink-0">
               <DialogTitle>Registrar Aplicação de Insumo</DialogTitle>
             </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="overflow-y-auto flex-1">
+              <form id="input-form" onSubmit={handleSubmit} className="space-y-4 p-1">
               <div>
                 <Label htmlFor="pond_batch_id">Viveiro/Lote *</Label>
                 <Select value={formData.pond_batch_id} onValueChange={(value) => setFormData({...formData, pond_batch_id: value})}>
@@ -505,15 +506,16 @@ export function InputApplicationTab() {
                 />
               </div>
 
-              <div className="flex justify-end gap-2 pt-4">
-                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
-                  Cancelar
-                </Button>
-                <Button type="submit" disabled={submitting}>
-                  {submitting ? 'Salvando...' : 'Salvar'}
-                </Button>
-              </div>
-            </form>
+              </form>
+            </div>
+            <div className="flex justify-end gap-2 pt-4 border-t bg-background flex-shrink-0">
+              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={submitting} form="input-form">
+                {submitting ? 'Salvando...' : 'Salvar'}
+              </Button>
+            </div>
           </DialogContent>
         </Dialog>
       </div>

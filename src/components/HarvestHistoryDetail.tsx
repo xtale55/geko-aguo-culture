@@ -24,6 +24,10 @@ interface HarvestDetailData {
   expected_biomass: number | null;
   actual_mortality_detected: number | null;
   reconciliation_notes: string | null;
+  allocated_feed_cost: number | null;
+  allocated_input_cost: number | null;
+  allocated_pl_cost: number | null;
+  allocated_preparation_cost: number | null;
   pond_batch: {
     id: string;
     pl_quantity: number;
@@ -201,31 +205,50 @@ const HarvestHistoryDetail = ({ harvestId, open, onOpenChange }: HarvestHistoryD
   const docDays = calculateDOC(harvestData.pond_batch.stocking_date, harvestData.harvest_date);
   const productivity = calculateProductivity(harvestData.biomass_harvested, harvestData.pond_batch.pond.area);
   
-  // Calculate survival rates
+  // Calculate survival rates correctly for partial harvests
   const expectedSurvivalRate = harvestData.expected_population 
     ? (harvestData.expected_population / harvestData.pond_batch.pl_quantity) * 100
     : null;
-  const actualSurvivalRate = (harvestData.population_harvested / harvestData.pond_batch.pl_quantity) * 100;
+  
+  // For partial harvests, calculate cumulative survival
+  const cumulativeSurvivalRate = harvestData.harvest_type === 'total' 
+    ? (harvestData.population_harvested / harvestData.pond_batch.pl_quantity) * 100
+    : harvestData.pond_batch.final_survival_rate || 
+      (harvestData.population_harvested / harvestData.pond_batch.pl_quantity) * 100;
 
   // Calculate comprehensive cycle metrics
   const plCost = (harvestData.pond_batch.batch.pl_cost * harvestData.pond_batch.pl_quantity) / 1000;
   const preparationCost = harvestData.pond_batch.preparation_cost || 0;
   
-  // Calculate feed costs and consumption (Anti-Drift: converter gramas para kg)
-  const totalFeedCost = harvestData.feeding_records.reduce((sum, record) => 
-    sum + (QuantityUtils.gramsToKg(record.actual_amount) * (record.unit_cost || 0)), 0);
-  const totalFeedConsumed = harvestData.feeding_records.reduce((sum, record) => 
-    sum + QuantityUtils.gramsToKg(record.actual_amount), 0);
+  // Calculate costs - use allocated costs for partial harvests
+  const totalFeedCost = harvestData.harvest_type === 'partial' && harvestData.allocated_feed_cost 
+    ? harvestData.allocated_feed_cost
+    : harvestData.feeding_records.reduce((sum, record) => 
+        sum + (QuantityUtils.gramsToKg(record.actual_amount) * (record.unit_cost || 0)), 0);
   
-  // Calculate input costs
-  const totalInputCost = harvestData.input_applications.reduce((sum, input) => 
-    sum + (input.total_cost || 0), 0);
+  const totalInputCost = harvestData.harvest_type === 'partial' && harvestData.allocated_input_cost
+    ? harvestData.allocated_input_cost
+    : harvestData.input_applications.reduce((sum, input) => 
+        sum + (input.total_cost || 0), 0);
+
+  const allocatedPlCost = harvestData.harvest_type === 'partial' && harvestData.allocated_pl_cost
+    ? harvestData.allocated_pl_cost
+    : plCost;
+
+  const allocatedPrepCost = harvestData.harvest_type === 'partial' && harvestData.allocated_preparation_cost
+    ? harvestData.allocated_preparation_cost
+    : preparationCost;
   
-  // Calculate total costs
-  const totalCost = plCost + preparationCost + totalFeedCost + totalInputCost;
+  // Calculate total costs for this harvest
+  const totalCost = allocatedPlCost + allocatedPrepCost + totalFeedCost + totalInputCost;
   const costPerKg = totalCost / harvestData.biomass_harvested;
   
-  // Calculate FCR (Feed Conversion Ratio)
+  // Calculate FCR for this harvest (using allocated feed for partial harvests)
+  const totalFeedConsumed = harvestData.harvest_type === 'partial' && harvestData.allocated_feed_cost 
+    ? harvestData.allocated_feed_cost / (harvestData.feeding_records.find(r => r.unit_cost)?.unit_cost || 1)
+    : harvestData.feeding_records.reduce((sum, record) => 
+        sum + QuantityUtils.gramsToKg(record.actual_amount), 0);
+  
   const fca = calculateFCA(totalFeedConsumed, harvestData.biomass_harvested);
   
   // Calculate financial metrics
@@ -252,10 +275,10 @@ const HarvestHistoryDetail = ({ harvestId, open, onOpenChange }: HarvestHistoryD
   const getPerformanceScore = () => {
     let score = 0;
     
-    // Survival rate (40% weight)
-    if (actualSurvivalRate >= 90) score += 40;
-    else if (actualSurvivalRate >= 80) score += 30;
-    else if (actualSurvivalRate >= 70) score += 20;
+     // Survival rate (40% weight)
+    if (cumulativeSurvivalRate >= 90) score += 40;
+    else if (cumulativeSurvivalRate >= 80) score += 30;
+    else if (cumulativeSurvivalRate >= 70) score += 20;
     else score += 10;
     
     // FCR (30% weight)
@@ -396,17 +419,17 @@ const HarvestHistoryDetail = ({ harvestId, open, onOpenChange }: HarvestHistoryD
                       <p className="text-sm text-muted-foreground">Sobrevivência Esperada</p>
                       <p className="text-lg font-medium">{expectedSurvivalRate?.toFixed(1)}%</p>
                     </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Sobrevivência Real</p>
-                      <p className="text-lg font-medium">{actualSurvivalRate.toFixed(1)}%</p>
-                    </div>
+                     <div>
+                       <p className="text-sm text-muted-foreground">Sobrevivência Real</p>
+                       <p className="text-lg font-medium">{cumulativeSurvivalRate.toFixed(1)}%</p>
+                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Diferença</p>
-                      <p className={`text-lg font-medium ${
-                        (actualSurvivalRate - (expectedSurvivalRate || 0)) > 0 ? 'text-green-600' : 'text-red-600'
-                      }`}>
-                        {(actualSurvivalRate - (expectedSurvivalRate || 0)) > 0 ? '+' : ''}
-                        {(actualSurvivalRate - (expectedSurvivalRate || 0)).toFixed(1)}%
+                       <p className={`text-lg font-medium ${
+                         (cumulativeSurvivalRate - (expectedSurvivalRate || 0)) > 0 ? 'text-green-600' : 'text-red-600'
+                       }`}>
+                         {(cumulativeSurvivalRate - (expectedSurvivalRate || 0)) > 0 ? '+' : ''}
+                         {(cumulativeSurvivalRate - (expectedSurvivalRate || 0)).toFixed(1)}%
                       </p>
                     </div>
                   </div>
@@ -423,8 +446,59 @@ const HarvestHistoryDetail = ({ harvestId, open, onOpenChange }: HarvestHistoryD
             </Card>
           )}
 
-          {/* Performance do Ciclo */}
-          {harvestData.harvest_type === 'total' && (
+          {/* Métricas da Despesca */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                {harvestData.harvest_type === 'total' ? 'Performance do Ciclo' : 'Métricas da Despesca'}
+                {harvestData.harvest_type === 'total' && (
+                  <Badge className={`${performanceScore.color} text-white`}>
+                    {performanceScore.label}
+                  </Badge>
+                )}
+              </CardTitle>
+              <CardDescription>
+                {harvestData.harvest_type === 'total' 
+                  ? 'Métricas de performance baseadas nos dados reconciliados'
+                  : 'Métricas específicas desta despesca parcial'
+                }
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div>
+                  <p className="text-sm text-muted-foreground">FCA {harvestData.harvest_type === 'partial' ? 'da Despesca' : 'Real'}</p>
+                  <p className="text-xl font-semibold">{fca.toFixed(2)}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Custo/kg {harvestData.harvest_type === 'partial' ? 'da Despesca' : ''}</p>
+                  <p className="text-xl font-semibold">R$ {costPerKg.toFixed(2)}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Produtividade</p>
+                  <p className="text-xl font-semibold">{(productivity * 10000).toFixed(0)} kg/ha</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Densidade {harvestData.harvest_type === 'partial' ? 'Despescada' : 'Final'}</p>
+                  <p className="text-xl font-semibold">{finalDensity.toFixed(1)} un/m²</p>
+                </div>
+              </div>
+              <Separator className="my-4" />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-muted-foreground">Crescimento Semanal</p>
+                  <p className="text-lg font-medium">{weeklyGrowth.toFixed(1)} g/semana</p>
+                </div>
+                 <div>
+                   <p className="text-sm text-muted-foreground">Sobrevivência {harvestData.harvest_type === 'partial' ? 'Acumulada' : 'Real'}</p>
+                   <p className="text-lg font-medium">{cumulativeSurvivalRate.toFixed(1)}%</p>
+                 </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Performance do Ciclo - só para despescas totais */}
+          {harvestData.harvest_type === 'total' && false && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -462,17 +536,73 @@ const HarvestHistoryDetail = ({ harvestId, open, onOpenChange }: HarvestHistoryD
                     <p className="text-sm text-muted-foreground">Crescimento Semanal</p>
                     <p className="text-lg font-medium">{weeklyGrowth.toFixed(1)} g/semana</p>
                   </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Sobrevivência Real</p>
-                    <p className="text-lg font-medium">{actualSurvivalRate.toFixed(1)}%</p>
-                  </div>
+                   <div>
+                     <p className="text-sm text-muted-foreground">Sobrevivência Real</p>
+                     <p className="text-lg font-medium">{cumulativeSurvivalRate.toFixed(1)}%</p>
+                   </div>
                 </div>
               </CardContent>
             </Card>
           )}
 
           {/* Análise de Custos */}
-          {harvestData.harvest_type === 'total' && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">
+                {harvestData.harvest_type === 'total' ? 'Análise de Custos' : 'Custos Alocados à Despesca'}
+              </CardTitle>
+              <CardDescription>
+                {harvestData.harvest_type === 'total' 
+                  ? 'Detalhamento completo dos custos do ciclo'
+                  : 'Custos proporcionalmente alocados a esta despesca parcial'
+                }
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="p-4 bg-muted/30 rounded-lg">
+                    <p className="text-sm text-muted-foreground">Custo PLs {harvestData.harvest_type === 'partial' ? '(alocado)' : ''}</p>
+                    <p className="text-lg font-medium">R$ {allocatedPlCost.toFixed(2)}</p>
+                    {harvestData.harvest_type === 'total' && (
+                      <p className="text-xs text-muted-foreground">
+                        {(harvestData.pond_batch.pl_quantity / 1000).toFixed(0)}k PLs × R$ {harvestData.pond_batch.batch.pl_cost.toFixed(2)}
+                      </p>
+                    )}
+                  </div>
+                  <div className="p-4 bg-muted/30 rounded-lg">
+                    <p className="text-sm text-muted-foreground">Preparação {harvestData.harvest_type === 'partial' ? '(alocado)' : ''}</p>
+                    <p className="text-lg font-medium">R$ {allocatedPrepCost.toFixed(2)}</p>
+                  </div>
+                  <div className="p-4 bg-muted/30 rounded-lg">
+                    <p className="text-sm text-muted-foreground">Ração {harvestData.harvest_type === 'partial' ? '(alocado)' : ''}</p>
+                    <p className="text-lg font-medium">R$ {totalFeedCost.toFixed(2)}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {totalFeedConsumed.toFixed(1)} kg consumidos
+                    </p>
+                  </div>
+                  <div className="p-4 bg-muted/30 rounded-lg">
+                    <p className="text-sm text-muted-foreground">Insumos {harvestData.harvest_type === 'partial' ? '(alocado)' : ''}</p>
+                    <p className="text-lg font-medium">R$ {totalInputCost.toFixed(2)}</p>
+                  </div>
+                </div>
+                <Separator />
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="p-4 bg-primary/10 rounded-lg">
+                    <p className="text-sm text-muted-foreground">Custo Total {harvestData.harvest_type === 'partial' ? 'da Despesca' : ''}</p>
+                    <p className="text-2xl font-bold text-primary">R$ {totalCost.toFixed(2)}</p>
+                  </div>
+                  <div className="p-4 bg-primary/10 rounded-lg">
+                    <p className="text-sm text-muted-foreground">Custo por Kg</p>
+                    <p className="text-2xl font-bold text-primary">R$ {costPerKg.toFixed(2)}</p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Análise de Custos - versão antiga só para despescas totais */}
+          {harvestData.harvest_type === 'total' && false && (
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">Análise de Custos</CardTitle>

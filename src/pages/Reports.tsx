@@ -16,6 +16,7 @@ import { FeedingHistoryPanel } from "@/components/FeedingHistoryPanel";
 import { GrowthAnalysis } from "@/components/GrowthAnalysis";
 import { OperationalCosts } from "@/components/OperationalCosts";
 import { QuantityUtils } from "@/lib/quantityUtils";
+import { DashboardSkeleton } from "@/components/DashboardSkeleton";
 
 interface ProductionReport {
   totalCycles: number;
@@ -495,14 +496,7 @@ export default function Reports() {
   if (loading) {
     return (
       <Layout>
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-muted rounded w-1/3"></div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {[1, 2, 3].map(i => (
-              <div key={i} className="h-32 bg-muted rounded"></div>
-            ))}
-          </div>
-        </div>
+        <DashboardSkeleton />
       </Layout>
     );
   }

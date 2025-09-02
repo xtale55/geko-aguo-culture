@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Layout } from "@/components/Layout";
 import { useNavigate } from "react-router-dom";
+import { LoadingScreen } from "@/components/LoadingScreen";
 
 interface InventoryItem {
   id: string;
@@ -230,7 +231,7 @@ export default function Inventory() {
   }, 0);
 
   if (loading) {
-    return <div className="flex justify-center items-center h-64">Carregando...</div>;
+    return <LoadingScreen message="Carregando estoque..." />;
   }
 
   return (

@@ -14,6 +14,7 @@ import { useNavigate } from 'react-router-dom';
 import { Droplets, Plus, ArrowLeft, TrendingUp, TrendingDown, AlertTriangle, ThermometerSun } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getCurrentDateForInput, formatDateForDisplay } from '@/lib/utils';
+import { LoadingScreen } from '@/components/LoadingScreen';
 
 interface Pond {
   id: string;
@@ -198,18 +199,7 @@ export default function WaterQuality() {
   };
 
   if (loading) {
-    return (
-      <Layout>
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-muted rounded w-1/3"></div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {[1, 2].map(i => (
-              <div key={i} className="h-64 bg-muted rounded"></div>
-            ))}
-          </div>
-        </div>
-      </Layout>
-    );
+    return <LoadingScreen message="Carregando qualidade da água..." />;
   }
 
   if (ponds.length === 0) {

@@ -17,6 +17,7 @@ import { GrowthAnalysis } from "@/components/GrowthAnalysis";
 import { OperationalCosts } from "@/components/OperationalCosts";
 import { QuantityUtils } from "@/lib/quantityUtils";
 import { DashboardSkeleton } from "@/components/DashboardSkeleton";
+import { LoadingScreen } from "@/components/LoadingScreen";
 
 interface ProductionReport {
   totalCycles: number;
@@ -494,11 +495,7 @@ export default function Reports() {
   };
 
   if (loading) {
-    return (
-      <Layout>
-        <DashboardSkeleton />
-      </Layout>
-    );
+    return <LoadingScreen message="Carregando relatórios..." />;
   }
 
   return (

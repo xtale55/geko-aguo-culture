@@ -13,6 +13,7 @@ import { Plus, Fish, Waves, Edit, Trash2, MapPin, Activity, CheckCircle } from '
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { StockingContent } from '@/components/StockingContent';
+import { LoadingScreen } from '@/components/LoadingScreen';
 
 interface Farm {
   id: string;
@@ -217,18 +218,7 @@ export default function Farm() {
   };
 
   if (loading) {
-    return (
-      <Layout>
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-muted rounded w-1/3"></div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {[1, 2, 3].map(i => (
-              <div key={i} className="h-48 bg-muted rounded"></div>
-            ))}
-          </div>
-        </div>
-      </Layout>
-    );
+    return <LoadingScreen message="Carregando fazendas..." />;
   }
 
   if (farms.length === 0) {

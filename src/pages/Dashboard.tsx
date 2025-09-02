@@ -2,6 +2,7 @@ import { memo } from 'react';
 import { Layout } from '@/components/Layout';
 import { StatsCard } from '@/components/StatsCard';
 import { DashboardSkeleton } from '@/components/DashboardSkeleton';
+import { LoadingScreen } from '@/components/LoadingScreen';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
@@ -79,11 +80,7 @@ const Dashboard = memo(function Dashboard() {
   ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 8);
 
   if (loading) {
-    return (
-      <Layout>
-        <DashboardSkeleton />
-      </Layout>
-    );
+    return <LoadingScreen message="Carregando dashboard..." />;
   }
 
   if (!farms?.length) {

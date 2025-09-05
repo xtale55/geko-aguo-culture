@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, DollarSign, Trash2, Users, Zap, Fuel, Package } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -54,7 +55,7 @@ export function OperationalCosts() {
     amount: '',
     cost_date: new Date().toISOString().split('T')[0],
     description: '',
-    pond_batch_id: ''
+    selectedPonds: [] as string[]
   });
   const { user } = useAuth();
   const { toast } = useToast();
@@ -158,11 +159,11 @@ export function OperationalCosts() {
 
   const handleAddCost = async () => {
     try {
-      if (!newCost.category || !newCost.amount || !newCost.description) {
+      if (!newCost.category || !newCost.amount || !newCost.description || newCost.selectedPonds.length === 0) {
         toast({
           variant: "destructive",
           title: "Erro",
-          description: "Preencha todos os campos obrigatórios"
+          description: "Preencha todos os campos obrigatórios e selecione pelo menos um viveiro"
         });
         return;
       }
@@ -185,93 +186,70 @@ export function OperationalCosts() {
       const farmId = farms[0].id;
       const totalAmount = parseFloat(newCost.amount);
 
-      // Se for custo geral, distribuir entre viveiros ativos
-      if (newCost.pond_batch_id === "general") {
-        // Buscar todos os pond_batches ativos
-        const { data: activePondBatches } = await supabase
-          .from('pond_batches')
-          .select(`
-            id, 
-            current_population,
-            ponds!inner(farm_id),
-            biometrics(average_weight)
-          `)
-          .eq('ponds.farm_id', farmId)
-          .gt('current_population', 0)
-          .order('biometrics.created_at', { ascending: false });
-
-        if (!activePondBatches || activePondBatches.length === 0) {
-          toast({
-            variant: "destructive",
-            title: "Erro",
-            description: "Nenhum viveiro ativo encontrado para distribuir o custo"
-          });
-          return;
-        }
-
-        // Calcular biomassa total para distribuição proporcional
-        let totalBiomass = 0;
-        const pondBiomassData: { pond_batch_id: string; biomass: number }[] = [];
-
-        activePondBatches.forEach(pb => {
-          const latestBiometry = pb.biometrics?.[0];
-          const biomass = latestBiometry ? 
-            (pb.current_population * latestBiometry.average_weight) / 1000 : 
-            pb.current_population * 0.005; // Peso padrão se não houver biometria
-          
-          totalBiomass += biomass;
-          pondBiomassData.push({
-            pond_batch_id: pb.id,
-            biomass
-          });
-        });
-
-        // Criar registros proporcionais para cada viveiro
-        const costsToInsert = pondBiomassData.map(({ pond_batch_id, biomass }) => ({
-          farm_id: farmId,
-          pond_batch_id,
-          category: newCost.category as 'labor' | 'energy' | 'fuel' | 'other',
-          amount: (totalAmount * biomass) / totalBiomass,
-          cost_date: newCost.cost_date,
-          description: `${newCost.description} (distribuído por biomassa)`
-        }));
-
-        const { error } = await supabase
-          .from('operational_costs')
-          .insert(costsToInsert);
-
-        if (error) throw error;
-
-        toast({
-          title: "Custo distribuído",
-          description: `Custo de R$ ${totalAmount.toFixed(2)} distribuído entre ${costsToInsert.length} viveiros ativos`
-        });
-
-      } else {
-        // Custo específico do viveiro
-        const costData: any = {
-          farm_id: farmId,
-          category: newCost.category as 'labor' | 'energy' | 'fuel' | 'other',
-          amount: totalAmount,
-          cost_date: newCost.cost_date,
-          description: newCost.description
-        };
-
-        if (newCost.pond_batch_id) {
-          costData.pond_batch_id = newCost.pond_batch_id;
-        }
-
-        const { error } = await supabase
-          .from('operational_costs')
-          .insert(costData);
-
-        if (error) throw error;
-
-        toast({
-          title: "Custo adicionado",
-          description: "Custo operacional registrado com sucesso"
-        });
+      // Se selecionou "all", usar todos os viveiros ativos
+      let selectedPondIds = newCost.selectedPonds;
+      if (selectedPondIds.includes('all')) {
+        selectedPondIds = pondBatches.map(pb => pb.id);
       }
+
+      // Buscar dados de biomassa dos viveiros selecionados
+      const { data: selectedPondBatches } = await supabase
+        .from('pond_batches')
+        .select(`
+          id, 
+          current_population,
+          biometrics(average_weight)
+        `)
+        .in('id', selectedPondIds)
+        .gt('current_population', 0)
+        .order('biometrics.created_at', { ascending: false });
+
+      if (!selectedPondBatches || selectedPondBatches.length === 0) {
+        toast({
+          variant: "destructive",
+          title: "Erro",
+          description: "Nenhum viveiro ativo encontrado nos viveiros selecionados"
+        });
+        return;
+      }
+
+      // Calcular biomassa total para distribuição proporcional
+      let totalBiomass = 0;
+      const pondBiomassData: { pond_batch_id: string; biomass: number }[] = [];
+
+      selectedPondBatches.forEach(pb => {
+        const latestBiometry = pb.biometrics?.[0];
+        const biomass = latestBiometry ? 
+          (pb.current_population * latestBiometry.average_weight) / 1000 : 
+          pb.current_population * 0.005; // Peso padrão se não houver biometria
+        
+        totalBiomass += biomass;
+        pondBiomassData.push({
+          pond_batch_id: pb.id,
+          biomass
+        });
+      });
+
+      // Criar registros proporcionais para cada viveiro selecionado
+      const costsToInsert = pondBiomassData.map(({ pond_batch_id, biomass }) => ({
+        farm_id: farmId,
+        pond_batch_id,
+        category: newCost.category as 'labor' | 'energy' | 'fuel' | 'other',
+        amount: (totalAmount * biomass) / totalBiomass,
+        cost_date: newCost.cost_date,
+        description: `${newCost.description} (distribuído por biomassa)`
+      }));
+
+      const { error } = await supabase
+        .from('operational_costs')
+        .insert(costsToInsert);
+
+      if (error) throw error;
+
+      toast({
+        title: "Custo distribuído",
+        description: `Custo de R$ ${totalAmount.toFixed(2)} distribuído entre ${costsToInsert.length} viveiros ativos`
+      });
 
       setIsDialogOpen(false);
       setNewCost({
@@ -279,7 +257,7 @@ export function OperationalCosts() {
         amount: '',
         cost_date: new Date().toISOString().split('T')[0],
         description: '',
-        pond_batch_id: ''
+        selectedPonds: []
       });
       loadOperationalCosts();
 
@@ -443,20 +421,54 @@ export function OperationalCosts() {
               </div>
               
               <div>
-                <Label htmlFor="pond_batch">Viveiro (Opcional)</Label>
-                <Select value={newCost.pond_batch_id} onValueChange={(value) => setNewCost({...newCost, pond_batch_id: value})}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione o viveiro (opcional)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="general">Geral (todos os viveiros)</SelectItem>
-                    {pondBatches.map(pb => (
-                      <SelectItem key={pb.id} value={pb.id}>
+                <Label htmlFor="pond_batch">Viveiros</Label>
+                <div className="space-y-3 border rounded-lg p-3 max-h-48 overflow-y-auto">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="all"
+                      checked={newCost.selectedPonds.includes('all')}
+                      onCheckedChange={(checked) => {
+                        if (checked) {
+                          setNewCost({...newCost, selectedPonds: ['all']});
+                        } else {
+                          setNewCost({...newCost, selectedPonds: []});
+                        }
+                      }}
+                    />
+                    <Label htmlFor="all" className="text-sm font-medium">
+                      Todos os viveiros ativos
+                    </Label>
+                  </div>
+                  
+                  {pondBatches.map(pb => (
+                    <div key={pb.id} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={pb.id}
+                        checked={newCost.selectedPonds.includes(pb.id) || newCost.selectedPonds.includes('all')}
+                        disabled={newCost.selectedPonds.includes('all')}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setNewCost({
+                              ...newCost, 
+                              selectedPonds: [...newCost.selectedPonds.filter(id => id !== 'all'), pb.id]
+                            });
+                          } else {
+                            setNewCost({
+                              ...newCost, 
+                              selectedPonds: newCost.selectedPonds.filter(id => id !== pb.id)
+                            });
+                          }
+                        }}
+                      />
+                      <Label htmlFor={pb.id} className="text-sm">
                         {pb.pond_name} - {pb.batch_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  O custo será distribuído proporcionalmente baseado na biomassa dos viveiros selecionados
+                </p>
               </div>
               
               <Button onClick={handleAddCost} className="w-full">

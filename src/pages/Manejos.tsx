@@ -55,6 +55,10 @@ export default function Manejos() {
               <Scale className="w-4 h-4" />
               Biometria
             </TabsTrigger>
+            <TabsTrigger value="inputs" className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-blue-700 data-[state=active]:text-white data-[state=active]:shadow-lg font-medium text-slate-700 data-[state=active]:font-semibold transition-all rounded-md">
+              <Beaker className="w-4 h-4" />
+              Insumos
+            </TabsTrigger>
             <TabsTrigger value="water-quality" className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-blue-700 data-[state=active]:text-white data-[state=active]:shadow-lg font-medium text-slate-700 data-[state=active]:font-semibold transition-all rounded-md">
               <Droplets className="w-4 h-4" />
               Água
@@ -67,14 +71,14 @@ export default function Manejos() {
               <Fish className="w-4 h-4" />
               Despesca
             </TabsTrigger>
-            <TabsTrigger value="inputs" className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-blue-700 data-[state=active]:text-white data-[state=active]:shadow-lg font-medium text-slate-700 data-[state=active]:font-semibold transition-all rounded-md">
-              <Beaker className="w-4 h-4" />
-              Insumos
-            </TabsTrigger>
           </TabsList>
           
           <TabsContent value="biometry" className="mt-6">
             <BiometryTab />
+          </TabsContent>
+          
+          <TabsContent value="inputs" className="mt-6">
+            <InputApplicationTab />
           </TabsContent>
           
           <TabsContent value="water-quality" className="mt-6">
@@ -87,10 +91,6 @@ export default function Manejos() {
           
           <TabsContent value="harvest" className="mt-6">
             <HarvestTab />
-          </TabsContent>
-          
-          <TabsContent value="inputs" className="mt-6">
-            <InputApplicationTab />
           </TabsContent>
         </Tabs>
         </div>

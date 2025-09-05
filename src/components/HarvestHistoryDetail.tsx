@@ -60,6 +60,16 @@ interface HarvestDetailData {
     measurement_date: string;
     average_weight: number;
   }>;
+  previous_harvests: Array<{
+    id: string;
+    harvest_date: string;
+    harvest_type: string;
+    biomass_harvested: number;
+    allocated_feed_cost: number | null;
+    allocated_input_cost: number | null;
+    allocated_pl_cost: number | null;
+    allocated_preparation_cost: number | null;
+  }>;
 }
 
 interface HarvestHistoryDetailProps {
@@ -157,13 +167,22 @@ const HarvestHistoryDetail = ({ harvestId, open, onOpenChange }: HarvestHistoryD
         .eq('pond_batch_id', harvestRecord.pond_batch.id)
         .order('measurement_date');
 
+      // Fetch previous harvests for the same pond_batch to calculate remaining costs
+      const { data: previousHarvests } = await supabase
+        .from('harvest_records')
+        .select('id, harvest_date, harvest_type, biomass_harvested, allocated_feed_cost, allocated_input_cost, allocated_pl_cost, allocated_preparation_cost')
+        .eq('pond_batch_id', harvestRecord.pond_batch.id)
+        .lt('harvest_date', harvestRecord.harvest_date)
+        .order('harvest_date');
+
       // Combine all data
       const combinedData: HarvestDetailData = {
         ...harvestRecord,
         harvest_type: harvestRecord.harvest_type as 'total' | 'partial',
         feeding_records: feedingRecords || [],
         input_applications: inputApplications || [],
-        biometrics: biometrics || []
+        biometrics: biometrics || [],
+        previous_harvests: previousHarvests || []
       };
 
       setHarvestData(combinedData);
@@ -328,6 +347,12 @@ const HarvestHistoryDetail = ({ harvestId, open, onOpenChange }: HarvestHistoryD
   const plCostTotal = (harvestData.pond_batch.batch.pl_cost * harvestData.pond_batch.pl_quantity) / 1000;
   const preparationCostTotal = harvestData.pond_batch.preparation_cost || 0;
   
+  // Calculate costs already allocated to previous harvests
+  const previousAllocatedFeedCost = harvestData.previous_harvests.reduce((sum, h) => sum + (h.allocated_feed_cost || 0), 0);
+  const previousAllocatedInputCost = harvestData.previous_harvests.reduce((sum, h) => sum + (h.allocated_input_cost || 0), 0);
+  const previousAllocatedPlCost = harvestData.previous_harvests.reduce((sum, h) => sum + (h.allocated_pl_cost || 0), 0);
+  const previousAllocatedPrepCost = harvestData.previous_harvests.reduce((sum, h) => sum + (h.allocated_preparation_cost || 0), 0);
+  
   // Calculate total costs up to harvest date
   const totalFeedCostToDate = harvestData.feeding_records.reduce((sum, record) => 
     sum + (QuantityUtils.gramsToKg(record.actual_amount) * (record.unit_cost || 0)), 0);
@@ -335,41 +360,35 @@ const HarvestHistoryDetail = ({ harvestId, open, onOpenChange }: HarvestHistoryD
   const totalInputCostToDate = harvestData.input_applications.reduce((sum, input) => 
     sum + (input.total_cost || 0), 0);
 
-  // For partial harvests, calculate proportional costs based on biomass ratio
+  // For this harvest specifically, calculate remaining costs (subtract what was already allocated)
+  const remainingFeedCost = Math.max(0, totalFeedCostToDate - previousAllocatedFeedCost);
+  const remainingInputCost = Math.max(0, totalInputCostToDate - previousAllocatedInputCost);
+  const remainingPlCost = Math.max(0, plCostTotal - previousAllocatedPlCost);
+  const remainingPrepCost = Math.max(0, preparationCostTotal - previousAllocatedPrepCost);
+
+  // Use allocated costs from database if available, otherwise use remaining costs for this harvest
   let allocatedFeedCost, allocatedInputCost, allocatedPlCost, allocatedPrepCost;
   
-  if (harvestData.harvest_type === 'partial') {
-    // Calculate total biomass present at time of harvest
-    // Use expected_biomass if available, otherwise estimate from population and weights
-    let totalBiomassPresente = harvestData.expected_biomass;
+  if (harvestData.allocated_feed_cost !== null) {
+    // Use database values if available
+    allocatedFeedCost = harvestData.allocated_feed_cost;
+    allocatedInputCost = harvestData.allocated_input_cost || 0;
+    allocatedPlCost = harvestData.allocated_pl_cost || 0;
+    allocatedPrepCost = harvestData.allocated_preparation_cost || 0;
+  } else if (harvestData.harvest_type === 'partial' && harvestData.expected_biomass && harvestData.expected_biomass > 0) {
+    // For partial harvests, calculate proportional costs based on biomass ratio
+    const proportionHarvested = Math.min(1.0, harvestData.biomass_harvested / harvestData.expected_biomass);
     
-    if (!totalBiomassPresente && harvestData.biometrics.length > 0) {
-      // Estimate total biomass using latest biometry and current population before harvest
-      const latestBiometry = harvestData.biometrics[harvestData.biometrics.length - 1];
-      const estimatedCurrentPopulation = harvestData.population_harvested; // This is what was harvested
-      // We need to estimate what was the total population before harvest
-      // For simplicity, we'll use the expected_biomass if available
-      totalBiomassPresente = harvestData.expected_biomass || harvestData.biomass_harvested;
-    }
-    
-    if (!totalBiomassPresente) {
-      totalBiomassPresente = harvestData.biomass_harvested; // Fallback
-    }
-    
-    // Calculate proportion: what % of total biomass was harvested
-    const proportionHarvested = Math.min(1.0, harvestData.biomass_harvested / totalBiomassPresente);
-    
-    // Allocate costs proportionally
-    allocatedFeedCost = totalFeedCostToDate * proportionHarvested;
-    allocatedInputCost = totalInputCostToDate * proportionHarvested;
-    allocatedPlCost = plCostTotal * proportionHarvested;
-    allocatedPrepCost = preparationCostTotal * proportionHarvested;
+    allocatedFeedCost = remainingFeedCost * proportionHarvested;
+    allocatedInputCost = remainingInputCost * proportionHarvested;
+    allocatedPlCost = remainingPlCost * proportionHarvested;
+    allocatedPrepCost = remainingPrepCost * proportionHarvested;
   } else {
-    // For total harvests, use all costs
-    allocatedFeedCost = totalFeedCostToDate;
-    allocatedInputCost = totalInputCostToDate;
-    allocatedPlCost = plCostTotal;
-    allocatedPrepCost = preparationCostTotal;
+    // For total harvests or when no expected biomass, use all remaining costs
+    allocatedFeedCost = remainingFeedCost;
+    allocatedInputCost = remainingInputCost;
+    allocatedPlCost = remainingPlCost;
+    allocatedPrepCost = remainingPrepCost;
   }
   
   // Calculate total costs for this harvest
@@ -377,8 +396,10 @@ const HarvestHistoryDetail = ({ harvestId, open, onOpenChange }: HarvestHistoryD
   const costPerKg = totalCost / harvestData.biomass_harvested;
   
   // Calculate FCR for this harvest using allocated feed
-  const allocatedFeedKg = allocatedFeedCost / (totalFeedCostToDate > 0 ? totalFeedCostToDate : 1) * 
-    harvestData.feeding_records.reduce((sum, record) => sum + QuantityUtils.gramsToKg(record.actual_amount), 0);
+  // Calculate the proportion of total feed that corresponds to this harvest's allocated cost
+  const totalFeedKgToDate = harvestData.feeding_records.reduce((sum, record) => sum + QuantityUtils.gramsToKg(record.actual_amount), 0);
+  const feedCostRatio = totalFeedCostToDate > 0 ? allocatedFeedCost / totalFeedCostToDate : 0;
+  const allocatedFeedKg = totalFeedKgToDate * feedCostRatio;
   
   const fca = harvestData.biomass_harvested > 0 ? allocatedFeedKg / harvestData.biomass_harvested : 0;
   

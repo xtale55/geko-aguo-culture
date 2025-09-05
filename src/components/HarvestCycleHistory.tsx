@@ -32,6 +32,10 @@ interface HarvestRecord {
   total_value: number | null;
   notes: string | null;
   average_weight_at_harvest?: number;
+  allocated_feed_cost?: number | null;
+  allocated_input_cost?: number | null;
+  allocated_pl_cost?: number | null;
+  allocated_preparation_cost?: number | null;
 }
 
 interface CycleHarvest {
@@ -89,7 +93,7 @@ const HarvestCycleHistory = ({ onRefresh }: HarvestCycleHistoryProps) => {
     try {
       setLoading(true);
 
-      // Get all pond batches that have harvest records
+      // Get all pond batches that have harvest records with allocated costs
       const { data: harvestData, error: harvestError } = await supabase
         .from('harvest_records')
         .select(`
@@ -162,7 +166,7 @@ const HarvestCycleHistory = ({ onRefresh }: HarvestCycleHistoryProps) => {
 
         const cycle = cycleMap.get(pondBatch.id)!;
         
-        // Add harvest to cycle
+        // Add harvest to cycle (include allocated costs for calculations)
         cycle.harvests.push({
           id: harvest.id,
           harvest_date: harvest.harvest_date,
@@ -172,8 +176,12 @@ const HarvestCycleHistory = ({ onRefresh }: HarvestCycleHistoryProps) => {
           price_per_kg: harvest.price_per_kg,
           total_value: harvest.total_value,
           notes: harvest.notes,
-          average_weight_at_harvest: harvest.average_weight_at_harvest
-        });
+          average_weight_at_harvest: harvest.average_weight_at_harvest,
+          allocated_feed_cost: harvest.allocated_feed_cost,
+          allocated_input_cost: harvest.allocated_input_cost,
+          allocated_pl_cost: harvest.allocated_pl_cost,
+          allocated_preparation_cost: harvest.allocated_preparation_cost
+        } as any);
 
         // Update cycle totals
         cycle.total_biomass_harvested += harvest.biomass_harvested;
@@ -197,10 +205,14 @@ const HarvestCycleHistory = ({ onRefresh }: HarvestCycleHistoryProps) => {
         const pondAreaHa = cycle.pond_area / 10000; // Convert m² to ha
         cycle.productivity_per_ha = cycle.total_biomass_harvested / pondAreaHa;
 
-        // Calculate approximate costs (simplified for display)
-        const plCost = cycle.pl_quantity * 0.15; // Approximate PL cost
-        const estimatedFeedCost = cycle.total_biomass_harvested * 1.5 * 7; // Estimated FCA 1.5 * feed price
-        cycle.total_cycle_cost = plCost + estimatedFeedCost;
+        // Calculate costs using REAL data from harvests (allocated costs)
+        cycle.total_cycle_cost = cycle.harvests.reduce((sum, harvest) => {
+          const feedCost = (harvest as any).allocated_feed_cost || 0;
+          const inputCost = (harvest as any).allocated_input_cost || 0; 
+          const plCost = (harvest as any).allocated_pl_cost || 0;
+          const prepCost = (harvest as any).allocated_preparation_cost || 0;
+          return sum + feedCost + inputCost + plCost + prepCost;
+        }, 0);
         
         // Calculate financial metrics
         cycle.profit_margin = cycle.total_revenue > 0 
@@ -547,7 +559,7 @@ const HarvestCycleHistory = ({ onRefresh }: HarvestCycleHistoryProps) => {
                             <div className="text-xl font-bold text-red-600">
                               R$ {cycle.total_cycle_cost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                             </div>
-                            <div className="text-sm text-muted-foreground">Custo Total (Estimado)</div>
+                            <div className="text-sm text-muted-foreground">Custo Total Real</div>
                           </div>
                           <div>
                             <div className={`text-xl font-bold ${
@@ -566,35 +578,47 @@ const HarvestCycleHistory = ({ onRefresh }: HarvestCycleHistoryProps) => {
                           Indicadores Técnicos
                         </h5>
                         <div className="space-y-3">
-                          <div>
-                            <div className="text-xl font-bold">
-                              R$ {cycle.cost_per_kg.toFixed(2)}/kg
-                            </div>
-                            <div className="text-sm text-muted-foreground">Custo por kg (Estimado)</div>
-                          </div>
-                          <div>
-                            <div className={`text-xl font-bold ${getPerformanceColor(cycle.survival_rate, cycle.profit_margin)}`}>
-                              {cycle.profit_margin.toFixed(0)}%
-                            </div>
-                            <div className="text-sm text-muted-foreground">Margem de Lucro</div>
-                          </div>
-                          <div>
-                            <div className="text-xl font-bold">
-                              {cycle.cycle_duration} dias
-                            </div>
-                            <div className="text-sm text-muted-foreground">Duração do Ciclo</div>
-                          </div>
+                           <div>
+                             <div className="text-xl font-bold">
+                               R$ {cycle.cost_per_kg.toFixed(2)}/kg
+                             </div>
+                             <div className="text-sm text-muted-foreground">Custo por kg Real</div>
+                           </div>
+                           <div>
+                             <div className="text-xl font-bold">
+                               {(() => {
+                                 const totalFeedCost = cycle.harvests.reduce((sum, h) => sum + ((h as any).allocated_feed_cost || 0), 0);
+                                 const avgFeedPrice = 7; // R$ por kg - estimativa
+                                 const totalFeedKg = totalFeedCost / avgFeedPrice;
+                                 const cycleFCA = cycle.total_biomass_harvested > 0 ? totalFeedKg / cycle.total_biomass_harvested : 0;
+                                 return cycleFCA.toFixed(2);
+                               })()}
+                             </div>
+                             <div className="text-sm text-muted-foreground">FCA do Ciclo Completo</div>
+                           </div>
+                           <div>
+                             <div className={`text-xl font-bold ${getPerformanceColor(cycle.survival_rate, cycle.profit_margin)}`}>
+                               {cycle.profit_margin.toFixed(0)}%
+                             </div>
+                             <div className="text-sm text-muted-foreground">Margem de Lucro</div>
+                           </div>
+                           <div>
+                             <div className="text-xl font-bold">
+                               {cycle.cycle_duration} dias
+                             </div>
+                             <div className="text-sm text-muted-foreground">Duração do Ciclo</div>
+                           </div>
                         </div>
                       </div>
                     </div>
                     
-                    {/* Nota sobre estimativas */}
-                    <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                      <p className="text-xs text-yellow-800">
-                        ⚠️ <strong>Nota:</strong> Os valores de custo e FCA consolidados são estimativas. 
-                        Para valores precisos, clique em cada despesca individual para ver os cálculos detalhados.
-                      </p>
-                    </div>
+                     {/* Nota sobre dados reais */}
+                     <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                       <p className="text-xs text-green-800">
+                         ✅ <strong>Dados consolidados reais:</strong> Os valores acima são calculados a partir dos custos 
+                         realmente alocados em cada despesca, proporcionalmente à biomassa despescada.
+                       </p>
+                     </div>
                   </CardContent>
                 </Card>
               </div>

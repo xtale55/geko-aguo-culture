@@ -642,6 +642,60 @@ export type Database = {
         }
         Relationships: []
       }
+      survival_adjustments: {
+        Row: {
+          adjusted_population: number
+          adjustment_date: string
+          adjustment_type: string
+          biometry_based_biomass_kg: number | null
+          calculated_survival_rate: number | null
+          created_at: string
+          estimated_biomass_kg: number | null
+          estimated_survival_rate: number | null
+          id: string
+          latest_average_weight_g: number | null
+          notes: string | null
+          pond_batch_id: string
+          previous_population: number
+          reason: string | null
+          updated_at: string
+        }
+        Insert: {
+          adjusted_population: number
+          adjustment_date: string
+          adjustment_type: string
+          biometry_based_biomass_kg?: number | null
+          calculated_survival_rate?: number | null
+          created_at?: string
+          estimated_biomass_kg?: number | null
+          estimated_survival_rate?: number | null
+          id?: string
+          latest_average_weight_g?: number | null
+          notes?: string | null
+          pond_batch_id: string
+          previous_population: number
+          reason?: string | null
+          updated_at?: string
+        }
+        Update: {
+          adjusted_population?: number
+          adjustment_date?: string
+          adjustment_type?: string
+          biometry_based_biomass_kg?: number | null
+          calculated_survival_rate?: number | null
+          created_at?: string
+          estimated_biomass_kg?: number | null
+          estimated_survival_rate?: number | null
+          id?: string
+          latest_average_weight_g?: number | null
+          notes?: string | null
+          pond_batch_id?: string
+          previous_population?: number
+          reason?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       water_quality: {
         Row: {
           alkalinity: number | null

@@ -272,10 +272,13 @@ export default function Reports() {
           ?.filter(hr => hr.pond_batch_id === cycle.id)
           ?.some(hr => hr.harvest_type === 'total') || false;
         
-        // Only calculate survival rate if cycle is completed (has total harvest)
-        // Survival rate = (all harvested + current remaining) / initial PLs
-        const survivalRate = (hasTotal && cycle.pl_quantity > 0) 
-          ? ((cycle.current_population + harvestedPopulation) / cycle.pl_quantity) * 100 
+        // Calculate survival rate for active cycles
+        // For active cycles: current population / initial PLs
+        // For completed cycles: (all harvested + current remaining) / initial PLs
+        const survivalRate = cycle.pl_quantity > 0 
+          ? hasTotal 
+            ? ((cycle.current_population + harvestedPopulation) / cycle.pl_quantity) * 100
+            : (cycle.current_population / cycle.pl_quantity) * 100
           : 0;
 
         if (latestBiometry && cycle.current_population > 0) {

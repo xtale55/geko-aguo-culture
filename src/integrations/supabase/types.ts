@@ -694,7 +694,15 @@ export type Database = {
           reason?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "survival_adjustments_pond_batch_id_fkey"
+            columns: ["pond_batch_id"]
+            isOneToOne: false
+            referencedRelation: "pond_batches"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       water_quality: {
         Row: {

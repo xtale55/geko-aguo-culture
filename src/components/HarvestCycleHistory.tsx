@@ -61,12 +61,16 @@ interface CycleHarvest {
   total_cycle_cost: number;
   profit_margin: number;
   cost_per_kg: number;
+  real_fca: number; // Real Feed Conversion Ratio based on actual consumption
   
   // Individual harvests
   harvests: HarvestRecord[];
   
   // Pond area for calculations
   pond_area: number;
+  
+  // Real feed consumption
+  total_real_feed_kg: number;
 }
 
 interface HarvestCycleHistoryProps {
@@ -121,6 +125,22 @@ const HarvestCycleHistory = ({ onRefresh }: HarvestCycleHistoryProps) => {
 
       if (harvestError) throw harvestError;
 
+      // Get real feed consumption data for all pond batches
+      const pondBatchIds = [...new Set(harvestData?.map(h => h.pond_batch_id) || [])];
+      const { data: feedingData, error: feedingError } = await supabase
+        .from('feeding_records')
+        .select('pond_batch_id, actual_amount')
+        .in('pond_batch_id', pondBatchIds);
+
+      if (feedingError) throw feedingError;
+
+      // Calculate total feed consumption per pond batch
+      const feedConsumptionMap = new Map<string, number>();
+      feedingData?.forEach(record => {
+        const currentTotal = feedConsumptionMap.get(record.pond_batch_id) || 0;
+        feedConsumptionMap.set(record.pond_batch_id, currentTotal + (record.actual_amount || 0));
+      });
+
       // Group harvests by pond_batch_id
       const cycleMap = new Map<string, CycleHarvest>();
 
@@ -159,6 +179,8 @@ const HarvestCycleHistory = ({ onRefresh }: HarvestCycleHistoryProps) => {
             total_cycle_cost: 0,
             profit_margin: 0,
             cost_per_kg: 0,
+            real_fca: 0,
+            total_real_feed_kg: feedConsumptionMap.get(pondBatch.id) ? (feedConsumptionMap.get(pondBatch.id)! / 1000) : 0,
             harvests: [],
             pond_area: pond.area || 1
           });
@@ -221,6 +243,11 @@ const HarvestCycleHistory = ({ onRefresh }: HarvestCycleHistoryProps) => {
         
         cycle.cost_per_kg = cycle.total_biomass_harvested > 0 
           ? cycle.total_cycle_cost / cycle.total_biomass_harvested 
+          : 0;
+
+        // Calculate real FCA based on actual feed consumption
+        cycle.real_fca = cycle.total_biomass_harvested > 0 && cycle.total_real_feed_kg > 0
+          ? cycle.total_real_feed_kg / cycle.total_biomass_harvested
           : 0;
 
         // Sort harvests by date
@@ -539,6 +566,12 @@ const HarvestCycleHistory = ({ onRefresh }: HarvestCycleHistoryProps) => {
                               {cycle.productivity_per_ha.toFixed(0)} kg/ha
                             </div>
                             <div className="text-sm text-muted-foreground">Produtividade</div>
+                          </div>
+                          <div>
+                            <div className="text-xl font-bold text-blue-600">
+                              {cycle.real_fca > 0 ? cycle.real_fca.toFixed(2) : 'N/A'}
+                            </div>
+                            <div className="text-sm text-muted-foreground">FCA Real do Ciclo</div>
                           </div>
                         </div>
                       </div>

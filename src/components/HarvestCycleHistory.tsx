@@ -416,82 +416,190 @@ const HarvestCycleHistory = ({ onRefresh }: HarvestCycleHistoryProps) => {
                             </div>
                           </div>
 
-                          {/* Individual Harvests */}
-                          <div className="space-y-3">
-                            <h4 className="font-medium text-sm text-muted-foreground">📈 Despescas do Ciclo:</h4>
-                            {cycle.harvests.map((harvest, index) => (
-                              <Card 
-                                key={harvest.id} 
-                                className="cursor-pointer hover:shadow-md transition-shadow bg-card/50"
-                                onClick={() => {
-                                  setSelectedHarvestId(harvest.id);
-                                  setDetailDialogOpen(true);
-                                }}
-                              >
-                                <CardContent className="p-4">
-                                  <div className="flex justify-between items-start mb-2">
-                                    <div className="flex items-center gap-2">
-                                      <Badge 
-                                        variant={harvest.harvest_type === 'total' ? 'default' : 'secondary'}
-                                        className="text-xs"
-                                      >
-                                        {harvest.harvest_type === 'total' ? '🔹 Total' : '🔸 Parcial'}
-                                      </Badge>
-                                      <span className="text-sm font-medium">
-                                        {format(new Date(harvest.harvest_date), 'dd/MM', { locale: ptBR })}
-                                      </span>
-                                      <span className="text-xs text-muted-foreground">
-                                        ({index + 1}ª despesca)
-                                      </span>
-                                    </div>
-                                    <div className="text-right">
-                                      <div className="text-sm font-semibold text-primary">
-                                        {harvest.total_value 
-                                          ? `R$ ${harvest.total_value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
-                                          : 'N/A'
-                                        }
-                                      </div>
-                                    </div>
-                                  </div>
-                                  
-                                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
-                                    <div className="flex justify-between">
-                                      <span>Biomassa:</span>
-                                      <span className="font-medium">{harvest.biomass_harvested.toFixed(1)} kg</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                      <span>População:</span>
-                                      <span className="font-medium">{harvest.population_harvested.toLocaleString()}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                      <span>Peso médio:</span>
-                                      <span className="font-medium">
-                                        {harvest.average_weight_at_harvest 
-                                          ? `${harvest.average_weight_at_harvest.toFixed(1)}g`
-                                          : 'N/A'
-                                        }
-                                      </span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                      <span>Preço/kg:</span>
-                                      <span className="font-medium">
-                                        {harvest.price_per_kg 
-                                          ? `R$ ${harvest.price_per_kg.toFixed(2)}`
-                                          : 'N/A'
-                                        }
-                                      </span>
-                                    </div>
-                                  </div>
-                                  
-                                  {harvest.notes && (
-                                    <p className="text-xs text-muted-foreground mt-2 italic">
-                                      {harvest.notes}
-                                    </p>
-                                  )}
-                                </CardContent>
-                              </Card>
-                            ))}
+          {/* Individual Harvests and Consolidation */}
+          <div className="space-y-4">
+            {/* Despescas Individuais */}
+            <div>
+              <h4 className="font-medium text-sm text-muted-foreground mb-3">
+                📈 Despescas do Ciclo ({cycle.harvests.length}):
+              </h4>
+              <div className="space-y-3">
+                {cycle.harvests.map((harvest, index) => (
+                  <Card 
+                    key={harvest.id} 
+                    className="cursor-pointer hover:shadow-md transition-shadow bg-card/50 border-l-2"
+                    style={{ 
+                      borderLeftColor: harvest.harvest_type === 'partial' ? '#f59e0b' : '#10b981' 
+                    }}
+                    onClick={() => {
+                      setSelectedHarvestId(harvest.id);
+                      setDetailDialogOpen(true);
+                    }}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between">
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <Badge variant={harvest.harvest_type === 'partial' ? 'secondary' : 'default'}>
+                              {harvest.harvest_type === 'partial' 
+                                ? `🔸 Despesca Parcial #${index + 1}` 
+                                : `🔹 Despesca Total #${index + 1}`
+                              }
+                            </Badge>
+                            <span className="text-sm text-muted-foreground">
+                              {format(new Date(harvest.harvest_date), 'dd/MM/yyyy', { locale: ptBR })}
+                            </span>
                           </div>
+                          <div className="grid grid-cols-3 gap-4 text-sm">
+                            <div>
+                              <span className="text-muted-foreground">Biomassa:</span>
+                              <div className="font-medium">{harvest.biomass_harvested.toFixed(1)} kg</div>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">População:</span>
+                              <div className="font-medium">{harvest.population_harvested.toLocaleString()}</div>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Peso médio:</span>
+                              <div className="font-medium">
+                                {harvest.average_weight_at_harvest 
+                                  ? `${harvest.average_weight_at_harvest.toFixed(1)}g`
+                                  : harvest.population_harvested > 0 
+                                    ? `${((harvest.biomass_harvested * 1000) / harvest.population_harvested).toFixed(1)}g`
+                                    : 'N/A'
+                                }
+                              </div>
+                            </div>
+                          </div>
+                          {harvest.notes && (
+                            <div className="text-sm">
+                              <span className="text-muted-foreground">Observações:</span> {harvest.notes}
+                            </div>
+                          )}
+                        </div>
+                        <div className="text-right">
+                          <div className="text-lg font-semibold text-primary">
+                            R$ {(harvest.total_value || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            {harvest.price_per_kg ? `R$ ${harvest.price_per_kg.toFixed(2)}/kg` : 'Preço não informado'}
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+
+            {/* Consolidação Final (só para ciclos completos) */}
+            {isCompleted && (
+              <div className="mt-6">
+                <h4 className="font-medium text-sm text-muted-foreground mb-3">
+                  📈 Consolidação do Ciclo Completo:
+                </h4>
+                <Card className="border-2 border-primary/20 bg-primary/5">
+                  <CardContent className="p-6">
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+                      {/* Métricas de Performance */}
+                      <div className="space-y-4">
+                        <h5 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
+                          Performance Final
+                        </h5>
+                        <div className="space-y-3">
+                          <div>
+                            <div className="text-2xl font-bold text-primary">
+                              {cycle.survival_rate.toFixed(1)}%
+                            </div>
+                            <div className="text-sm text-muted-foreground">Sobrevivência Final</div>
+                            <div className="text-xs text-muted-foreground">
+                              {cycle.total_population_harvested.toLocaleString()} / {cycle.pl_quantity.toLocaleString()} PLs
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-xl font-bold">
+                              {cycle.average_harvest_weight.toFixed(1)}g
+                            </div>
+                            <div className="text-sm text-muted-foreground">Peso Médio Final</div>
+                          </div>
+                          <div>
+                            <div className="text-xl font-bold">
+                              {cycle.productivity_per_ha.toFixed(0)} kg/ha
+                            </div>
+                            <div className="text-sm text-muted-foreground">Produtividade</div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Métricas Financeiras */}
+                      <div className="space-y-4">
+                        <h5 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
+                          Resultado Financeiro
+                        </h5>
+                        <div className="space-y-3">
+                          <div>
+                            <div className="text-2xl font-bold text-green-600">
+                              R$ {cycle.total_revenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                            </div>
+                            <div className="text-sm text-muted-foreground">Faturamento Total</div>
+                          </div>
+                          <div>
+                            <div className="text-xl font-bold text-red-600">
+                              R$ {cycle.total_cycle_cost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                            </div>
+                            <div className="text-sm text-muted-foreground">Custo Total (Estimado)</div>
+                          </div>
+                          <div>
+                            <div className={`text-xl font-bold ${
+                              cycle.total_revenue - cycle.total_cycle_cost >= 0 ? 'text-green-600' : 'text-red-600'
+                            }`}>
+                              R$ {(cycle.total_revenue - cycle.total_cycle_cost).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                            </div>
+                            <div className="text-sm text-muted-foreground">Lucro Total</div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Indicadores Técnicos */}
+                      <div className="space-y-4">
+                        <h5 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
+                          Indicadores Técnicos
+                        </h5>
+                        <div className="space-y-3">
+                          <div>
+                            <div className="text-xl font-bold">
+                              R$ {cycle.cost_per_kg.toFixed(2)}/kg
+                            </div>
+                            <div className="text-sm text-muted-foreground">Custo por kg (Estimado)</div>
+                          </div>
+                          <div>
+                            <div className={`text-xl font-bold ${getPerformanceColor(cycle.survival_rate, cycle.profit_margin)}`}>
+                              {cycle.profit_margin.toFixed(0)}%
+                            </div>
+                            <div className="text-sm text-muted-foreground">Margem de Lucro</div>
+                          </div>
+                          <div>
+                            <div className="text-xl font-bold">
+                              {cycle.cycle_duration} dias
+                            </div>
+                            <div className="text-sm text-muted-foreground">Duração do Ciclo</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Nota sobre estimativas */}
+                    <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                      <p className="text-xs text-yellow-800">
+                        ⚠️ <strong>Nota:</strong> Os valores de custo e FCA consolidados são estimativas. 
+                        Para valores precisos, clique em cada despesca individual para ver os cálculos detalhados.
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+          </div>
                         </CardContent>
                       </CollapsibleContent>
                     </Collapsible>

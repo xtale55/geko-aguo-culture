@@ -245,9 +245,25 @@ const HarvestHistoryDetail = ({ harvestId, open, onOpenChange }: HarvestHistoryD
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   };
 
-  const calculateFCA = (totalFeed: number, biomassHarvested: number): number => {
+  const calculateFCA = (totalFeed: number, biomassHarvested: number, expectedBiomass?: number | null): number => {
     if (!biomassHarvested) return 0;
+    
+    // Para despesca parcial, calcular proporcionalmente
+    if (expectedBiomass && expectedBiomass > 0 && biomassHarvested < expectedBiomass) {
+      const proportionalFeed = totalFeed * (biomassHarvested / expectedBiomass);
+      return proportionalFeed / biomassHarvested;
+    }
+    
     return totalFeed / biomassHarvested;
+  };
+
+  const formatCurrency = (value: number): string => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(value);
   };
 
   const calculateProductivity = (biomassHarvested: number, pondArea: number): number => {
@@ -333,13 +349,12 @@ const HarvestHistoryDetail = ({ harvestId, open, onOpenChange }: HarvestHistoryD
   const totalCost = allocatedPlCost + allocatedPrepCost + totalFeedCost + totalInputCost;
   const costPerKg = totalCost / harvestData.biomass_harvested;
   
-  // Calculate FCR for this harvest (using allocated feed for partial harvests)
-  const totalFeedConsumed = harvestData.harvest_type === 'partial' && harvestData.allocated_feed_cost 
-    ? harvestData.allocated_feed_cost / (harvestData.feeding_records.find(r => r.unit_cost)?.unit_cost || 1)
-    : harvestData.feeding_records.reduce((sum, record) => 
-        sum + QuantityUtils.gramsToKg(record.actual_amount), 0);
+  // Calculate total feed consumed for the entire cycle
+  const totalCycleFeedConsumed = harvestData.feeding_records.reduce((sum, record) => 
+    sum + QuantityUtils.gramsToKg(record.actual_amount), 0);
   
-  const fca = calculateFCA(totalFeedConsumed, harvestData.biomass_harvested);
+  // Calculate FCR for this harvest using proportional feed calculation
+  const fca = calculateFCA(totalCycleFeedConsumed, harvestData.biomass_harvested, harvestData.expected_biomass);
   
   // Calculate financial metrics
   const revenue = harvestData.total_value || 0;
@@ -617,41 +632,49 @@ const HarvestHistoryDetail = ({ harvestId, open, onOpenChange }: HarvestHistoryD
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-6 gap-6">
                 <div className="space-y-2">
+                  <p className="text-sm text-muted-foreground">DOC (Dias)</p>
+                  <p className="text-2xl font-bold text-purple-600">
+                    {docDays}
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <p className="text-sm text-muted-foreground">Peso Médio (g)</p>
+                  <p className="text-2xl font-bold text-orange-600">
+                    {harvestData.average_weight_at_harvest?.toFixed(1) || 'N/A'}
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <p className="text-sm text-muted-foreground">Biomassa Despescada (kg)</p>
+                  <p className="text-2xl font-bold text-blue-600">
+                    {harvestData.biomass_harvested.toFixed(1)}
+                  </p>
+                </div>
+                <div className="space-y-2">
                   <p className="text-sm text-muted-foreground">FCA</p>
                   <p className="text-2xl font-bold text-blue-600">
                     {fca.toFixed(2)}
                   </p>
                 </div>
                 <div className="space-y-2">
-                  <p className="text-sm text-muted-foreground">Custo/kg</p>
+                  <p className="text-sm text-muted-foreground">Custo/KG</p>
                   <p className="text-2xl font-bold text-orange-600">
-                    R$ {costPerKg.toFixed(2)}
+                    {formatCurrency(costPerKg)}
                   </p>
                 </div>
                 <div className="space-y-2">
-                  <p className="text-sm text-muted-foreground">Produtividade</p>
-                  <p className="text-2xl font-bold text-green-600">
-                    {productivity.toFixed(1)} kg/m²
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <p className="text-sm text-muted-foreground">Densidade Final</p>
-                  <p className="text-2xl font-bold text-purple-600">
-                    {finalDensity.toFixed(0)} cam/m²
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <p className="text-sm text-muted-foreground">Crescimento Semanal</p>
+                  <p className="text-sm text-muted-foreground">Crescimento Semanal (g)</p>
                   <p className="text-2xl font-bold text-indigo-600">
-                    {weeklyGrowth.toFixed(1)}g
+                    {weeklyGrowth.toFixed(1)}
                   </p>
                 </div>
-                <div className="space-y-2">
-                  <p className="text-sm text-muted-foreground">Taxa de Sobrevivência</p>
-                  <p className="text-2xl font-bold text-emerald-600">
-                    {cumulativeSurvivalRate.toFixed(1)}%
-                  </p>
-                </div>
+                {harvestData.harvest_type === 'total' && (
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">Taxa de Sobrevivência (%)</p>
+                    <p className="text-2xl font-bold text-emerald-600">
+                      {cumulativeSurvivalRate.toFixed(1)}%
+                    </p>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -666,31 +689,31 @@ const HarvestHistoryDetail = ({ harvestId, open, onOpenChange }: HarvestHistoryD
                 <div className="space-y-2">
                   <p className="text-sm text-muted-foreground">PL</p>
                   <p className="text-xl font-bold text-blue-600">
-                    R$ {allocatedPlCost.toFixed(2)}
+                    {formatCurrency(allocatedPlCost)}
                   </p>
                 </div>
                 <div className="space-y-2">
                   <p className="text-sm text-muted-foreground">Preparação</p>
                   <p className="text-xl font-bold text-green-600">
-                    R$ {allocatedPrepCost.toFixed(2)}
+                    {formatCurrency(allocatedPrepCost)}
                   </p>
                 </div>
                 <div className="space-y-2">
                   <p className="text-sm text-muted-foreground">Ração</p>
                   <p className="text-xl font-bold text-orange-600">
-                    R$ {totalFeedCost.toFixed(2)}
+                    {formatCurrency(totalFeedCost)}
                   </p>
                 </div>
                 <div className="space-y-2">
                   <p className="text-sm text-muted-foreground">Insumos</p>
                   <p className="text-xl font-bold text-purple-600">
-                    R$ {totalInputCost.toFixed(2)}
+                    {formatCurrency(totalInputCost)}
                   </p>
                 </div>
                 <div className="space-y-2">
                   <p className="text-sm text-muted-foreground">Custo Total</p>
                   <p className="text-xl font-bold text-red-600">
-                    R$ {totalCost.toFixed(2)}
+                    {formatCurrency(totalCost)}
                   </p>
                 </div>
               </div>
@@ -767,7 +790,7 @@ const HarvestHistoryDetail = ({ harvestId, open, onOpenChange }: HarvestHistoryD
                     />
                   ) : (
                     <p className="text-2xl font-bold text-green-600">
-                      {harvestData.price_per_kg ? `R$ ${harvestData.price_per_kg.toFixed(2)}` : 'N/A'}
+                      {harvestData.price_per_kg ? formatCurrency(harvestData.price_per_kg) : 'N/A'}
                     </p>
                   )}
                 </div>
@@ -775,8 +798,8 @@ const HarvestHistoryDetail = ({ harvestId, open, onOpenChange }: HarvestHistoryD
                   <p className="text-sm text-muted-foreground">Valor Total</p>
                   <p className="text-2xl font-bold text-green-600">
                     {isEditing 
-                      ? `R$ ${(parseFloat(editData.biomass_harvested) * parseFloat(editData.price_per_kg) || 0).toFixed(2)}`
-                      : harvestData.total_value ? `R$ ${harvestData.total_value.toFixed(2)}` : 'N/A'
+                      ? formatCurrency(parseFloat(editData.biomass_harvested) * parseFloat(editData.price_per_kg) || 0)
+                      : harvestData.total_value ? formatCurrency(harvestData.total_value) : 'N/A'
                     }
                   </p>
                   {isEditing && editData.price_per_kg && (
@@ -793,28 +816,34 @@ const HarvestHistoryDetail = ({ harvestId, open, onOpenChange }: HarvestHistoryD
               <CardTitle className="text-lg">Resultados Financeiros</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
+                <div className="space-y-2">
+                  <p className="text-sm text-muted-foreground">Preço por KG</p>
+                  <p className="text-xl font-bold text-blue-600">
+                    {harvestData.price_per_kg ? formatCurrency(harvestData.price_per_kg) : 'N/A'}
+                  </p>
+                </div>
                 <div className="space-y-2">
                   <p className="text-sm text-muted-foreground">Receita</p>
-                  <p className="text-2xl font-bold text-green-600">
-                    R$ {revenue.toFixed(2)}
+                  <p className="text-xl font-bold text-green-600">
+                    {formatCurrency(revenue)}
                   </p>
                 </div>
                 <div className="space-y-2">
                   <p className="text-sm text-muted-foreground">Custos</p>
-                  <p className="text-2xl font-bold text-red-600">
-                    R$ {totalCost.toFixed(2)}
+                  <p className="text-xl font-bold text-red-600">
+                    {formatCurrency(totalCost)}
                   </p>
                 </div>
                 <div className="space-y-2">
                   <p className="text-sm text-muted-foreground">Lucro</p>
-                  <p className={`text-2xl font-bold ${profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    R$ {profit.toFixed(2)}
+                  <p className={`text-xl font-bold ${profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {formatCurrency(profit)}
                   </p>
                 </div>
                 <div className="space-y-2">
-                  <p className="text-sm text-muted-foreground">Margem de Lucro</p>
-                  <p className={`text-2xl font-bold ${profitMargin >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  <p className="text-sm text-muted-foreground">Margem de Lucro (%)</p>
+                  <p className={`text-xl font-bold ${profitMargin >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                     {profitMargin.toFixed(1)}%
                   </p>
                 </div>

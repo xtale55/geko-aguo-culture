@@ -14,6 +14,7 @@ import { Loader2, Fish, Calendar, DollarSign } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import HarvestHistoryDetail from './HarvestHistoryDetail';
+import HarvestCycleHistory from './HarvestCycleHistory';
 
 interface PondBatch {
   id: string;

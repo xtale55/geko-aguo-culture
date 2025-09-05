@@ -262,13 +262,15 @@ export default function Reports() {
         const totalMortality = cycle.mortality_records
           ?.reduce((sum, mr) => sum + mr.dead_count, 0) || 0;
 
-        // Consider cumulative survival: current population + harvested population
+        // Calculate cumulative survival: considers all harvested population vs mortality
         const harvestedPopulation = harvestRecords
           ?.filter(hr => hr.pond_batch_id === cycle.id)
           ?.reduce((sum, hr) => sum + (hr.population_harvested || 0), 0) || 0;
         
+        // Survival rate = (current live population + all harvested) / initial PLs
+        // This reflects production efficiency, not mortality
         const survivalRate = cycle.pl_quantity > 0 
-          ? (((cycle.current_population + harvestedPopulation)) / cycle.pl_quantity) * 100 
+          ? ((cycle.current_population + harvestedPopulation) / cycle.pl_quantity) * 100 
           : 0;
 
         if (latestBiometry && cycle.current_population > 0) {
@@ -293,10 +295,11 @@ export default function Reports() {
           
           const totalBiomassProduced = biomass + harvestedBiomass;
           
-          // Calculate real FCA: Total ração / Biomassa total produzida
+          // Calculate real FCA: Total feed consumed / Total biomass produced
+          // This gives accurate feed conversion across the entire cycle
           let realFCA: number | null = null;
           if (totalFeedConsumed > 0 && totalBiomassProduced > 0) {
-            realFCA = totalFeedConsumed / totalBiomassProduced; // Usar biomassa total produzida
+            realFCA = totalFeedConsumed / totalBiomassProduced;
           }
           
           // Calculate weekly growth
@@ -316,16 +319,16 @@ export default function Reports() {
             }
           }
           
-          // Calculate costs considerando custos já alocados em despescas parciais
+          // Calculate remaining costs (only what hasn't been allocated to harvests yet)
           const plCost = cycle.batches?.pl_cost || 0;
           const preparationCost = cycle.preparation_cost || 0;
           
-          // Costs to date for this cycle
+          // Total costs accumulated in cycle
           const inputsCostToDate = (inputApplications
             ?.filter(ia => ia.pond_batch_id === cycle.id)
             ?.reduce((sum, ia) => sum + (ia.total_cost || 0), 0)) || 0;
 
-          // Allocated costs from harvests
+          // Costs already allocated to previous harvests (partial harvests)
           const allocatedFeed = harvestRecords?.filter(hr => hr.pond_batch_id === cycle.id)
             ?.reduce((sum, hr) => sum + (hr.allocated_feed_cost || 0), 0) || 0;
           const allocatedInputs = harvestRecords?.filter(hr => hr.pond_batch_id === cycle.id)
@@ -335,7 +338,7 @@ export default function Reports() {
           const allocatedPrep = harvestRecords?.filter(hr => hr.pond_batch_id === cycle.id)
             ?.reduce((sum, hr) => sum + (hr.allocated_preparation_cost || 0), 0) || 0;
           
-          // Remaining costs for the ongoing cycle (after allocations)
+          // Only remaining costs for ongoing production (not already harvested/sold)
           const remainingFeedCost = Math.max(0, (realFeedCost || 0) - allocatedFeed);
           const remainingInputsCost = Math.max(0, inputsCostToDate - allocatedInputs);
           const remainingPLCost = Math.max(0, (plCost * (cycle.pl_quantity / 1000)) - allocatedPL);

@@ -299,11 +299,12 @@ const HarvestHistoryDetail = ({ harvestId, open, onOpenChange }: HarvestHistoryD
     ? (harvestData.expected_population / harvestData.pond_batch.pl_quantity) * 100
     : null;
   
-  // For partial harvests, calculate cumulative survival
+  // For any harvest type, survival rate is based on cumulative harvested population vs PLs stocked
+  // This shows actual harvest efficiency, not mortality
   const cumulativeSurvivalRate = harvestData.harvest_type === 'total' 
-    ? (harvestData.population_harvested / harvestData.pond_batch.pl_quantity) * 100
-    : harvestData.pond_batch.final_survival_rate || 
-      (harvestData.population_harvested / harvestData.pond_batch.pl_quantity) * 100;
+    ? harvestData.pond_batch.final_survival_rate || 
+      (harvestData.population_harvested / harvestData.pond_batch.pl_quantity) * 100
+    : (harvestData.population_harvested / harvestData.pond_batch.pl_quantity) * 100;
 
   // Calculate comprehensive cycle metrics
   const plCost = (harvestData.pond_batch.batch.pl_cost * harvestData.pond_batch.pl_quantity) / 1000;

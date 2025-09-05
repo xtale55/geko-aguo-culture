@@ -294,201 +294,210 @@ const HarvestCycleHistory = ({ onRefresh }: HarvestCycleHistoryProps) => {
             </div>
           ) : (
             <div className="space-y-4">
-              {cycleHarvests.map((cycle) => (
-                <Card key={cycle.pond_batch_id} className="border-l-4 border-l-primary">
-                  <Collapsible
-                    open={expandedCycles.has(cycle.pond_batch_id)}
-                    onOpenChange={() => toggleCycleExpanded(cycle.pond_batch_id)}
-                  >
-                    <CollapsibleTrigger asChild>
-                      <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            {expandedCycles.has(cycle.pond_batch_id) ? (
-                              <ChevronDown className="h-4 w-4" />
-                            ) : (
-                              <ChevronRight className="h-4 w-4" />
-                            )}
-                            <div>
-                              <CardTitle className="text-lg">
-                                📊 {cycle.pond_name} - {cycle.batch_name}
-                              </CardTitle>
-                              <CardDescription className="flex items-center gap-4 mt-1">
-                                <span className="flex items-center gap-1">
-                                  <Calendar className="h-3 w-3" />
-                                  {format(new Date(cycle.stocking_date), 'dd/MM/yyyy', { locale: ptBR })} 
-                                  → {cycle.cycle_duration} dias
-                                </span>
-                                {getCycleStatusBadge(cycle.cycle_status, cycle.harvests)}
-                              </CardDescription>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <div className="text-lg font-semibold text-primary">
-                              R$ {cycle.total_revenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                            </div>
-                            <div className="text-sm text-muted-foreground">
-                              {cycle.total_biomass_harvested.toFixed(1)} kg total
-                            </div>
-                          </div>
-                        </div>
-                        
-                        {/* Performance Summary */}
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
-                          <div className="flex items-center gap-2">
-                            <Target className="h-4 w-4 text-muted-foreground" />
-                            <div>
-                              <div className="text-sm font-medium">
-                                {cycle.survival_rate.toFixed(1)}% sobrev.
+              {cycleHarvests.map((cycle) => {
+                // Determina se o ciclo está completo (tem despesca total)
+                const hasTotal = cycle.harvests.some(h => h.harvest_type === 'total');
+                const isCompleted = hasTotal || cycle.cycle_status === 'completed';
+                
+                return (
+                  <Card key={cycle.pond_batch_id} className="border-l-4 border-l-primary">
+                    <Collapsible
+                      open={expandedCycles.has(cycle.pond_batch_id)}
+                      onOpenChange={() => toggleCycleExpanded(cycle.pond_batch_id)}
+                    >
+                      <CollapsibleTrigger asChild>
+                        <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              {expandedCycles.has(cycle.pond_batch_id) ? (
+                                <ChevronDown className="h-4 w-4" />
+                              ) : (
+                                <ChevronRight className="h-4 w-4" />
+                              )}
+                              <div>
+                                <CardTitle className="text-lg">
+                                  📊 {cycle.pond_name} - {cycle.batch_name}
+                                </CardTitle>
+                                <CardDescription className="flex items-center gap-4 mt-1">
+                                  <span className="flex items-center gap-1">
+                                    <Calendar className="h-3 w-3" />
+                                    {format(new Date(cycle.stocking_date), 'dd/MM/yyyy', { locale: ptBR })} 
+                                    → {cycle.cycle_duration} dias
+                                  </span>
+                                  {getCycleStatusBadge(cycle.cycle_status, cycle.harvests)}
+                                </CardDescription>
                               </div>
-                              <div className="text-xs text-muted-foreground">Sobrevivência</div>
                             </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Scale className="h-4 w-4 text-muted-foreground" />
-                            <div>
-                              <div className="text-sm font-medium">
-                                {cycle.average_harvest_weight.toFixed(1)}g
+                            <div className="text-right">
+                              <div className="text-lg font-semibold text-primary">
+                                R$ {cycle.total_revenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                               </div>
-                              <div className="text-xs text-muted-foreground">Peso médio</div>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <BarChart3 className="h-4 w-4 text-muted-foreground" />
-                            <div>
-                              <div className="text-sm font-medium">
-                                {cycle.productivity_per_ha.toFixed(0)} kg/ha
+                              <div className="text-sm text-muted-foreground">
+                                {cycle.total_biomass_harvested.toFixed(1)} kg total
                               </div>
-                              <div className="text-xs text-muted-foreground">Produtividade</div>
                             </div>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                            <div>
-                              <div className={`text-sm font-medium ${getPerformanceColor(cycle.survival_rate, cycle.profit_margin)}`}>
-                                {cycle.profit_margin.toFixed(0)}% margem
-                              </div>
-                              <div className="text-xs text-muted-foreground">Resultado</div>
-                            </div>
-                          </div>
-                        </div>
-                      </CardHeader>
-                    </CollapsibleTrigger>
-
-                    <CollapsibleContent>
-                      <CardContent className="pt-0">
-                        {/* Detailed Cycle Metrics */}
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-muted/30 rounded-lg mb-4">
-                          <div>
-                            <div className="text-lg font-semibold">
-                              {cycle.total_population_harvested.toLocaleString()}
-                            </div>
-                            <div className="text-sm text-muted-foreground">Population Total</div>
-                          </div>
-                          <div>
-                            <div className="text-lg font-semibold">
-                              R$ {cycle.cost_per_kg.toFixed(2)}/kg
-                            </div>
-                            <div className="text-sm text-muted-foreground">Custo por kg</div>
-                          </div>
-                          <div>
-                            <div className="text-lg font-semibold">
-                              R$ {(cycle.total_revenue - cycle.total_cycle_cost).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                            </div>
-                            <div className="text-sm text-muted-foreground">Lucro Estimado</div>
-                          </div>
-                          <div>
-                            <div className="text-lg font-semibold">
-                              {cycle.harvests.length}x
-                            </div>
-                            <div className="text-sm text-muted-foreground">
-                              {cycle.harvests.filter(h => h.harvest_type === 'partial').length} parcial + 
-                              {cycle.harvests.filter(h => h.harvest_type === 'total').length} total
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Individual Harvests */}
-                        <div className="space-y-3">
-                          <h4 className="font-medium text-sm text-muted-foreground">📈 Despescas do Ciclo:</h4>
-                          {cycle.harvests.map((harvest, index) => (
-                            <Card 
-                              key={harvest.id} 
-                              className="cursor-pointer hover:shadow-md transition-shadow bg-card/50"
-                              onClick={() => {
-                                setSelectedHarvestId(harvest.id);
-                                setDetailDialogOpen(true);
-                              }}
-                            >
-                              <CardContent className="p-4">
-                                <div className="flex justify-between items-start mb-2">
-                                  <div className="flex items-center gap-2">
-                                    <Badge 
-                                      variant={harvest.harvest_type === 'total' ? 'default' : 'secondary'}
-                                      className="text-xs"
-                                    >
-                                      {harvest.harvest_type === 'total' ? '🔹 Total' : '🔸 Parcial'}
-                                    </Badge>
-                                    <span className="text-sm font-medium">
-                                      {format(new Date(harvest.harvest_date), 'dd/MM', { locale: ptBR })}
-                                    </span>
-                                    <span className="text-xs text-muted-foreground">
-                                      ({index + 1}ª despesca)
-                                    </span>
+                          
+                          {/* Performance Summary */}
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+                            {/* Só mostra sobrevivência se o ciclo estiver completo */}
+                            {isCompleted && (
+                              <div className="flex items-center gap-2">
+                                <Target className="h-4 w-4 text-muted-foreground" />
+                                <div>
+                                  <div className="text-sm font-medium">
+                                    {cycle.survival_rate.toFixed(1)}% sobrev.
                                   </div>
-                                  <div className="text-right">
-                                    <div className="text-sm font-semibold text-primary">
-                                      {harvest.total_value 
-                                        ? `R$ ${harvest.total_value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
-                                        : 'N/A'
-                                      }
+                                  <div className="text-xs text-muted-foreground">Sobrevivência</div>
+                                </div>
+                              </div>
+                            )}
+                            <div className="flex items-center gap-2">
+                              <Scale className="h-4 w-4 text-muted-foreground" />
+                              <div>
+                                <div className="text-sm font-medium">
+                                  {cycle.average_harvest_weight.toFixed(1)}g
+                                </div>
+                                <div className="text-xs text-muted-foreground">Peso médio</div>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <BarChart3 className="h-4 w-4 text-muted-foreground" />
+                              <div>
+                                <div className="text-sm font-medium">
+                                  {cycle.productivity_per_ha.toFixed(0)} kg/ha
+                                </div>
+                                <div className="text-xs text-muted-foreground">Produtividade</div>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                              <div>
+                                <div className={`text-sm font-medium ${getPerformanceColor(cycle.survival_rate, cycle.profit_margin)}`}>
+                                  {cycle.profit_margin.toFixed(0)}% margem
+                                </div>
+                                <div className="text-xs text-muted-foreground">Resultado</div>
+                              </div>
+                            </div>
+                          </div>
+                        </CardHeader>
+                      </CollapsibleTrigger>
+
+                      <CollapsibleContent>
+                        <CardContent className="pt-0">
+                          {/* Detailed Cycle Metrics */}
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-muted/30 rounded-lg mb-4">
+                            <div>
+                              <div className="text-lg font-semibold">
+                                {cycle.total_population_harvested.toLocaleString()}
+                              </div>
+                              <div className="text-sm text-muted-foreground">Population Total</div>
+                            </div>
+                            <div>
+                              <div className="text-lg font-semibold">
+                                R$ {cycle.cost_per_kg.toFixed(2)}/kg
+                              </div>
+                              <div className="text-sm text-muted-foreground">Custo por kg</div>
+                            </div>
+                            <div>
+                              <div className="text-lg font-semibold">
+                                R$ {(cycle.total_revenue - cycle.total_cycle_cost).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                              </div>
+                              <div className="text-sm text-muted-foreground">Lucro Estimado</div>
+                            </div>
+                            <div>
+                              <div className="text-lg font-semibold">
+                                {cycle.harvests.length}x
+                              </div>
+                              <div className="text-sm text-muted-foreground">
+                                {cycle.harvests.filter(h => h.harvest_type === 'partial').length} parcial + 
+                                {cycle.harvests.filter(h => h.harvest_type === 'total').length} total
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Individual Harvests */}
+                          <div className="space-y-3">
+                            <h4 className="font-medium text-sm text-muted-foreground">📈 Despescas do Ciclo:</h4>
+                            {cycle.harvests.map((harvest, index) => (
+                              <Card 
+                                key={harvest.id} 
+                                className="cursor-pointer hover:shadow-md transition-shadow bg-card/50"
+                                onClick={() => {
+                                  setSelectedHarvestId(harvest.id);
+                                  setDetailDialogOpen(true);
+                                }}
+                              >
+                                <CardContent className="p-4">
+                                  <div className="flex justify-between items-start mb-2">
+                                    <div className="flex items-center gap-2">
+                                      <Badge 
+                                        variant={harvest.harvest_type === 'total' ? 'default' : 'secondary'}
+                                        className="text-xs"
+                                      >
+                                        {harvest.harvest_type === 'total' ? '🔹 Total' : '🔸 Parcial'}
+                                      </Badge>
+                                      <span className="text-sm font-medium">
+                                        {format(new Date(harvest.harvest_date), 'dd/MM', { locale: ptBR })}
+                                      </span>
+                                      <span className="text-xs text-muted-foreground">
+                                        ({index + 1}ª despesca)
+                                      </span>
+                                    </div>
+                                    <div className="text-right">
+                                      <div className="text-sm font-semibold text-primary">
+                                        {harvest.total_value 
+                                          ? `R$ ${harvest.total_value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+                                          : 'N/A'
+                                        }
+                                      </div>
                                     </div>
                                   </div>
-                                </div>
-                                
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
-                                  <div className="flex justify-between">
-                                    <span>Biomassa:</span>
-                                    <span className="font-medium">{harvest.biomass_harvested.toFixed(1)} kg</span>
+                                  
+                                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+                                    <div className="flex justify-between">
+                                      <span>Biomassa:</span>
+                                      <span className="font-medium">{harvest.biomass_harvested.toFixed(1)} kg</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span>População:</span>
+                                      <span className="font-medium">{harvest.population_harvested.toLocaleString()}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span>Peso médio:</span>
+                                      <span className="font-medium">
+                                        {harvest.average_weight_at_harvest 
+                                          ? `${harvest.average_weight_at_harvest.toFixed(1)}g`
+                                          : 'N/A'
+                                        }
+                                      </span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span>Preço/kg:</span>
+                                      <span className="font-medium">
+                                        {harvest.price_per_kg 
+                                          ? `R$ ${harvest.price_per_kg.toFixed(2)}`
+                                          : 'N/A'
+                                        }
+                                      </span>
+                                    </div>
                                   </div>
-                                  <div className="flex justify-between">
-                                    <span>População:</span>
-                                    <span className="font-medium">{harvest.population_harvested.toLocaleString()}</span>
-                                  </div>
-                                  <div className="flex justify-between">
-                                    <span>Peso médio:</span>
-                                    <span className="font-medium">
-                                      {harvest.average_weight_at_harvest 
-                                        ? `${harvest.average_weight_at_harvest.toFixed(1)}g`
-                                        : 'N/A'
-                                      }
-                                    </span>
-                                  </div>
-                                  <div className="flex justify-between">
-                                    <span>Preço/kg:</span>
-                                    <span className="font-medium">
-                                      {harvest.price_per_kg 
-                                        ? `R$ ${harvest.price_per_kg.toFixed(2)}`
-                                        : 'N/A'
-                                      }
-                                    </span>
-                                  </div>
-                                </div>
-                                
-                                {harvest.notes && (
-                                  <p className="text-xs text-muted-foreground mt-2 italic">
-                                    {harvest.notes}
-                                  </p>
-                                )}
-                              </CardContent>
-                            </Card>
-                          ))}
-                        </div>
-                      </CardContent>
-                    </CollapsibleContent>
-                  </Collapsible>
-                </Card>
-              ))}
+                                  
+                                  {harvest.notes && (
+                                    <p className="text-xs text-muted-foreground mt-2 italic">
+                                      {harvest.notes}
+                                    </p>
+                                  )}
+                                </CardContent>
+                              </Card>
+                            ))}
+                          </div>
+                        </CardContent>
+                      </CollapsibleContent>
+                    </Collapsible>
+                  </Card>
+                );
+              })}
             </div>
           )}
         </CardContent>

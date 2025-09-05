@@ -267,9 +267,14 @@ export default function Reports() {
           ?.filter(hr => hr.pond_batch_id === cycle.id)
           ?.reduce((sum, hr) => sum + (hr.population_harvested || 0), 0) || 0;
         
-        // Survival rate = (current live population + all harvested) / initial PLs
-        // This reflects production efficiency, not mortality
-        const survivalRate = cycle.pl_quantity > 0 
+        // Check if cycle has total harvest (completed)
+        const hasTotal = harvestRecords
+          ?.filter(hr => hr.pond_batch_id === cycle.id)
+          ?.some(hr => hr.harvest_type === 'total') || false;
+        
+        // Only calculate survival rate if cycle is completed (has total harvest)
+        // Survival rate = (all harvested + current remaining) / initial PLs
+        const survivalRate = (hasTotal && cycle.pl_quantity > 0) 
           ? ((cycle.current_population + harvestedPopulation) / cycle.pl_quantity) * 100 
           : 0;
 

@@ -83,22 +83,31 @@ export function OperationalCosts() {
 
       const farmIds = farms.map(f => f.id);
 
-      // Get pond batches for dropdown
+      // First get ponds for the user's farms
+      const { data: ponds } = await supabase
+        .from('ponds')
+        .select('id')
+        .in('farm_id', farmIds);
+
+      if (!ponds || ponds.length === 0) {
+        setLoading(false);
+        return;
+      }
+
+      const pondIds = ponds.map(p => p.id);
+
+      // Then get active pond batches
       const { data: pondBatchesData } = await supabase
         .from('pond_batches')
         .select(`
           id,
-          ponds(name),
-          batches(name)
+          ponds!inner(name),
+          batches!inner(name),
+          current_population
         `)
-        .in('pond_id', 
-          await supabase
-            .from('ponds')
-            .select('id')
-            .in('farm_id', farmIds)
-            .then(({ data }) => data?.map(p => p.id) || [])
-        )
-        .gte('current_population', 1);
+        .in('pond_id', pondIds)
+        .eq('cycle_status', 'active')
+        .gt('current_population', 0);
 
       if (pondBatchesData) {
         const formattedPondBatches = pondBatchesData.map(pb => ({
@@ -368,11 +377,11 @@ export function OperationalCosts() {
               Adicionar Custo
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Registrar Custo Operacional</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4">
+            <div className="space-y-4 max-h-[calc(90vh-120px)] overflow-y-auto px-1">
               <div>
                 <Label htmlFor="category">Categoria</Label>
                 <Select value={newCost.category} onValueChange={(value) => setNewCost({...newCost, category: value})}>

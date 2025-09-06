@@ -17,6 +17,7 @@ export function useOptimizedReportsData(farmId?: string) {
         farmsResult,
         pondsResult,
         batchesResult,
+        pondBatchesResult,
         biometricsResult,
         mortalityResult,
         feedingResult,
@@ -27,41 +28,12 @@ export function useOptimizedReportsData(farmId?: string) {
         supabase.from('farms').select('*').eq('user_id', user?.id),
         supabase.from('ponds').select('*').eq('farm_id', farmId),
         supabase.from('batches').select('*').eq('farm_id', farmId),
-        supabase.from('biometrics').select(`
-          *,
-          pond_batches!inner(
-            ponds!inner(name, farm_id),
-            batches!inner(name)
-          )
-        `).eq('pond_batches.ponds.farm_id', farmId),
-        supabase.from('mortality_records').select(`
-          *,
-          pond_batches!inner(
-            ponds!inner(name, farm_id),
-            batches!inner(name)
-          )
-        `).eq('pond_batches.ponds.farm_id', farmId),
-        supabase.from('feeding_records').select(`
-          *,
-          pond_batches!inner(
-            ponds!inner(name, farm_id),
-            batches!inner(name)
-          )
-        `).eq('pond_batches.ponds.farm_id', farmId),
-        supabase.from('harvest_records').select(`
-          *,
-          pond_batches!inner(
-            ponds!inner(name, farm_id),
-            batches!inner(name)
-          )
-        `).eq('pond_batches.ponds.farm_id', farmId),
-        supabase.from('input_applications').select(`
-          *,
-          pond_batches!inner(
-            ponds!inner(name, farm_id),
-            batches!inner(name)
-          )
-        `).eq('pond_batches.ponds.farm_id', farmId),
+        supabase.from('pond_batches').select('*'),
+        supabase.from('biometrics').select('*'),
+        supabase.from('mortality_records').select('*'),
+        supabase.from('feeding_records').select('*'),
+        supabase.from('harvest_records').select('*'),
+        supabase.from('input_applications').select('*'),
         supabase.from('operational_costs').select('*').eq('farm_id', farmId)
       ]);
 
@@ -80,6 +52,7 @@ export function useOptimizedReportsData(farmId?: string) {
         farms: farmsResult.data || [],
         ponds: pondsResult.data || [],
         batches: batchesResult.data || [],
+        pondBatches: pondBatchesResult.data || [],
         biometrics: biometricsResult.data || [],
         mortality: mortalityResult.data || [],
         feeding: feedingResult.data || [],
@@ -97,10 +70,26 @@ export function useOptimizedReportsData(farmId?: string) {
   const processedData = useMemo(() => {
     if (!reportsData) return null;
 
-    const { farms, ponds, batches, biometrics, mortality, feeding, harvest, inputApplications, operationalCosts } = reportsData;
+    const { farms, ponds, batches, pondBatches, biometrics, mortality, feeding, harvest, inputApplications, operationalCosts } = reportsData;
+
+    // Build lookup maps
+    const pondsById = new Map<string, any>();
+    ponds.forEach((p: any) => pondsById.set(p.id, p));
+
+    const batchesById = new Map<string, any>();
+    batches.forEach((b: any) => batchesById.set(b.id, b));
+
+    const pbMeta = new Map<string, { pondName?: string; batchName?: string }>();
+    pondBatches.forEach((pb: any) => {
+      pbMeta.set(pb.id, {
+        pondName: pondsById.get(pb.pond_id)?.name,
+        batchName: batchesById.get(pb.batch_id)?.name,
+      });
+    });
 
     // Group data by pond batches for efficient processing
-    const pondBatchMap = new Map();
+    const pondBatchMap = new Map<string, any>();
+    
     
     // Process each data type and group by pond_batch_id
     biometrics.forEach((record: any) => {
@@ -108,9 +97,10 @@ export function useOptimizedReportsData(farmId?: string) {
       if (!pondBatchId) return;
       
       if (!pondBatchMap.has(pondBatchId)) {
+        const meta = pbMeta.get(pondBatchId);
         pondBatchMap.set(pondBatchId, {
-          pondName: record.pond_batches?.ponds?.name || 'Unknown',
-          batchName: record.pond_batches?.batches?.name || 'Unknown',
+          pondName: meta?.pondName || 'N/A',
+          batchName: meta?.batchName || 'N/A',
           biometrics: [],
           mortality: [],
           feeding: [],

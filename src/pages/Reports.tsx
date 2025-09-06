@@ -227,7 +227,7 @@ export default function Reports() {
     toast.success('Relatório exportado com sucesso!');
   };
 
-  if (isLoading) {
+  if (isLoading || !farmId) {
     return (
       <Layout>
         <ReportsLoadingSkeleton />

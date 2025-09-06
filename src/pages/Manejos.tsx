@@ -2,7 +2,7 @@ import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Scale, Droplets, Skull, Beaker, Fish, DollarSign, ChevronRight, Clock, Activity } from 'lucide-react';
+import { ArrowLeft, Scale, Droplets, Skull, Beaker, Fish, DollarSign, ChevronRight, Clock, Activity, Utensils } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useFarmsQuery } from '@/hooks/useSupabaseQuery';
 import { useRecentManagementData } from '@/hooks/useRecentManagementData';
@@ -61,6 +61,15 @@ export default function Manejos() {
       iconColor: 'text-orange-600/70',
       route: '/manejos/despesca',
       status: 'Ativo'
+    },
+    {
+      id: 'alimentacao',
+      title: 'Alimentação',
+      description: 'Registre alimentação diária',
+      icon: Utensils,
+      iconColor: 'text-green-600/70',
+      route: '/manejos/alimentacao',
+      status: 'Novo'
     },
     {
       id: 'custos',

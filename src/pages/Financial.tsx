@@ -499,50 +499,90 @@ export default function Financial() {
           <TabsContent value="costs" className="space-y-6">
             {/* Pond Costs Overview */}
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {pondCosts.map((pondCost) => (
-                <Card key={pondCost.pond_batch_id}>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-lg flex items-center justify-between">
-                      <span>{pondCost.pond_name}</span>
-                      <Badge variant="outline">{pondCost.doc} DOC</Badge>
-                    </CardTitle>
-                    <p className="text-sm text-muted-foreground">
-                      {pondCost.batch_name} • {pondCost.area.toLocaleString('pt-BR')} m²
-                    </p>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm">Ração</span>
-                        <span className="font-medium">{formatCurrency(pondCost.feedCosts)}</span>
+              {pondCosts.map((pondCost) => {
+                const pieData = [
+                  { name: 'Ração', value: pondCost.feedCosts, color: '#8884d8' },
+                  { name: 'Insumos', value: pondCost.inputCosts, color: '#82ca9d' },
+                  { name: 'PL', value: pondCost.plCosts, color: '#ffc658' },
+                  { name: 'Preparação', value: pondCost.preparationCosts, color: '#ff7300' },
+                  { name: 'Operacionais', value: pondCost.operationalCosts, color: '#0088fe' }
+                ].filter(item => item.value > 0);
+
+                return (
+                  <Card key={pondCost.pond_batch_id}>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-lg flex items-center justify-between">
+                        <span>{pondCost.pond_name}</span>
+                        <Badge variant="outline">{pondCost.doc} DOC</Badge>
+                      </CardTitle>
+                      <p className="text-sm text-muted-foreground">
+                        {pondCost.batch_name} • {pondCost.area.toLocaleString('pt-BR')} m²
+                      </p>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-2 gap-4">
+                        {/* Cost breakdown */}
+                        <div className="space-y-3">
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm">Ração</span>
+                            <span className="font-medium">{formatCurrency(pondCost.feedCosts)}</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm">Insumos</span>
+                            <span className="font-medium">{formatCurrency(pondCost.inputCosts)}</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm">Pós-larvas</span>
+                            <span className="font-medium">{formatCurrency(pondCost.plCosts)}</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm">Preparação</span>
+                            <span className="font-medium">{formatCurrency(pondCost.preparationCosts)}</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm">Operacionais</span>
+                            <span className="font-medium">{formatCurrency(pondCost.operationalCosts)}</span>
+                          </div>
+                          <div className="border-t pt-2 flex justify-between items-center font-bold">
+                            <span>Total</span>
+                            <span>{formatCurrency(pondCost.totalCosts)}</span>
+                          </div>
+                          <div className="text-xs text-muted-foreground text-center">
+                            {formatCurrency(pondCost.costPerHectare)}/ha
+                          </div>
+                        </div>
+                        
+                        {/* Pie chart */}
+                        <div className="flex justify-center items-center">
+                          <ResponsiveContainer width="100%" height={150}>
+                            <RechartsPieChart>
+                              <Pie
+                                data={pieData}
+                                cx="50%"
+                                cy="50%"
+                                innerRadius={20}
+                                outerRadius={60}
+                                fill="#8884d8"
+                                dataKey="value"
+                              >
+                                {pieData.map((entry, index) => (
+                                  <Cell key={`cell-${index}`} fill={entry.color} />
+                                ))}
+                              </Pie>
+                              <Tooltip 
+                                formatter={(value: number) => [
+                                  formatCurrency(value),
+                                  `${((value / pondCost.totalCosts) * 100).toFixed(1)}%`
+                                ]}
+                              />
+                            </RechartsPieChart>
+                          </ResponsiveContainer>
+                        </div>
                       </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm">Insumos</span>
-                        <span className="font-medium">{formatCurrency(pondCost.inputCosts)}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm">Pós-larvas</span>
-                        <span className="font-medium">{formatCurrency(pondCost.plCosts)}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm">Preparação</span>
-                        <span className="font-medium">{formatCurrency(pondCost.preparationCosts)}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm">Operacionais</span>
-                        <span className="font-medium">{formatCurrency(pondCost.operationalCosts)}</span>
-                      </div>
-                      <div className="border-t pt-2 flex justify-between items-center font-bold">
-                        <span>Total</span>
-                        <span>{formatCurrency(pondCost.totalCosts)}</span>
-                      </div>
-                      <div className="text-xs text-muted-foreground text-center">
-                        {formatCurrency(pondCost.costPerHectare)}/ha
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
 
             {/* Comparative Table */}

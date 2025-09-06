@@ -117,9 +117,9 @@ export default function Manejos() {
                 className={`
                   group cursor-pointer 
                   backdrop-blur-sm bg-white border-border
-                  hover:shadow-xl hover:shadow-primary/10 transition-all duration-500 hover:scale-105
-                  ${isMobile ? 'p-4' : 'p-6'}
-                  ${card.status === 'Novo' ? 'ring-2 ring-purple-400/30' : ''}
+                  hover:shadow-lg hover:shadow-primary/5 transition-all duration-300 hover:scale-[1.02]
+                  ${isMobile ? 'p-3' : 'p-4'}
+                  ${card.status === 'Novo' ? 'ring-1 ring-purple-400/20' : ''}
                   overflow-hidden relative
                 `}
                 onClick={() => navigate(card.route)}
@@ -129,15 +129,9 @@ export default function Manejos() {
                 
                 {isMobile ? (
                   // Mobile: Layout horizontal
-                  <div className="flex items-center gap-4 relative z-10">
-                    <div className="p-3 bg-gradient-to-br from-muted/50 to-muted rounded-xl border border-border/50 flex-shrink-0 relative overflow-hidden">
-                      <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-accent/20 opacity-50"></div>
-                      <IconComponent className="w-6 h-6 relative z-10" style={{
-                        background: `linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--accent)) 100%)`,
-                        WebkitBackgroundClip: 'text',
-                        WebkitTextFillColor: 'transparent',
-                        backgroundClip: 'text'
-                      }} />
+                  <div className="flex items-center gap-3 relative z-10">
+                    <div className="p-2 bg-gradient-to-br from-primary/10 to-accent/10 rounded-lg border border-primary/20 flex-shrink-0">
+                      <IconComponent className={`w-5 h-5 ${card.iconColor}`} />
                     </div>
                     
                     <div className="flex-1 min-w-0">
@@ -160,32 +154,27 @@ export default function Manejos() {
                   </div>
                 ) : (
                   // Desktop: Layout vertical
-                  <CardContent className="p-6 relative z-10">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="p-3 rounded-xl bg-gradient-to-br from-muted/50 to-muted border border-border/50 group-hover:border-primary/20 transition-all duration-300">
-                        <IconComponent className="w-6 h-6 bg-gradient-to-br from-primary/80 to-accent/80 text-transparent bg-clip-text" style={{
-                          background: `linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary)) 50%, hsl(var(--accent)) 100%)`,
-                          WebkitBackgroundClip: 'text',
-                          WebkitTextFillColor: 'transparent',
-                          backgroundClip: 'text'
-                        }} />
+                  <CardContent className="p-4 relative z-10">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="p-2 rounded-lg bg-gradient-to-br from-primary/10 to-accent/10 border border-primary/20 group-hover:border-primary/30 transition-all duration-300">
+                        <IconComponent className={`w-5 h-5 ${card.iconColor}`} />
                       </div>
                       
                       <div className="flex items-center gap-3">
                         {card.status === 'Novo' && (
-                          <span className="px-2 py-1 text-xs font-semibold bg-gradient-to-r from-purple-500/20 to-pink-500/20 text-purple-600 rounded-full border border-purple-500/30 backdrop-blur-sm">
+                          <span className="px-2 py-0.5 text-xs font-medium bg-gradient-to-r from-purple-500/20 to-pink-500/20 text-purple-600 rounded-md border border-purple-500/30">
                             Novo
                           </span>
                         )}
-                        <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all duration-300" />
+                        <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all duration-300" />
                       </div>
                     </div>
                     
-                    <div className="space-y-2">
-                      <h3 className="text-lg font-bold text-foreground group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:from-primary group-hover:to-accent group-hover:bg-clip-text transition-all duration-300">
+                    <div className="space-y-1">
+                      <h3 className="text-base font-semibold text-foreground group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:from-primary group-hover:to-accent group-hover:bg-clip-text transition-all duration-300">
                         {card.title}
                       </h3>
-                      <p className="text-sm text-muted-foreground leading-relaxed group-hover:text-foreground/80 transition-colors duration-300">
+                      <p className="text-xs text-muted-foreground leading-relaxed group-hover:text-foreground/70 transition-colors duration-300">
                         {card.description}
                       </p>
                     </div>

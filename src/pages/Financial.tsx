@@ -552,31 +552,51 @@ export default function Financial() {
                           </div>
                         </div>
                         
-                        {/* Pie chart */}
-                        <div className="flex justify-center items-center">
-                          <ResponsiveContainer width="100%" height={150}>
-                            <RechartsPieChart>
-                              <Pie
-                                data={pieData}
-                                cx="50%"
-                                cy="50%"
-                                innerRadius={20}
-                                outerRadius={60}
-                                fill="#8884d8"
-                                dataKey="value"
-                              >
-                                {pieData.map((entry, index) => (
-                                  <Cell key={`cell-${index}`} fill={entry.color} />
-                                ))}
-                              </Pie>
-                              <Tooltip 
-                                formatter={(value: number) => [
-                                  formatCurrency(value),
-                                  `${((value / pondCost.totalCosts) * 100).toFixed(1)}%`
-                                ]}
-                              />
-                            </RechartsPieChart>
-                          </ResponsiveContainer>
+                        {/* Pie chart and legend */}
+                        <div className="space-y-2">
+                          <div className="flex justify-center">
+                            <ResponsiveContainer width="100%" height={120}>
+                              <RechartsPieChart>
+                                <Pie
+                                  data={pieData}
+                                  cx="50%"
+                                  cy="50%"
+                                  innerRadius={15}
+                                  outerRadius={50}
+                                  fill="#8884d8"
+                                  dataKey="value"
+                                >
+                                  {pieData.map((entry, index) => (
+                                    <Cell key={`cell-${index}`} fill={entry.color} />
+                                  ))}
+                                </Pie>
+                                <Tooltip 
+                                  formatter={(value: number) => [
+                                    formatCurrency(value),
+                                    `${((value / pondCost.totalCosts) * 100).toFixed(1)}%`
+                                  ]}
+                                />
+                              </RechartsPieChart>
+                            </ResponsiveContainer>
+                          </div>
+                          
+                          {/* Legend */}
+                          <div className="space-y-1">
+                            {pieData.map((item, index) => (
+                              <div key={index} className="flex items-center justify-between text-xs">
+                                <div className="flex items-center gap-1">
+                                  <div 
+                                    className="w-2 h-2 rounded-full"
+                                    style={{ backgroundColor: item.color }}
+                                  />
+                                  <span>{item.name}</span>
+                                </div>
+                                <span className="font-medium">
+                                  {((item.value / pondCost.totalCosts) * 100).toFixed(1)}%
+                                </span>
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       </div>
                     </CardContent>

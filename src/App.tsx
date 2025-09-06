@@ -25,7 +25,23 @@ import Financial from "./pages/Financial";
 import PondHistory from "./pages/PondHistory";
 import NotFound from "./pages/NotFound";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      gcTime: 10 * 60 * 1000, // 10 minutes
+      retry: (failureCount, error) => {
+        if (failureCount < 2 && !error?.message?.includes('401')) {
+          return true;
+        }
+        return false;
+      },
+      refetchOnWindowFocus: false,
+      refetchOnMount: false,
+      refetchOnReconnect: 'always',
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>

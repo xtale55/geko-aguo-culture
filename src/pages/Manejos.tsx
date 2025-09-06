@@ -130,8 +130,14 @@ export default function Manejos() {
                 {isMobile ? (
                   // Mobile: Layout horizontal
                   <div className="flex items-center gap-4 relative z-10">
-                    <div className="p-3 bg-gradient-to-br from-muted/50 to-muted rounded-xl border border-border/50 flex-shrink-0">
-                      <IconComponent className="w-6 h-6 text-primary" />
+                    <div className="p-3 bg-gradient-to-br from-muted/50 to-muted rounded-xl border border-border/50 flex-shrink-0 relative overflow-hidden">
+                      <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-accent/20 opacity-50"></div>
+                      <IconComponent className="w-6 h-6 relative z-10" style={{
+                        background: `linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--accent)) 100%)`,
+                        WebkitBackgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent',
+                        backgroundClip: 'text'
+                      }} />
                     </div>
                     
                     <div className="flex-1 min-w-0">
@@ -154,15 +160,20 @@ export default function Manejos() {
                   </div>
                 ) : (
                   // Desktop: Layout vertical
-                  <CardContent className="p-8 relative z-10">
-                    <div className="flex items-start justify-between mb-6">
-                      <div className="p-4 rounded-2xl bg-gradient-to-br from-muted/50 to-muted border border-border/50 group-hover:border-primary/20 transition-all duration-300">
-                        <IconComponent className="w-8 h-8 text-primary" />
+                  <CardContent className="p-6 relative z-10">
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="p-3 rounded-xl bg-gradient-to-br from-muted/50 to-muted border border-border/50 group-hover:border-primary/20 transition-all duration-300">
+                        <IconComponent className="w-6 h-6 bg-gradient-to-br from-primary/80 to-accent/80 text-transparent bg-clip-text" style={{
+                          background: `linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary)) 50%, hsl(var(--accent)) 100%)`,
+                          WebkitBackgroundClip: 'text',
+                          WebkitTextFillColor: 'transparent',
+                          backgroundClip: 'text'
+                        }} />
                       </div>
                       
                       <div className="flex items-center gap-3">
                         {card.status === 'Novo' && (
-                          <span className="px-3 py-1 text-xs font-semibold bg-gradient-to-r from-purple-500/20 to-pink-500/20 text-purple-600 rounded-full border border-purple-500/30 backdrop-blur-sm">
+                          <span className="px-2 py-1 text-xs font-semibold bg-gradient-to-r from-purple-500/20 to-pink-500/20 text-purple-600 rounded-full border border-purple-500/30 backdrop-blur-sm">
                             Novo
                           </span>
                         )}
@@ -170,11 +181,11 @@ export default function Manejos() {
                       </div>
                     </div>
                     
-                    <div className="space-y-3">
-                      <h3 className="text-2xl font-bold text-foreground group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:from-primary group-hover:to-accent group-hover:bg-clip-text transition-all duration-300">
+                    <div className="space-y-2">
+                      <h3 className="text-lg font-bold text-foreground group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:from-primary group-hover:to-accent group-hover:bg-clip-text transition-all duration-300">
                         {card.title}
                       </h3>
-                      <p className="text-muted-foreground leading-relaxed group-hover:text-foreground/80 transition-colors duration-300">
+                      <p className="text-sm text-muted-foreground leading-relaxed group-hover:text-foreground/80 transition-colors duration-300">
                         {card.description}
                       </p>
                     </div>

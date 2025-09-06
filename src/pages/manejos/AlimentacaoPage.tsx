@@ -171,13 +171,6 @@ export default function AlimentacaoPage() {
         .eq('pond_batch_id', pond.current_batch.id)
         .eq('feeding_date', today);
 
-      // Get feeding rate configuration
-      const { data: feedingRate } = await supabase
-        .from('feeding_rates')
-        .select('feeding_percentage, meals_per_day, weight_range_min, weight_range_max')
-        .eq('pond_batch_id', pond.current_batch.id)
-        .maybeSingle();
-
       // Get latest biometry for calculations
       const { data: biometry } = await supabase
         .from('biometrics')
@@ -185,6 +178,24 @@ export default function AlimentacaoPage() {
         .eq('pond_batch_id', pond.current_batch.id)
         .order('measurement_date', { ascending: false })
         .limit(1);
+
+      // Get farm_id from pond to find feeding rates
+      const { data: pondData } = await supabase
+        .from('ponds')
+        .select('farm_id')
+        .eq('id', pond.id)
+        .single();
+
+      const avgWeight = biometry?.[0]?.average_weight || 1; // Default to 1g if no biometry
+
+      // Get feeding rate configuration based on weight range and farm_id
+      const { data: feedingRate } = await supabase
+        .from('feeding_rates')
+        .select('feeding_percentage, meals_per_day, weight_range_min, weight_range_max')
+        .eq('farm_id', pondData?.farm_id)
+        .lte('weight_range_min', avgWeight)
+        .gte('weight_range_max', avgWeight)
+        .maybeSingle();
 
       const totalDaily = feedingRecords?.reduce((sum, record) => sum + record.actual_amount, 0) || 0;
       const mealsCompleted = feedingRecords?.length || 0;
@@ -195,7 +206,6 @@ export default function AlimentacaoPage() {
       let plannedPerMeal = 0;
       
       if (feedingRate && pond.current_batch) {
-        const avgWeight = biometry?.[0]?.average_weight || 1;
         const biomass = (pond.current_batch.current_population * avgWeight) / 1000; // kg
         plannedTotalDaily = (biomass * feedingRate.feeding_percentage / 100) * 1000; // grams
         plannedPerMeal = Math.round(plannedTotalDaily / feedingRate.meals_per_day);
@@ -297,12 +307,6 @@ export default function AlimentacaoPage() {
     
     // Calculate planned amount based on feeding rate
     try {
-      const { data: feedingRate } = await supabase
-        .from('feeding_rates')
-        .select('feeding_percentage, meals_per_day')
-        .eq('pond_batch_id', pond.current_batch.id)
-        .single();
-
       // Get latest biometry for weight calculation
       const { data: biometry } = await supabase
         .from('biometrics')
@@ -311,9 +315,26 @@ export default function AlimentacaoPage() {
         .order('measurement_date', { ascending: false })
         .limit(1);
 
+      // Get farm_id from pond to find feeding rates
+      const { data: pondData } = await supabase
+        .from('ponds')
+        .select('farm_id')
+        .eq('id', pond.id)
+        .single();
+
+      const avgWeight = biometry?.[0]?.average_weight || 1; // Default to 1g if no biometry
+
+      // Get feeding rate configuration based on weight range and farm_id
+      const { data: feedingRate } = await supabase
+        .from('feeding_rates')
+        .select('feeding_percentage, meals_per_day')
+        .eq('farm_id', pondData?.farm_id)
+        .lte('weight_range_min', avgWeight)
+        .gte('weight_range_max', avgWeight)
+        .maybeSingle();
+
       let plannedAmount = 0;
       if (feedingRate && pond.current_batch) {
-        const avgWeight = biometry?.[0]?.average_weight || 1;
         const biomass = (pond.current_batch.current_population * avgWeight) / 1000; // kg
         const dailyFeed = (biomass * feedingRate.feeding_percentage / 100) * 1000; // grams
         plannedAmount = Math.round(dailyFeed / feedingRate.meals_per_day);

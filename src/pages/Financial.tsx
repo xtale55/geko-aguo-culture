@@ -57,6 +57,22 @@ interface CycleFinancial {
   status: 'active' | 'completed';
 }
 
+interface PondCosts {
+  pond_name: string;
+  batch_name: string;
+  pond_id: string;
+  pond_batch_id: string;
+  area: number;
+  doc: number;
+  feedCosts: number;
+  inputCosts: number;
+  plCosts: number;
+  preparationCosts: number;
+  operationalCosts: number;
+  totalCosts: number;
+  costPerHectare: number;
+}
+
 export default function Financial() {
   const [financialData, setFinancialData] = useState<FinancialData>({
     totalRevenue: 0,
@@ -72,6 +88,7 @@ export default function Financial() {
   const [revenueData, setRevenueData] = useState<RevenueData[]>([]);
   const [costsByCategory, setCostsByCategory] = useState<CostsByCategory[]>([]);
   const [cycleFinancials, setCycleFinancials] = useState<CycleFinancial[]>([]);
+  const [pondCosts, setPondCosts] = useState<PondCosts[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPeriod, setSelectedPeriod] = useState('last_30_days');
   const [priceTable, setPriceTable] = useState(19);
@@ -170,6 +187,59 @@ export default function Financial() {
         { category: 'Preparação', amount: preparationCosts, percentage: (preparationCosts / totalCosts) * 100, color: '#0088fe' }
       ].filter(cost => cost.amount > 0);
 
+      // Calculate costs by pond
+      const pondCostsData: PondCosts[] = pondBatches?.map(pb => {
+        const pond = ponds.find(p => p.id === pb.pond_id);
+        const batch = batches?.find(b => b.id === pb.batch_id);
+        const pbFeeding = feedingRecords?.filter(fr => fr.pond_batch_id === pb.id) || [];
+        const pbInputs = inputApplications?.filter(ia => ia.pond_batch_id === pb.id) || [];
+
+        const cycleFeedCost = pbFeeding.reduce((sum, fr) => {
+          return sum + (QuantityUtils.gramsToKg(fr.actual_amount) * (fr.unit_cost || 0));
+        }, 0);
+        
+        const cycleInputCost = pbInputs.reduce((sum, ia) => sum + (ia.total_cost || 0), 0);
+        const cyclePLCost = (pb.pl_quantity / 1000) * (batch?.pl_cost || 0);
+        const cyclePreparationCost = pb.preparation_cost || 0;
+        
+        // Allocate operational costs proportionally by area
+        const totalActiveArea = pondBatches
+          .filter(pbatch => pbatch.cycle_status === 'active')
+          .reduce((sum, pbatch) => {
+            const p = ponds.find(p => p.id === pbatch.pond_id);
+            return sum + (p?.area || 0);
+          }, 0);
+        
+        const pondOperationalCosts = totalActiveArea > 0 
+          ? (operationalCostTotal * ((pond?.area || 0) / totalActiveArea))
+          : 0;
+        
+        const cycleTotalCost = cycleFeedCost + cycleInputCost + cyclePLCost + cyclePreparationCost + pondOperationalCosts;
+
+        const stocking = new Date(pb.stocking_date);
+        const today = new Date();
+        const doc = Math.ceil((today.getTime() - stocking.getTime()) / (1000 * 60 * 60 * 24));
+
+        const area = pond?.area || 0;
+        const costPerHectare = area > 0 ? cycleTotalCost / (area / 10000) : 0; // convert m² to hectares
+
+        return {
+          pond_name: pond?.name || '',
+          batch_name: batch?.name || '',
+          pond_id: pb.pond_id,
+          pond_batch_id: pb.id,
+          area,
+          doc,
+          feedCosts: cycleFeedCost,
+          inputCosts: cycleInputCost,
+          plCosts: cyclePLCost,
+          preparationCosts: cyclePreparationCost,
+          operationalCosts: pondOperationalCosts,
+          totalCosts: cycleTotalCost,
+          costPerHectare
+        };
+      }) || [];
+
       // Calculate cycle financials
       const cycleFinancials: CycleFinancial[] = pondBatches?.map(pb => {
         const pond = ponds.find(p => p.id === pb.pond_id);
@@ -192,15 +262,8 @@ export default function Financial() {
           }
         }
 
-        const cycleFeedCost = pbFeeding.reduce((sum, fr) => {
-          return sum + (QuantityUtils.gramsToKg(fr.actual_amount) * (fr.unit_cost || 0));
-        }, 0);
-        
-        const cycleInputCost = pbInputs.reduce((sum, ia) => sum + (ia.total_cost || 0), 0);
-        const cyclePLCost = (pb.pl_quantity / 1000) * (batch?.pl_cost || 0);
-        const cyclePreparationCost = pb.preparation_cost || 0;
-        
-        const cycleTotalCost = cycleFeedCost + cycleInputCost + cyclePLCost + cyclePreparationCost;
+        const pondCostData = pondCostsData.find(pc => pc.pond_batch_id === pb.id);
+        const cycleTotalCost = pondCostData?.totalCosts || 0;
         const cycleProfit = estimatedRevenue - cycleTotalCost;
         const cycleROI = cycleTotalCost > 0 ? (cycleProfit / cycleTotalCost) * 100 : 0;
 
@@ -251,6 +314,7 @@ export default function Financial() {
       setRevenueData(mockRevenueData);
       setCostsByCategory(costs);
       setCycleFinancials(cycleFinancials);
+      setPondCosts(pondCostsData);
 
     } catch (error) {
       console.error('Error loading financial data:', error);
@@ -305,9 +369,8 @@ export default function Financial() {
         </div>
 
         <Tabs defaultValue="overview" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="overview">Visão Geral</TabsTrigger>
-            <TabsTrigger value="revenues">Receitas</TabsTrigger>
             <TabsTrigger value="costs">Custos Detalhados</TabsTrigger>
             <TabsTrigger value="profitability">Rentabilidade</TabsTrigger>
           </TabsList>
@@ -433,79 +496,115 @@ export default function Financial() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="revenues" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Análise de Receitas</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid gap-4 md:grid-cols-3">
-                  <StatsCard
-                    title="Receita Total"
-                    value={formatCurrency(financialData.totalRevenue)}
-                    icon={<DollarSign />}
-                    variant="primary"
-                  />
-                  <StatsCard
-                    title="Preço Médio/kg"
-                    value={formatCurrency(priceTable)}
-                    icon={<Scale />}
-                    variant="secondary"
-                  />
-                  <StatsCard
-                    title="Volume Vendido"
-                    value={`${(financialData.totalRevenue / priceTable).toFixed(0)} kg`}
-                    icon={<Fish />}
-                    variant="secondary"
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Revenue trend chart */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Evolução das Vendas</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={400}>
-                  <BarChart data={revenueData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date" />
-                    <YAxis tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`} />
-                    <Tooltip formatter={(value: number) => formatCurrency(value)} />
-                    <Bar dataKey="revenue" fill="#8884d8" name="Receita" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
           <TabsContent value="costs" className="space-y-6">
-            <OperationalCosts />
-            
-            <Card>
-              <CardHeader>
-                <CardTitle>Custos por Categoria</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {costsByCategory.map((cost) => (
-                    <div key={cost.category} className="flex items-center justify-between p-4 border rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <div 
-                          className="w-4 h-4 rounded-full"
-                          style={{ backgroundColor: cost.color }}
-                        />
-                        <span className="font-medium">{cost.category}</span>
+            {/* Pond Costs Overview */}
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {pondCosts.map((pondCost) => (
+                <Card key={pondCost.pond_batch_id}>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg flex items-center justify-between">
+                      <span>{pondCost.pond_name}</span>
+                      <Badge variant="outline">{pondCost.doc} DOC</Badge>
+                    </CardTitle>
+                    <p className="text-sm text-muted-foreground">
+                      {pondCost.batch_name} • {pondCost.area.toLocaleString('pt-BR')} m²
+                    </p>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm">Ração</span>
+                        <span className="font-medium">{formatCurrency(pondCost.feedCosts)}</span>
                       </div>
-                      <div className="text-right">
-                        <div className="font-bold">{formatCurrency(cost.amount)}</div>
-                        <div className="text-sm text-muted-foreground">{cost.percentage.toFixed(1)}%</div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm">Insumos</span>
+                        <span className="font-medium">{formatCurrency(pondCost.inputCosts)}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm">Pós-larvas</span>
+                        <span className="font-medium">{formatCurrency(pondCost.plCosts)}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm">Preparação</span>
+                        <span className="font-medium">{formatCurrency(pondCost.preparationCosts)}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm">Operacionais</span>
+                        <span className="font-medium">{formatCurrency(pondCost.operationalCosts)}</span>
+                      </div>
+                      <div className="border-t pt-2 flex justify-between items-center font-bold">
+                        <span>Total</span>
+                        <span>{formatCurrency(pondCost.totalCosts)}</span>
+                      </div>
+                      <div className="text-xs text-muted-foreground text-center">
+                        {formatCurrency(pondCost.costPerHectare)}/ha
                       </div>
                     </div>
-                  ))}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            {/* Comparative Table */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Comparativo de Custos por Viveiro</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b">
+                        <th className="text-left p-2">Viveiro</th>
+                        <th className="text-left p-2">Lote</th>
+                        <th className="text-right p-2">DOC</th>
+                        <th className="text-right p-2">Área (m²)</th>
+                        <th className="text-right p-2">Ração</th>
+                        <th className="text-right p-2">Insumos</th>
+                        <th className="text-right p-2">PL</th>
+                        <th className="text-right p-2">Preparação</th>
+                        <th className="text-right p-2">Operacionais</th>
+                        <th className="text-right p-2">Total</th>
+                        <th className="text-right p-2">R$/ha</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {pondCosts.map((pondCost) => (
+                        <tr key={pondCost.pond_batch_id} className="border-b">
+                          <td className="p-2 font-medium">{pondCost.pond_name}</td>
+                          <td className="p-2">{pondCost.batch_name}</td>
+                          <td className="p-2 text-right">{pondCost.doc}</td>
+                          <td className="p-2 text-right">{pondCost.area.toLocaleString('pt-BR')}</td>
+                          <td className="p-2 text-right">{formatCurrency(pondCost.feedCosts)}</td>
+                          <td className="p-2 text-right">{formatCurrency(pondCost.inputCosts)}</td>
+                          <td className="p-2 text-right">{formatCurrency(pondCost.plCosts)}</td>
+                          <td className="p-2 text-right">{formatCurrency(pondCost.preparationCosts)}</td>
+                          <td className="p-2 text-right">{formatCurrency(pondCost.operationalCosts)}</td>
+                          <td className="p-2 text-right font-bold">{formatCurrency(pondCost.totalCosts)}</td>
+                          <td className="p-2 text-right">{formatCurrency(pondCost.costPerHectare)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
+              </CardContent>
+            </Card>
+
+            {/* Comparative Chart */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Comparativo de Custos Totais</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={pondCosts}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="pond_name" />
+                    <YAxis tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`} />
+                    <Tooltip formatter={(value: number) => formatCurrency(value)} />
+                    <Bar dataKey="totalCosts" fill="#8884d8" name="Custo Total" />
+                  </BarChart>
+                </ResponsiveContainer>
               </CardContent>
             </Card>
           </TabsContent>

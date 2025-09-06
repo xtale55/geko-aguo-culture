@@ -202,16 +202,18 @@ export function OperationalCosts() {
       }
 
       // Buscar dados de biomassa dos viveiros selecionados
-      const { data: selectedPondBatches } = await supabase
+      const { data: selectedPondBatches, error: queryError } = await supabase
         .from('pond_batches')
         .select(`
           id, 
           current_population,
-          biometrics(average_weight)
+          biometrics(average_weight, created_at)
         `)
         .in('id', selectedPondIds)
-        .gt('current_population', 0)
-        .order('biometrics.created_at', { ascending: false });
+        .eq('cycle_status', 'active')
+        .gt('current_population', 0);
+
+      console.log('Query result:', { selectedPondBatches, queryError, selectedPondIds });
 
       if (!selectedPondBatches || selectedPondBatches.length === 0) {
         toast({
@@ -227,7 +229,11 @@ export function OperationalCosts() {
       const pondBiomassData: { pond_batch_id: string; biomass: number }[] = [];
 
       selectedPondBatches.forEach(pb => {
-        const latestBiometry = pb.biometrics?.[0];
+        // Ordenar biometrias por data e pegar a mais recente
+        const sortedBiometrics = pb.biometrics?.sort((a, b) => 
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+        const latestBiometry = sortedBiometrics?.[0];
         const biomass = latestBiometry ? 
           (pb.current_population * latestBiometry.average_weight) / 1000 : 
           pb.current_population * 0.005; // Peso padrão se não houver biometria

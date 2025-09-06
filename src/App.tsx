@@ -11,6 +11,12 @@ import Dashboard from "./pages/Dashboard";
 import Farm from "./pages/Farm";
 import Stocking from "./pages/Stocking";
 import Manejos from "./pages/Manejos";
+import BiometriaPage from "./pages/manejos/BiometriaPage";
+import InsumosPage from "./pages/manejos/InsumosPage";
+import AguaPage from "./pages/manejos/AguaPage";
+import MortalidadePage from "./pages/manejos/MortalidadePage";
+import DespescaPage from "./pages/manejos/DespescaPage";
+import CustosPage from "./pages/manejos/CustosPage";
 import Feeding from "./pages/Feeding";
 import Inventory from "./pages/Inventory";
 import Reports from "./pages/Reports";
@@ -34,6 +40,12 @@ const App = () => (
           <Route path="/farm" element={<Farm />} />
           <Route path="/stocking" element={<Stocking />} />
           <Route path="/manejos" element={<Manejos />} />
+          <Route path="/manejos/biometria" element={<BiometriaPage />} />
+          <Route path="/manejos/insumos" element={<InsumosPage />} />
+          <Route path="/manejos/agua" element={<AguaPage />} />
+          <Route path="/manejos/mortalidade" element={<MortalidadePage />} />
+          <Route path="/manejos/despesca" element={<DespescaPage />} />
+          <Route path="/manejos/custos" element={<CustosPage />} />
           <Route path="/feeding" element={<Feeding />} />
           <Route path="/inventory" element={<Inventory />} />
           <Route path="/reports" element={<Reports />} />

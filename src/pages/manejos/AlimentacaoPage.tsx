@@ -665,25 +665,24 @@ export default function AlimentacaoPage() {
                   </div>
                 </div>
 
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="planned">Planejado (g)</Label>
-                    <Input
-                      id="planned"
-                      type="number"
-                      value={feedingData.planned_amount}
-                      onChange={(e) => setFeedingData(prev => ({ ...prev, planned_amount: Number(e.target.value) }))}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="actual">Quantidade Real (g)</Label>
-                    <Input
-                      id="actual"
-                      type="number"
-                      value={feedingData.actual_amount}
-                      onChange={(e) => setFeedingData(prev => ({ ...prev, actual_amount: Number(e.target.value) }))}
-                    />
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="quantity">Quantidade (g)</Label>
+                  <Input
+                    id="quantity"
+                    type="number"
+                    value={feedingData.actual_amount}
+                    onChange={(e) => {
+                      const value = Number(e.target.value);
+                      setFeedingData(prev => ({ 
+                        ...prev, 
+                        actual_amount: value,
+                        planned_amount: value // Keep both values in sync
+                      }));
+                    }}
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    Recomendado: {feedingData.planned_amount}g
+                  </p>
                 </div>
 
                 <div className="space-y-2">

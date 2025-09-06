@@ -66,14 +66,14 @@ export function AppSidebar() {
                     <button
                       onClick={() => navigate(item.path)}
                       className={cn(
-                        "w-full flex flex-col items-center space-y-1 px-2 py-2 rounded-md text-sm transition-colors",
+                        "w-full min-w-0 flex items-center justify-start gap-2 px-3 py-2 rounded-md text-sm transition-colors",
                         isActive(item.path)
                           ? "bg-primary text-primary-foreground"
                           : "hover:bg-muted"
                       )}
                     >
-                      <item.icon className="w-4 h-4" />
-                      <span className="text-center leading-tight">{item.label}</span>
+                      <item.icon className="w-4 h-4 shrink-0" />
+                      <span className="flex-1 truncate text-left leading-tight">{item.label}</span>
                     </button>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

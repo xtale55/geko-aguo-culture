@@ -93,6 +93,7 @@ export default function Reports() {
   const [farmArea, setFarmArea] = useState<number>(1);
   const [loading, setLoading] = useState(true);
   const [selectedPeriod, setSelectedPeriod] = useState('last_30_days');
+  const [activeTab, setActiveTab] = useState('overview');
   const [operationalCosts, setOperationalCosts] = useState<number>(0);
   const [materialsConsumed, setMaterialsConsumed] = useState<number>(0);
   const [priceTable, setPriceTable] = useState<number>(19); // Default table price for 10g shrimp
@@ -628,7 +629,7 @@ export default function Reports() {
         </div>
 
         {/* Detailed Analysis */}
-        <Tabs defaultValue="overview" className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="overview" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm font-medium text-foreground/80 data-[state=active]:font-semibold transition-all">Visão Geral</TabsTrigger>
             <TabsTrigger value="financial" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm font-medium text-foreground/80 data-[state=active]:font-semibold transition-all">Análise Financeira</TabsTrigger>

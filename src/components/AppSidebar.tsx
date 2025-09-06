@@ -39,7 +39,7 @@ export function AppSidebar() {
   const isActive = (path: string) => location.pathname === path;
 
   return (
-    <Sidebar>
+    <Sidebar className="w-44">
       <SidebarHeader className="border-b border-border p-4">
         <div className="flex items-center space-x-2">
           <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-emerald-500 rounded-full flex items-center justify-center">
@@ -87,9 +87,9 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-border p-4">
+      <SidebarFooter className="border-t border-border p-3">
         <div className="flex items-center justify-between">
-          <div className="text-sm text-muted-foreground truncate max-w-[140px]">
+          <div className="text-xs text-muted-foreground truncate max-w-[100px]">
             {user?.email}
           </div>
           <Button variant="ghost" size="sm" onClick={handleSignOut}>

@@ -39,7 +39,7 @@ export function AppSidebar() {
   const isActive = (path: string) => location.pathname === path;
 
   return (
-    <Sidebar className="w-36">
+    <Sidebar collapsible="none" className="w-auto min-w-44">
       <SidebarHeader className="border-b border-border p-2">
         <div className="flex flex-col items-center space-y-1">
           <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-emerald-500 rounded-full flex items-center justify-center">

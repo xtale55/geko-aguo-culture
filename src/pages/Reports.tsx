@@ -812,74 +812,167 @@ export default function Reports() {
                 </CardContent>
               </Card>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <DollarSign className="w-5 h-5" />
-                      Receitas vs Custos
-                    </CardTitle>
-                  </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center p-3 bg-success/10 rounded">
-                      <span className="text-muted-foreground">Receita Total Estimada:</span>
-                      <span className="font-bold text-success text-lg">
-                        R$ {productionReport.totalRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                      </span>
+              {/* Cards dos Viveiros - Análise Financeira */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold flex items-center gap-2">
+                  <Fish className="w-5 h-5" />
+                  Viveiros Ativos - Análise Financeira
+                </h3>
+                
+                {pondCards.length === 0 ? (
+                  <Card>
+                    <CardContent className="py-8 text-center">
+                      <div className="text-muted-foreground">
+                        Nenhum viveiro ativo encontrado com dados suficientes para análise.
+                      </div>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {pondCards.map((pond) => {
+                        const calculatePriceByWeight = (weight: number, tableValue: number) => {
+                          return tableValue + (weight - 10);
+                        };
+                        
+                        const pricePerKg = calculatePriceByWeight(pond.current_weight, priceTable);
+                        const revenue = pond.biomass * pricePerKg;
+                        const totalCost = pond.total_cost;
+                        const profit = revenue - totalCost;
+                        const profitMargin = revenue > 0 ? (profit / revenue) * 100 : 0;
+                        
+                        return (
+                          <Card key={pond.pond_batch_id} className="relative">
+                            <CardHeader className="pb-4">
+                              <div className="flex justify-between items-start">
+                                <div>
+                                  <CardTitle className="text-base">{pond.pond_name}</CardTitle>
+                                  <p className="text-sm text-muted-foreground">
+                                    {pond.batch_name} • {pond.doc} DOC
+                                  </p>
+                                </div>
+                                <Badge 
+                                  variant={profit > 0 ? "default" : "destructive"}
+                                  className="text-xs"
+                                >
+                                  {profit > 0 ? "Lucro" : "Prejuízo"}
+                                </Badge>
+                              </div>
+                            </CardHeader>
+                            
+                            <CardContent className="space-y-3">
+                              {/* Biomassa e Custo/kg */}
+                              <div className="grid grid-cols-2 gap-3">
+                                <div className="text-center p-2 bg-muted/50 rounded">
+                                  <p className="text-xs text-muted-foreground">Biomassa</p>
+                                  <p className="font-semibold">{pond.biomass.toFixed(1)} kg</p>
+                                </div>
+                                <div className="text-center p-2 bg-muted/50 rounded">
+                                  <p className="text-xs text-muted-foreground">Custo/kg</p>
+                                  <p className="font-semibold">R$ {pond.cost_per_kg.toFixed(2)}</p>
+                                </div>
+                              </div>
+                              
+                              {/* Faturamento */}
+                              <div className="p-3 bg-success/10 rounded">
+                                <div className="flex justify-between items-center">
+                                  <span className="text-sm text-muted-foreground">Faturamento</span>
+                                  <span className="font-bold text-success">
+                                    R$ {revenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                  </span>
+                                </div>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  R$ {pricePerKg.toFixed(2)}/kg • {pond.current_weight.toFixed(1)}g
+                                </p>
+                              </div>
+                              
+                              {/* Custo Total */}
+                              <div className="p-3 bg-destructive/10 rounded">
+                                <div className="flex justify-between items-center">
+                                  <span className="text-sm text-muted-foreground">Custo Total</span>
+                                  <span className="font-bold text-destructive">
+                                    R$ {totalCost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                  </span>
+                                </div>
+                              </div>
+                              
+                              {/* Lucro Final */}
+                              <div className={`p-3 rounded ${profit > 0 ? 'bg-success/10' : 'bg-destructive/10'}`}>
+                                <div className="flex justify-between items-center">
+                                  <span className="text-sm text-muted-foreground">Lucro Final</span>
+                                  <span className={`font-bold ${profit > 0 ? 'text-success' : 'text-destructive'}`}>
+                                    R$ {profit.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                  </span>
+                                </div>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  Margem: {profitMargin.toFixed(1)}%
+                                </p>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
                     </div>
-                    <div className="flex justify-between items-center p-3 bg-destructive/10 rounded">
-                      <span className="text-muted-foreground">Custos Operacionais:</span>
-                      <span className="font-bold text-destructive text-lg">
-                        R$ {operationalCosts.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center p-3 bg-warning/10 rounded">
-                      <span className="text-muted-foreground">Materiais Consumidos:</span>
-                      <span className="font-bold text-warning text-lg">
-                        R$ {materialsConsumed.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center p-3 bg-primary/10 rounded">
-                      <span className="text-muted-foreground">Lucro Líquido:</span>
-                      <span className={`font-bold text-lg ${(productionReport.totalRevenue - operationalCosts - materialsConsumed) > 0 ? 'text-success' : 'text-destructive'}`}>
-                        R$ {(productionReport.totalRevenue - operationalCosts - materialsConsumed).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                      </span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <BarChart3 className="w-5 h-5" />
-                    Métricas de Eficiência
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center">
-                      <span className="text-muted-foreground">ROI Estimado:</span>
-                      <span className={`font-medium ${productionReport.profitMargin > 0 ? 'text-success' : 'text-destructive'}`}>
-                        {productionReport.profitMargin.toFixed(1)}%
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-muted-foreground">Custo por kg produzido:</span>
-                      <span className="font-medium">
-                        R$ {pondCards.length > 0 ? (pondCards.reduce((sum, card) => sum + card.cost_per_kg, 0) / pondCards.length).toFixed(2) : '0.00'}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                       <span className="text-muted-foreground">Receita por hectare:</span>
-                       <span className="font-medium text-success">
-                         R$ {pondCards.length > 0 ? (pondCards.reduce((sum, card) => sum + card.productivity_per_ha, 0) / pondCards.length * (pondCards.reduce((sum, card) => sum + (card.estimated_revenue / card.biomass), 0) / pondCards.length)).toLocaleString('pt-BR', { minimumFractionDigits: 0 }) : '0'}
-                       </span>
-                     </div>
-                   </div>
-                 </CardContent>
-                </Card>
+                    
+                    {/* Resumo Geral */}
+                    <Card className="mt-6">
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <BarChart3 className="w-5 h-5" />
+                          Resumo Geral - Análise Financeira
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                          {(() => {
+                            const calculatePriceByWeight = (weight: number, tableValue: number) => {
+                              return tableValue + (weight - 10);
+                            };
+                            
+                            const totalBiomass = pondCards.reduce((sum, pond) => sum + pond.biomass, 0);
+                            const totalRevenue = pondCards.reduce((sum, pond) => {
+                              const pricePerKg = calculatePriceByWeight(pond.current_weight, priceTable);
+                              return sum + (pond.biomass * pricePerKg);
+                            }, 0);
+                            const totalCosts = pondCards.reduce((sum, pond) => sum + pond.total_cost, 0);
+                            const totalProfit = totalRevenue - totalCosts;
+                            const avgMargin = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
+                            
+                            return (
+                              <>
+                                <div className="text-center p-3 bg-muted/50 rounded">
+                                  <p className="text-sm text-muted-foreground">Biomassa Total</p>
+                                  <p className="text-xl font-bold">{totalBiomass.toFixed(1)} kg</p>
+                                </div>
+                                <div className="text-center p-3 bg-success/10 rounded">
+                                  <p className="text-sm text-muted-foreground">Faturamento Total</p>
+                                  <p className="text-xl font-bold text-success">
+                                    R$ {totalRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
+                                  </p>
+                                </div>
+                                <div className="text-center p-3 bg-destructive/10 rounded">
+                                  <p className="text-sm text-muted-foreground">Custos Totais</p>
+                                  <p className="text-xl font-bold text-destructive">
+                                    R$ {totalCosts.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
+                                  </p>
+                                </div>
+                                <div className={`text-center p-3 rounded ${totalProfit > 0 ? 'bg-success/10' : 'bg-destructive/10'}`}>
+                                  <p className="text-sm text-muted-foreground">Lucro Total</p>
+                                  <p className={`text-xl font-bold ${totalProfit > 0 ? 'text-success' : 'text-destructive'}`}>
+                                    R$ {totalProfit.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    Margem: {avgMargin.toFixed(1)}%
+                                  </p>
+                                </div>
+                              </>
+                            );
+                          })()}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </>
+                )}
               </div>
             </div>
             </TabsContent>

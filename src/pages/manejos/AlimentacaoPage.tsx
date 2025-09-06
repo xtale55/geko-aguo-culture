@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowLeft, Clock, Utensils, History } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
@@ -51,6 +52,13 @@ interface FeedingRecord {
   batch_name: string;
 }
 
+interface FeedType {
+  id: string;
+  name: string;
+  quantity: number;
+  unit_price: number;
+}
+
 interface FeedingData {
   pond_batch_id: string;
   feeding_date: string;
@@ -58,6 +66,8 @@ interface FeedingData {
   planned_amount: number;
   actual_amount: number;
   notes?: string;
+  feed_type_id?: string;
+  feed_type_name?: string;
 }
 
 export default function AlimentacaoPage() {
@@ -72,6 +82,8 @@ export default function AlimentacaoPage() {
   const [submitting, setSubmitting] = useState(false);
   const [showDialog, setShowDialog] = useState(false);
   const [selectedPond, setSelectedPond] = useState<PondWithBatch | null>(null);
+  const [availableFeeds, setAvailableFeeds] = useState<FeedType[]>([]);
+  const [selectedFeedType, setSelectedFeedType] = useState<string>('');
   
   const [feedingData, setFeedingData] = useState<FeedingData>({
     pond_batch_id: '',
@@ -86,6 +98,7 @@ export default function AlimentacaoPage() {
     if (user) {
       loadActivePonds();
       loadFeedingHistory();
+      loadAvailableFeeds();
     }
   }, [user]);
 
@@ -301,6 +314,41 @@ export default function AlimentacaoPage() {
     }
   };
 
+  const loadAvailableFeeds = async () => {
+    try {
+      // Load farms first
+      const { data: farmsData, error: farmsError } = await supabase
+        .from('farms')
+        .select('id')
+        .eq('user_id', user?.id);
+
+      if (farmsError) throw farmsError;
+
+      if (farmsData && farmsData.length > 0) {
+        const { data: feedsData, error: feedsError } = await supabase
+          .from('inventory')
+          .select('id, name, quantity, unit_price')
+          .eq('farm_id', farmsData[0].id)
+          .eq('category', 'Ração')
+          .gt('quantity', 0)
+          .order('created_at', { ascending: false });
+
+        if (feedsError) throw feedsError;
+
+        const feeds: FeedType[] = feedsData?.map(feed => ({
+          id: feed.id,
+          name: feed.name,
+          quantity: feed.quantity / 1000, // Convert to kg for display
+          unit_price: feed.unit_price
+        })) || [];
+
+        setAvailableFeeds(feeds);
+      }
+    } catch (error) {
+      console.error('Error loading available feeds:', error);
+    }
+  };
+
   const handleOpenDialog = async (pond: PondWithBatch) => {
     if (!pond.current_batch) return;
 
@@ -328,7 +376,7 @@ export default function AlimentacaoPage() {
       // Get feeding rate configuration based on weight range and farm_id
       const { data: feedingRate } = await supabase
         .from('feeding_rates')
-        .select('feeding_percentage, meals_per_day')
+        .select('feeding_percentage, meals_per_day, default_feed_type_id, default_feed_type_name')
         .eq('farm_id', pondData?.farm_id)
         .lte('weight_range_min', avgWeight)
         .gte('weight_range_max', avgWeight)
@@ -341,23 +389,38 @@ export default function AlimentacaoPage() {
         plannedAmount = Math.round(dailyFeed / feedingRate.meals_per_day);
       }
 
+      // Set default feed type if available
+      let defaultFeedId = '';
+      if (feedingRate?.default_feed_type_id && availableFeeds.some(feed => feed.id === feedingRate.default_feed_type_id)) {
+        defaultFeedId = feedingRate.default_feed_type_id;
+      } else if (availableFeeds.length > 0) {
+        defaultFeedId = availableFeeds[0].id;
+      }
+
+      setSelectedFeedType(defaultFeedId);
       setFeedingData({
         pond_batch_id: pond.current_batch.id,
         feeding_date: getCurrentDateForInput(),
         feeding_time: format(new Date(), 'HH:mm'),
         planned_amount: plannedAmount,
         actual_amount: plannedAmount,
-        notes: ''
+        notes: '',
+        feed_type_id: defaultFeedId,
+        feed_type_name: availableFeeds.find(feed => feed.id === defaultFeedId)?.name || ''
       });
     } catch (error) {
       console.error('Error calculating planned amount:', error);
+      const defaultFeedId = availableFeeds.length > 0 ? availableFeeds[0].id : '';
+      setSelectedFeedType(defaultFeedId);
       setFeedingData({
         pond_batch_id: pond.current_batch.id,
         feeding_date: getCurrentDateForInput(),
         feeding_time: format(new Date(), 'HH:mm'),
         planned_amount: 0,
         actual_amount: 0,
-        notes: ''
+        notes: '',
+        feed_type_id: defaultFeedId,
+        feed_type_name: availableFeeds.find(feed => feed.id === defaultFeedId)?.name || ''
       });
     }
 
@@ -368,45 +431,51 @@ export default function AlimentacaoPage() {
     try {
       setSubmitting(true);
 
-      // Get feed type info from inventory
-      const { data: farmsData } = await supabase
-        .from('farms')
-        .select('id')
-        .eq('user_id', user?.id);
-
-      let feedTypeId = null;
-      let feedTypeName = '';
-      let unitCost = 0;
-
-      if (farmsData?.[0]) {
-        const { data: inventory } = await supabase
-          .from('inventory')
-          .select('*')
-          .eq('farm_id', farmsData[0].id)
-          .eq('category', 'feed')
-          .gt('quantity', 0)
-          .order('created_at', { ascending: false })
-          .limit(1);
-
-        if (inventory?.[0]) {
-          feedTypeId = inventory[0].id;
-          feedTypeName = inventory[0].name;
-          unitCost = inventory[0].unit_price;
-
-          // Update inventory
-          const newQuantity = Math.max(0, inventory[0].quantity - feedingData.actual_amount);
-          await supabase
-            .from('inventory')
-            .update({ quantity: newQuantity })
-            .eq('id', feedTypeId);
-        }
+      if (!selectedFeedType) {
+        toast({
+          title: "Erro",
+          description: "Selecione um tipo de ração",
+          variant: "destructive"
+        });
+        return;
       }
+
+      // Get selected feed info
+      const selectedFeed = availableFeeds.find(feed => feed.id === selectedFeedType);
+      if (!selectedFeed) {
+        toast({
+          title: "Erro",
+          description: "Ração selecionada não encontrada",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Check if there's enough stock (converted to grams for comparison)
+      const requiredGrams = feedingData.actual_amount;
+      const availableGrams = selectedFeed.quantity * 1000;
+      
+      if (requiredGrams > availableGrams) {
+        toast({
+          title: "Erro",
+          description: `Estoque insuficiente. Disponível: ${selectedFeed.quantity} kg`,
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Update inventory
+      const newQuantityGrams = Math.max(0, availableGrams - requiredGrams);
+      await supabase
+        .from('inventory')
+        .update({ quantity: newQuantityGrams })
+        .eq('id', selectedFeedType);
 
       const feedingRecord = {
         ...feedingData,
-        feed_type_id: feedTypeId,
-        feed_type_name: feedTypeName,
-        unit_cost: unitCost,
+        feed_type_id: selectedFeedType,
+        feed_type_name: selectedFeed.name,
+        unit_cost: selectedFeed.unit_price,
         feeding_rate_percentage: 0
       };
 
@@ -424,6 +493,7 @@ export default function AlimentacaoPage() {
       setShowDialog(false);
       loadActivePonds();
       loadFeedingHistory();
+      loadAvailableFeeds(); // Reload feeds to update quantities
 
     } catch (error) {
       console.error('Error saving feeding:', error);
@@ -667,6 +737,40 @@ export default function AlimentacaoPage() {
                 </div>
 
                 <div className="space-y-2">
+                  <Label htmlFor="feed-type">Tipo de Ração</Label>
+                  <Select value={selectedFeedType} onValueChange={(value) => {
+                    setSelectedFeedType(value);
+                    const selectedFeed = availableFeeds.find(feed => feed.id === value);
+                    setFeedingData(prev => ({
+                      ...prev,
+                      feed_type_id: value,
+                      feed_type_name: selectedFeed?.name || ''
+                    }));
+                  }}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o tipo de ração" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-background border border-border z-50">
+                      {availableFeeds.map(feed => (
+                        <SelectItem key={feed.id} value={feed.id}>
+                          <div className="flex justify-between items-center w-full">
+                            <span>{feed.name}</span>
+                            <span className="text-muted-foreground ml-2">
+                              ({feed.quantity.toFixed(1)} kg disponível)
+                            </span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {availableFeeds.length === 0 && (
+                    <p className="text-sm text-destructive">
+                      Nenhuma ração disponível no estoque
+                    </p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
                   <Label htmlFor="quantity">Quantidade (kg)</Label>
                   <Input
                     id="quantity"
@@ -703,7 +807,7 @@ export default function AlimentacaoPage() {
                   </Button>
                   <Button 
                     onClick={handleSubmitFeeding}
-                    disabled={submitting || feedingData.actual_amount <= 0}
+                    disabled={submitting || feedingData.actual_amount <= 0 || !selectedFeedType || availableFeeds.length === 0}
                     className="flex-1"
                   >
                     {submitting ? 'Salvando...' : 'Salvar'}

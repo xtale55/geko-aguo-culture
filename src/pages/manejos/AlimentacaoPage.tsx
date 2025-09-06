@@ -16,6 +16,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { getCurrentDateForInput, formatDateForDisplay } from '@/lib/utils';
+import { QuantityUtils } from '@/lib/quantityUtils';
 
 interface PondWithBatch {
   id: string;
@@ -666,22 +667,23 @@ export default function AlimentacaoPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="quantity">Quantidade (g)</Label>
+                  <Label htmlFor="quantity">Quantidade (kg)</Label>
                   <Input
                     id="quantity"
                     type="number"
-                    value={feedingData.actual_amount}
+                    step="0.1"
+                    value={QuantityUtils.gramsToKg(feedingData.actual_amount)}
                     onChange={(e) => {
-                      const value = Number(e.target.value);
+                      const gramsValue = QuantityUtils.parseInputToGrams(e.target.value);
                       setFeedingData(prev => ({ 
                         ...prev, 
-                        actual_amount: value,
-                        planned_amount: value // Keep both values in sync
+                        actual_amount: gramsValue,
+                        planned_amount: gramsValue // Keep both values in sync
                       }));
                     }}
                   />
                   <p className="text-sm text-muted-foreground">
-                    Recomendado: {feedingData.planned_amount}g
+                    Recomendado: {QuantityUtils.formatKg(feedingData.planned_amount)} kg
                   </p>
                 </div>
 

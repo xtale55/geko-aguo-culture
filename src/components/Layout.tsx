@@ -1,7 +1,7 @@
 import { memo } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { Fish, LogOut, Settings, Home, Waves, Scale, Skull, Utensils, Droplets, Package, BarChart3 } from 'lucide-react';
+import { Fish, LogOut, Settings, Home, Waves, Scale, Skull, Utensils, Droplets, Package, BarChart3, DollarSign } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
@@ -93,6 +93,14 @@ export const Layout = memo(function Layout({ children }: LayoutProps) {
               <BarChart3 className="w-4 h-4 mr-2" />
               Relatórios
             </Button>
+            <Button 
+              variant={isActive('/financial') ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => navigate('/financial')}
+            >
+              <DollarSign className="w-4 h-4 mr-2" />
+              Financeiro
+            </Button>
           </nav>
 
           <div className="flex items-center space-x-4">
@@ -124,7 +132,8 @@ export const Layout = memo(function Layout({ children }: LayoutProps) {
               { path: '/manejos', icon: Fish, label: 'Manejos' },
               { path: '/feeding', icon: Utensils, label: 'Ração' },
               { path: '/inventory', icon: Package, label: 'Estoque' },
-              { path: '/reports', icon: BarChart3, label: 'Relatórios' }
+              { path: '/reports', icon: BarChart3, label: 'Relatórios' },
+              { path: '/financial', icon: DollarSign, label: 'Financeiro' }
             ].map(({ path, icon: Icon, label }) => (
               <Button
                 key={path}

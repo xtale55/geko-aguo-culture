@@ -14,7 +14,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { FeedingHistoryPanel } from "@/components/FeedingHistoryPanel";
 import { GrowthAnalysis } from "@/components/GrowthAnalysis";
-import { OperationalCosts } from "@/components/OperationalCosts";
+
 import { QuantityUtils } from "@/lib/quantityUtils";
 import { DashboardSkeleton } from "@/components/DashboardSkeleton";
 import { LoadingScreen } from "@/components/LoadingScreen";
@@ -629,9 +629,8 @@ export default function Reports() {
 
         {/* Detailed Analysis */}
         <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="overview" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm font-medium text-foreground/80 data-[state=active]:font-semibold transition-all">Visão Geral</TabsTrigger>
-            <TabsTrigger value="costs" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm font-medium text-foreground/80 data-[state=active]:font-semibold transition-all">Custos Operacionais</TabsTrigger>
             <TabsTrigger value="financial" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm font-medium text-foreground/80 data-[state=active]:font-semibold transition-all">Análise Financeira</TabsTrigger>
           </TabsList>
 
@@ -782,9 +781,6 @@ export default function Reports() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="costs" className="space-y-4">
-            <OperationalCosts />
-          </TabsContent>
 
           <TabsContent value="financial" className="space-y-4">
             <div className="space-y-6">

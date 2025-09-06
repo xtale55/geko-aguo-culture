@@ -39,7 +39,7 @@ export function AppSidebar() {
   const isActive = (path: string) => location.pathname === path;
 
   return (
-    <Sidebar className="w-32">
+    <Sidebar className="w-36">
       <SidebarHeader className="border-b border-border p-2">
         <div className="flex flex-col items-center space-y-1">
           <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-emerald-500 rounded-full flex items-center justify-center">
@@ -66,7 +66,7 @@ export function AppSidebar() {
                     <button
                       onClick={() => navigate(item.path)}
                       className={cn(
-                        "w-full flex flex-col items-center space-y-1 px-2 py-2 rounded-md text-xs transition-colors",
+                        "w-full flex flex-col items-center space-y-1 px-2 py-2 rounded-md text-sm transition-colors",
                         isActive(item.path)
                           ? "bg-primary text-primary-foreground"
                           : "hover:bg-muted"

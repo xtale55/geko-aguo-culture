@@ -39,26 +39,22 @@ export function AppSidebar() {
   const isActive = (path: string) => location.pathname === path;
 
   return (
-    <Sidebar className="w-44">
-      <SidebarHeader className="border-b border-border p-4">
-        <div className="flex items-center space-x-2">
-          <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-emerald-500 rounded-full flex items-center justify-center">
-            <Fish className="w-5 h-5 text-white" />
+    <Sidebar className="w-32">
+      <SidebarHeader className="border-b border-border p-2">
+        <div className="flex flex-col items-center space-y-1">
+          <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-emerald-500 rounded-full flex items-center justify-center">
+            <Fish className="w-4 h-4 text-white" />
           </div>
-          <div>
-            <h1 className="text-lg font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+          <div className="text-center">
+            <h1 className="text-sm font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
               AquaHub
             </h1>
-            <p className="text-xs text-muted-foreground -mt-1">
-              ERP Aquicultura
-            </p>
           </div>
         </div>
       </SidebarHeader>
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Navegação</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {navigationItems.map((item) => (
@@ -70,14 +66,14 @@ export function AppSidebar() {
                     <button
                       onClick={() => navigate(item.path)}
                       className={cn(
-                        "w-full flex items-center space-x-2 px-3 py-2 rounded-md text-sm transition-colors",
+                        "w-full flex flex-col items-center space-y-1 px-2 py-2 rounded-md text-xs transition-colors",
                         isActive(item.path)
                           ? "bg-primary text-primary-foreground"
                           : "hover:bg-muted"
                       )}
                     >
                       <item.icon className="w-4 h-4" />
-                      <span>{item.label}</span>
+                      <span className="text-center leading-tight">{item.label}</span>
                     </button>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -87,15 +83,10 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-border p-3">
-        <div className="flex items-center justify-between">
-          <div className="text-xs text-muted-foreground truncate max-w-[100px]">
-            {user?.email}
-          </div>
-          <Button variant="ghost" size="sm" onClick={handleSignOut}>
-            <LogOut className="w-4 h-4" />
-          </Button>
-        </div>
+      <SidebarFooter className="border-t border-border p-2">
+        <Button variant="ghost" size="sm" onClick={handleSignOut} className="w-full">
+          <LogOut className="w-4 h-4" />
+        </Button>
       </SidebarFooter>
     </Sidebar>
   );

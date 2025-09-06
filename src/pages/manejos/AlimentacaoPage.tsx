@@ -32,6 +32,9 @@ interface PondWithBatch {
       total_daily: number;
       meals_completed: number;
       meals_per_day: number;
+      planned_total_daily: number;
+      planned_per_meal: number;
+      feeding_percentage: number;
     };
   };
 }
@@ -171,20 +174,42 @@ export default function AlimentacaoPage() {
       // Get feeding rate configuration
       const { data: feedingRate } = await supabase
         .from('feeding_rates')
-        .select('meals_per_day')
+        .select('feeding_percentage, meals_per_day, weight_range_min, weight_range_max')
         .eq('pond_batch_id', pond.current_batch.id)
-        .single();
+        .maybeSingle();
+
+      // Get latest biometry for calculations
+      const { data: biometry } = await supabase
+        .from('biometrics')
+        .select('average_weight')
+        .eq('pond_batch_id', pond.current_batch.id)
+        .order('measurement_date', { ascending: false })
+        .limit(1);
 
       const totalDaily = feedingRecords?.reduce((sum, record) => sum + record.actual_amount, 0) || 0;
       const mealsCompleted = feedingRecords?.length || 0;
       const mealsPerDay = feedingRate?.meals_per_day || 3;
+      
+      // Calculate planned amounts
+      let plannedTotalDaily = 0;
+      let plannedPerMeal = 0;
+      
+      if (feedingRate && pond.current_batch) {
+        const avgWeight = biometry?.[0]?.average_weight || 1;
+        const biomass = (pond.current_batch.current_population * avgWeight) / 1000; // kg
+        plannedTotalDaily = (biomass * feedingRate.feeding_percentage / 100) * 1000; // grams
+        plannedPerMeal = Math.round(plannedTotalDaily / feedingRate.meals_per_day);
+      }
 
       // Update pond with feeding summary
       pond.current_batch.latest_feeding = {
         feeding_date: today,
         total_daily: totalDaily,
         meals_completed: mealsCompleted,
-        meals_per_day: mealsPerDay
+        meals_per_day: mealsPerDay,
+        planned_total_daily: plannedTotalDaily,
+        planned_per_meal: plannedPerMeal,
+        feeding_percentage: feedingRate?.feeding_percentage || 0
       };
     } catch (error) {
       console.error('Error loading feeding summary:', error);
@@ -479,22 +504,41 @@ export default function AlimentacaoPage() {
                       </CardHeader>
                       
                       <CardContent className="space-y-4">
-                        {/* Daily Progress */}
+                        {/* Feeding Configuration Summary */}
                         {pond.current_batch?.latest_feeding && (
-                          <div className="space-y-2">
-                            <div className="flex justify-between text-sm">
-                              <span>Refeições Hoje</span>
-                              <span>
-                                {pond.current_batch.latest_feeding.meals_completed}/
-                                {pond.current_batch.latest_feeding.meals_per_day}
-                              </span>
+                          <div className="space-y-3">
+                            <div className="bg-slate-50 rounded-lg p-3 space-y-2">
+                              <div className="flex justify-between text-sm">
+                                <span className="text-muted-foreground">Taxa de alimentação:</span>
+                                <span className="font-medium">{pond.current_batch.latest_feeding.feeding_percentage.toFixed(1)}%</span>
+                              </div>
+                              <div className="flex justify-between text-sm">
+                                <span className="text-muted-foreground">Por refeição (planejado):</span>
+                                <span className="font-medium">{(pond.current_batch.latest_feeding.planned_per_meal / 1000).toFixed(1)} kg</span>
+                              </div>
+                              <div className="flex justify-between text-sm">
+                                <span className="text-muted-foreground">Total diário (planejado):</span>
+                                <span className="font-medium">{(pond.current_batch.latest_feeding.planned_total_daily / 1000).toFixed(1)} kg</span>
+                              </div>
                             </div>
-                            <Progress 
-                              value={(pond.current_batch.latest_feeding.meals_completed / pond.current_batch.latest_feeding.meals_per_day) * 100} 
-                              className="h-2" 
-                            />
-                            <div className="text-xs text-muted-foreground">
-                              Total hoje: {(pond.current_batch.latest_feeding.total_daily / 1000).toFixed(1)} kg
+                            
+                            {/* Daily Progress */}
+                            <div className="space-y-2">
+                              <div className="flex justify-between text-sm">
+                                <span>Refeições Hoje</span>
+                                <span>
+                                  {pond.current_batch.latest_feeding.meals_completed}/
+                                  {pond.current_batch.latest_feeding.meals_per_day}
+                                </span>
+                              </div>
+                              <Progress 
+                                value={(pond.current_batch.latest_feeding.meals_completed / pond.current_batch.latest_feeding.meals_per_day) * 100} 
+                                className="h-2" 
+                              />
+                              <div className="flex justify-between text-xs text-muted-foreground">
+                                <span>Alimentado: {(pond.current_batch.latest_feeding.total_daily / 1000).toFixed(1)} kg</span>
+                                <span>Restante: {((pond.current_batch.latest_feeding.planned_total_daily - pond.current_batch.latest_feeding.total_daily) / 1000).toFixed(1)} kg</span>
+                              </div>
                             </div>
                           </div>
                         )}

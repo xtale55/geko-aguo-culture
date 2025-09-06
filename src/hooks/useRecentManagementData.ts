@@ -83,10 +83,48 @@ export function useRecentManagementData(farmId?: string) {
     { enabled: !!farmId }
   );
 
+  // Recent harvest records
+  const { data: recentHarvest } = useSupabaseQuery(
+    ['recent-harvest', farmId],
+    async () => {
+      const result = await supabase
+        .from('harvest_records')
+        .select(`
+          *,
+          pond_batches!inner(
+            ponds!inner(name, farm_id),
+            batches!inner(name)
+          )
+        `)
+        .eq('pond_batches.ponds.farm_id', farmId!)
+        .order('created_at', { ascending: false })
+        .limit(4);
+      return result;
+    },
+    { enabled: !!farmId }
+  );
+
+  // Recent operational costs
+  const { data: recentCosts } = useSupabaseQuery(
+    ['recent-costs', farmId],
+    async () => {
+      const result = await supabase
+        .from('operational_costs')
+        .select('*')
+        .eq('farm_id', farmId!)
+        .order('created_at', { ascending: false })
+        .limit(4);
+      return result;
+    },
+    { enabled: !!farmId }
+  );
+
   return {
     recentBiometrics: recentBiometrics || [],
     recentWaterQuality: recentWaterQuality || [],
     recentInputs: recentInputs || [],
-    recentMortality: recentMortality || []
+    recentMortality: recentMortality || [],
+    recentHarvest: recentHarvest || [],
+    recentCosts: recentCosts || []
   };
 }

@@ -14,7 +14,7 @@ export default function Manejos() {
   // Get farm data for recent records
   const { data: farms } = useFarmsQuery();
   const farmId = farms?.[0]?.id;
-  const { recentBiometrics, recentWaterQuality, recentInputs, recentMortality } = useRecentManagementData(farmId);
+  const { recentBiometrics, recentWaterQuality, recentInputs, recentMortality, recentHarvest, recentCosts } = useRecentManagementData(farmId);
 
   const managementCards = [
     {
@@ -182,7 +182,7 @@ export default function Manejos() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
                   {/* Biometrics */}
                   <div>
                     <h4 className="font-medium text-slate-800 mb-3 flex items-center gap-2">
@@ -251,6 +251,84 @@ export default function Manejos() {
                               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                                 <span>{new Date(input.application_date).toLocaleDateString('pt-BR')}</span>
                                 <span>• {input.quantity_applied}kg</span>
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-sm text-muted-foreground">Nenhum registro recente</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Mortality */}
+                  <div>
+                    <h4 className="font-medium text-slate-800 mb-3 flex items-center gap-2">
+                      <Skull className="w-4 h-4 text-red-600" />
+                      Mortalidade
+                    </h4>
+                    <div className="space-y-2">
+                      {recentMortality.length > 0 ? (
+                        recentMortality.slice(0, 3).map((mortality: any) => (
+                          <div key={mortality.id} className="flex items-center gap-3 p-2 rounded-lg bg-muted/30">
+                            <div className="w-2 h-2 rounded-full bg-red-600"></div>
+                            <div className="flex-1">
+                              <p className="text-sm font-medium">{mortality.pond_batches?.ponds?.name}</p>
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                <span>{new Date(mortality.record_date).toLocaleDateString('pt-BR')}</span>
+                                <span>• {mortality.dead_count} mortos</span>
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-sm text-muted-foreground">Nenhum registro recente</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Harvest */}
+                  <div>
+                    <h4 className="font-medium text-slate-800 mb-3 flex items-center gap-2">
+                      <Fish className="w-4 h-4 text-orange-600" />
+                      Despesca
+                    </h4>
+                    <div className="space-y-2">
+                      {recentHarvest.length > 0 ? (
+                        recentHarvest.slice(0, 3).map((harvest: any) => (
+                          <div key={harvest.id} className="flex items-center gap-3 p-2 rounded-lg bg-muted/30">
+                            <div className="w-2 h-2 rounded-full bg-orange-600"></div>
+                            <div className="flex-1">
+                              <p className="text-sm font-medium">{harvest.pond_batches?.ponds?.name}</p>
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                <span>{new Date(harvest.harvest_date).toLocaleDateString('pt-BR')}</span>
+                                <span>• {harvest.biomass_harvested}kg</span>
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-sm text-muted-foreground">Nenhum registro recente</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Operational Costs */}
+                  <div>
+                    <h4 className="font-medium text-slate-800 mb-3 flex items-center gap-2">
+                      <DollarSign className="w-4 h-4 text-purple-600" />
+                      Custos Operacionais
+                    </h4>
+                    <div className="space-y-2">
+                      {recentCosts.length > 0 ? (
+                        recentCosts.slice(0, 3).map((cost: any) => (
+                          <div key={cost.id} className="flex items-center gap-3 p-2 rounded-lg bg-muted/30">
+                            <div className="w-2 h-2 rounded-full bg-purple-600"></div>
+                            <div className="flex-1">
+                              <p className="text-sm font-medium">{cost.category}</p>
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                <span>{new Date(cost.cost_date).toLocaleDateString('pt-BR')}</span>
+                                <span>• R$ {cost.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
                               </div>
                             </div>
                           </div>

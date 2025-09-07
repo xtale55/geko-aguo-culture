@@ -18,13 +18,13 @@ export default function Manejos() {
 
   const managementCards = [
     {
-      id: 'biometria',
-      title: 'Biometria',
-      description: 'Registre medições de peso e crescimento',
-      icon: Scale,
-      iconColor: 'text-blue-600/70',
-      route: '/manejos/biometria',
-      status: 'Ativo'
+      id: 'alimentacao',
+      title: 'Alimentação',
+      description: 'Registre alimentação diária',
+      icon: Utensils,
+      iconColor: 'text-green-600/70',
+      route: '/manejos/alimentacao',
+      status: 'Novo'
     },
     {
       id: 'insumos',
@@ -33,6 +33,15 @@ export default function Manejos() {
       icon: Beaker,
       iconColor: 'text-emerald-600/70',
       route: '/manejos/insumos',
+      status: 'Ativo'
+    },
+    {
+      id: 'biometria',
+      title: 'Biometria',
+      description: 'Registre medições de peso e crescimento',
+      icon: Scale,
+      iconColor: 'text-blue-600/70',
+      route: '/manejos/biometria',
       status: 'Ativo'
     },
     {
@@ -61,15 +70,6 @@ export default function Manejos() {
       iconColor: 'text-orange-600/70',
       route: '/manejos/despesca',
       status: 'Ativo'
-    },
-    {
-      id: 'alimentacao',
-      title: 'Alimentação',
-      description: 'Registre alimentação diária',
-      icon: Utensils,
-      iconColor: 'text-green-600/70',
-      route: '/manejos/alimentacao',
-      status: 'Novo'
     },
     {
       id: 'custos',
@@ -107,9 +107,10 @@ export default function Manejos() {
         </div>
 
         {/* Management Cards Grid */}
-        <div className={`space-y-4 ${!isMobile ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 space-y-0' : ''}`}>
+        <div className={`${!isMobile ? 'grid grid-cols-2 gap-4' : 'space-y-4'}`}>
           {managementCards.map((card, index) => {
             const IconComponent = card.icon;
+            const isFirstCard = index === 0; // Alimentação
             
             return (
               <Card
@@ -118,8 +119,9 @@ export default function Manejos() {
                   group cursor-pointer 
                   backdrop-blur-sm bg-white border-border
                   hover:shadow-lg hover:shadow-primary/5 transition-all duration-300 hover:scale-[1.02]
-                  ${isMobile ? 'p-3' : 'p-4'}
+                  ${isMobile ? 'p-3' : 'p-2'}
                   ${card.status === 'Novo' ? 'ring-1 ring-purple-400/20' : ''}
+                  ${!isMobile && isFirstCard ? 'col-span-2' : ''}
                   overflow-hidden relative
                 `}
                 onClick={() => navigate(card.route)}
@@ -154,24 +156,24 @@ export default function Manejos() {
                   </div>
                 ) : (
                   // Desktop: Layout vertical
-                  <CardContent className="p-4 relative z-10">
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="p-2 rounded-lg bg-gradient-to-br from-primary/10 to-accent/10 border border-primary/20 group-hover:border-primary/30 transition-all duration-300">
-                        <IconComponent className={`w-5 h-5 ${card.iconColor}`} />
+                  <CardContent className="p-2 relative z-10">
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="p-1.5 rounded-lg bg-gradient-to-br from-primary/10 to-accent/10 border border-primary/20 group-hover:border-primary/30 transition-all duration-300">
+                        <IconComponent className={`w-4 h-4 ${card.iconColor}`} />
                       </div>
                       
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2">
                         {card.status === 'Novo' && (
-                          <span className="px-2 py-0.5 text-xs font-medium bg-gradient-to-r from-purple-500/20 to-pink-500/20 text-purple-600 rounded-md border border-purple-500/30">
+                          <span className="px-1.5 py-0.5 text-xs font-medium bg-gradient-to-r from-purple-500/20 to-pink-500/20 text-purple-600 rounded-md border border-purple-500/30">
                             Novo
                           </span>
                         )}
-                        <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all duration-300" />
+                        <ChevronRight className="w-3 h-3 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all duration-300" />
                       </div>
                     </div>
                     
                     <div className="space-y-1">
-                      <h3 className="text-base font-semibold text-foreground group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:from-primary group-hover:to-accent group-hover:bg-clip-text transition-all duration-300">
+                      <h3 className="text-sm font-semibold text-foreground group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:from-primary group-hover:to-accent group-hover:bg-clip-text transition-all duration-300">
                         {card.title}
                       </h3>
                       <p className="text-xs text-muted-foreground leading-relaxed group-hover:text-foreground/70 transition-colors duration-300">
@@ -180,7 +182,7 @@ export default function Manejos() {
                     </div>
 
                     {/* Hover effect line */}
-                    <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-primary via-accent to-primary scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left"></div>
+                    <div className="absolute bottom-0 left-0 w-full h-0.5 bg-gradient-to-r from-primary via-accent to-primary scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left"></div>
                   </CardContent>
                 )}
               </Card>

@@ -10,39 +10,73 @@ interface FeedingProgress {
 }
 
 export function useFeedingProgress(farmId?: string) {
-  const today = new Date().toISOString().split('T')[0];
+  // Use local date to avoid timezone issues
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayStr = today.toISOString().split('T')[0];
   
   return useSupabaseQuery(
-    ['feeding-progress', farmId, today],
+    ['feeding-progress', farmId, todayStr],
     async () => {
-      // First get all pond_batches for this farm
-      const pondBatchesResult = await supabase
-        .from('pond_batches')
-        .select(`
-          id,
-          ponds!inner(farm_id)
-        `)
-        .eq('ponds.farm_id', farmId!)
-        .eq('cycle_status', 'active');
-
-      if (pondBatchesResult.error) {
-        throw pondBatchesResult.error;
-      }
-
-      const pondBatchIds = pondBatchesResult.data?.map(pb => pb.id) || [];
-      
-      if (pondBatchIds.length === 0) {
+      if (!farmId) {
         return { data: [], error: null };
       }
 
-      // Then get feeding records for those pond batches
-      const result = await supabase
+      console.log('Fetching feeding progress for farm:', farmId, 'date:', todayStr);
+
+      // Get all ponds for this farm
+      const pondsResult = await supabase
+        .from('ponds')
+        .select('id')
+        .eq('farm_id', farmId);
+
+      if (pondsResult.error) {
+        console.error('Error fetching ponds:', pondsResult.error);
+        throw pondsResult.error;
+      }
+
+      if (!pondsResult.data?.length) {
+        console.log('No ponds found for farm');
+        return { data: [], error: null };
+      }
+
+      const pondIds = pondsResult.data.map(p => p.id);
+
+      // Get active pond_batches for these ponds
+      const pondBatchesResult = await supabase
+        .from('pond_batches')
+        .select('id')
+        .in('pond_id', pondIds)
+        .eq('cycle_status', 'active');
+
+      if (pondBatchesResult.error) {
+        console.error('Error fetching pond batches:', pondBatchesResult.error);
+        throw pondBatchesResult.error;
+      }
+
+      if (!pondBatchesResult.data?.length) {
+        console.log('No active pond batches found');
+        return { data: [], error: null };
+      }
+
+      const pondBatchIds = pondBatchesResult.data.map(pb => pb.id);
+
+      // Get feeding records for today
+      const feedingResult = await supabase
         .from('feeding_records')
         .select('planned_amount, actual_amount, pond_batch_id')
         .in('pond_batch_id', pondBatchIds)
-        .eq('feeding_date', today);
+        .eq('feeding_date', todayStr);
       
-      return result;
+      if (feedingResult.error) {
+        console.error('Error fetching feeding records:', feedingResult.error);
+        throw feedingResult.error;
+      }
+
+      console.log('Found feeding records:', feedingResult.data?.length || 0);
+      console.log('Feeding records data:', feedingResult.data);
+      
+      return feedingResult;
     },
     { enabled: !!farmId }
   );

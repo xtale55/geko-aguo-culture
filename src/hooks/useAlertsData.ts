@@ -56,9 +56,18 @@ export function useAlertsData(
     const alerts: Alert[] = [];
     const today = new Date().toISOString().split('T')[0];
 
-    // Water quality alerts
+    // Water quality alerts - only use the latest measurement per pond
     if (waterQualityData?.length) {
-      waterQualityData.forEach((wq) => {
+      // Group by pond_id and get the latest measurement
+      const latestWaterQuality = waterQualityData.reduce((acc, wq) => {
+        const existing = acc[wq.pond_id];
+        if (!existing || new Date(wq.measurement_date) > new Date(existing.measurement_date)) {
+          acc[wq.pond_id] = wq;
+        }
+        return acc;
+      }, {} as Record<string, WaterQualityData>);
+
+      Object.values(latestWaterQuality).forEach((wq) => {
         const pond = pondsData?.find(p => p.id === wq.pond_id);
         const pondName = pond?.name || 'Viveiro desconhecido';
 

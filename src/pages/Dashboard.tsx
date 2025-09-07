@@ -70,15 +70,15 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Critical Alerts Card */}
           <Card className={`h-full ${stats.criticalAlerts > 0 ? 'bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20 border-red-200 dark:border-red-800' : 'bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 border-green-200 dark:border-green-800'}`}>
-            <CardContent className="p-3">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className={`text-xs font-medium ${stats.criticalAlerts > 0 ? 'text-red-700 dark:text-red-300' : 'text-green-700 dark:text-green-300'}`}>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className={`text-sm font-medium ${stats.criticalAlerts > 0 ? 'text-red-700 dark:text-red-300' : 'text-green-700 dark:text-green-300'}`}>
                   Alertas Críticos
                 </h3>
-                <AlertTriangle className={`h-4 w-4 ${stats.criticalAlerts > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`} />
+                <AlertTriangle className={`h-5 w-5 ${stats.criticalAlerts > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`} />
               </div>
               <div className="space-y-2">
-                <span className={`text-xl font-bold ${stats.criticalAlerts > 0 ? 'text-red-900 dark:text-red-100' : 'text-green-900 dark:text-green-100'}`}>
+                <span className={`text-2xl font-bold ${stats.criticalAlerts > 0 ? 'text-red-900 dark:text-red-100' : 'text-green-900 dark:text-green-100'}`}>
                   {stats.criticalAlerts}
                 </span>
                 <p className={`text-xs ${stats.criticalAlerts > 0 ? 'text-red-600 dark:text-red-300' : 'text-green-600 dark:text-green-300'}`}>

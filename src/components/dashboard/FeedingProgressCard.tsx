@@ -30,17 +30,17 @@ export function FeedingProgressCard({ farmId }: FeedingProgressCardProps) {
 
   return (
     <Card className={`h-full bg-gradient-to-br ${getProgressBg(progress.percentage)} ${getBorderColor(progress.percentage)}`}>
-      <CardContent className="p-3">
-        <div className="flex items-center justify-between mb-2">
-          <h3 className={`text-xs font-medium ${getProgressColor(progress.percentage)}`}>
+      <CardContent className="p-4">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className={`text-sm font-medium ${getProgressColor(progress.percentage)}`}>
             Ração Diária
           </h3>
-          <Utensils className={`h-4 w-4 ${getProgressColor(progress.percentage)}`} />
+          <Utensils className={`h-5 w-5 ${getProgressColor(progress.percentage)}`} />
         </div>
         
-        <div className="space-y-2">
+        <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <span className={`text-xl font-bold ${getProgressColor(progress.percentage)}`}>
+            <span className={`text-2xl font-bold ${getProgressColor(progress.percentage)}`}>
               {progress.percentage}%
             </span>
             {progress.isComplete && (

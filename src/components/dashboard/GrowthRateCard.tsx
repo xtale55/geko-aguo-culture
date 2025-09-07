@@ -45,17 +45,17 @@ export function GrowthRateCard({ farmId }: GrowthRateCardProps) {
 
   return (
     <Card className={`h-full bg-gradient-to-br ${getCardBg()} ${getBorderColor()}`}>
-      <CardContent className="p-4">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className={`text-sm font-medium ${getTrendColor()}`}>
+      <CardContent className="p-3">
+        <div className="flex items-center justify-between mb-2">
+          <h3 className={`text-xs font-medium ${getTrendColor()}`}>
             Crescimento Semanal
           </h3>
-          <TrendIcon className={`h-5 w-5 ${getTrendColor()}`} />
+          <TrendIcon className={`h-4 w-4 ${getTrendColor()}`} />
         </div>
         
         <div className="space-y-2">
           <div className="flex items-baseline gap-1">
-            <span className={`text-2xl font-bold ${getTrendColor()}`}>
+            <span className={`text-xl font-bold ${getTrendColor()}`}>
               {weeklyGrowthRate >= 0 ? '+' : ''}{weeklyGrowthRate}%
             </span>
           </div>

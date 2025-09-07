@@ -1,6 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Utensils } from "lucide-react";
-import { useFeedingProgressStats } from "@/hooks/useFeedingProgress";
+import { useFeedingDashboardStats } from "@/hooks/useFeedingDashboardData";
 import { Progress } from "@/components/ui/progress";
 
 interface FeedingProgressCardProps {
@@ -8,7 +8,7 @@ interface FeedingProgressCardProps {
 }
 
 export function FeedingProgressCard({ farmId }: FeedingProgressCardProps) {
-  const progress = useFeedingProgressStats(farmId);
+  const progress = useFeedingDashboardStats(farmId);
   
   if (!farmId) {
     return (

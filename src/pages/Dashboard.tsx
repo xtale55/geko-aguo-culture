@@ -1,101 +1,56 @@
-import { memo } from 'react';
-import { Layout } from '@/components/Layout';
-import { StatsCard } from '@/components/StatsCard';
-import { DashboardSkeleton } from '@/components/DashboardSkeleton';
-import { LoadingScreen } from '@/components/LoadingScreen';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Plus, Fish, TrendingUp, Calendar, Scale, Utensils, 
-  Activity, Droplets, Package, AlertTriangle, Users, ClipboardList
-} from 'lucide-react';
-import { useFarmsQuery, useActivePondsQuery, useInventoryQuery, useWaterQualityQuery } from '@/hooks/useSupabaseQuery';
+import { Layout } from '@/components/Layout';
+import { LoadingScreen } from '@/components/LoadingScreen';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { AlertTriangle, Plus, Fish, BarChart3, Utensils, Package, Settings, DollarSign } from 'lucide-react';
+import { useFarmsQuery, useActivePondsQuery } from '@/hooks/useSupabaseQuery';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
+import { useRecentManagementData } from '@/hooks/useRecentManagementData';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
-interface Farm {
-  id: string;
-  name: string;
-  location: string;
-  total_area: number;
-}
+// New dashboard components
+import { WeatherCard } from '@/components/dashboard/WeatherCard';
+import { FeedingProgressCard } from '@/components/dashboard/FeedingProgressCard';
+import { GrowthRateCard } from '@/components/dashboard/GrowthRateCard';
+import { BiomassTable } from '@/components/dashboard/BiomassTable';
+import { TaskManager } from '@/components/dashboard/TaskManager';
 
-interface DashboardStats {
-  totalPonds: number;
-  activePonds: number;
-  totalPopulation: number;
-  totalBiomass: number;
-  averageWeight: number;
-  todayMortality: number;
-  inventoryValue: number;
-  criticalAlerts: number;
-  pendingTasks: string[];
-}
-
-interface RecentActivity {
-  id: string;
-  type: 'stocking' | 'biometry' | 'mortality' | 'feeding' | 'water_quality' | 'inventory';
-  description: string;
-  date: string;
-  pond?: string;
-  value?: number;
-}
-
-const Dashboard = memo(function Dashboard() {
+export default function Dashboard() {
   const navigate = useNavigate();
-  
-  // Use optimized queries
   const { data: farms, isLoading: farmsLoading } = useFarmsQuery();
-  const farmId = farms?.[0]?.id;
+  const firstFarm = farms?.[0];
   
-  const { data: pondsData, isLoading: pondsLoading } = useActivePondsQuery(farmId);
-  const { data: inventoryData, isLoading: inventoryLoading } = useInventoryQuery(farmId);
-  const pondIds = pondsData?.map(p => p.id) || [];
-  const { data: waterQualityData } = useWaterQualityQuery(pondIds);
-  
-  // Calculate stats using optimized hook
-  const stats = useDashboardStats(pondsData, inventoryData, waterQualityData);
-  
-  const loading = farmsLoading || pondsLoading || inventoryLoading;
+  const { data: pondsData, isLoading: pondsLoading } = useActivePondsQuery(firstFarm?.id);
+  const stats = useDashboardStats(pondsData, [], []);
+  const recentData = useRecentManagementData(firstFarm?.id);
+  const recentActivities = recentData.recentBiometrics.map(bio => ({
+    description: `Biometria registrada - ${bio.average_weight}g`,
+    date: bio.created_at
+  })).slice(0, 5);
 
-  // Create recent activities from cached data
-  const recentActivities = [
-    ...(inventoryData?.slice(0, 4).map(item => ({
-      id: `inv-${item.id}`, // Use unique item ID instead of date
-      type: 'inventory' as const,
-      description: `${item.name} adicionado ao estoque`,
-      date: item.entry_date,
-      value: item.total_value
-    })) || []),
-    ...(waterQualityData?.slice(0, 4).map(wq => {
-      const pond = pondsData?.find(p => p.id === wq.pond_id);
-      return {
-        id: `wq-${wq.id}`,
-        type: 'water_quality' as const,
-        description: 'Qualidade da água monitorada',
-        date: wq.measurement_date,
-        pond: pond?.name
-      };
-    }) || [])
-  ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 8);
+  const isLoading = farmsLoading || pondsLoading;
 
-  if (loading) {
-    return <LoadingScreen message="Carregando dashboard..." />;
+  if (isLoading) {
+    return <LoadingScreen />;
   }
 
-  if (!farms?.length) {
+  if (!farms || farms.length === 0) {
     return (
       <Layout>
-        <div className="text-center py-12">
-          <Fish className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-          <h2 className="text-2xl font-semibold mb-2">Bem-vindo ao AquaHub!</h2>
-          <p className="text-muted-foreground mb-6">
-            Comece criando sua primeira fazenda para gerenciar seus viveiros e lotes.
-          </p>
-          <Button onClick={() => navigate('/farm')} className="bg-gradient-to-r from-primary to-accent">
-            <Plus className="w-4 h-4 mr-2" />
-            Criar Primeira Fazenda
-          </Button>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="text-center space-y-4">
+            <h2 className="text-2xl font-bold">Bem-vindo ao AquaHub!</h2>
+            <p className="text-muted-foreground">
+              Para começar, você precisa criar uma fazenda.
+            </p>
+            <Button onClick={() => navigate('/farm')} className="mt-4">
+              <Plus className="h-4 w-4 mr-2" />
+              Criar Primeira Fazenda
+            </Button>
+          </div>
         </div>
       </Layout>
     );
@@ -103,285 +58,139 @@ const Dashboard = memo(function Dashboard() {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-emerald-50/20">
-        <div className="space-y-6">
-        {/* Header */}
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-primary to-emerald-600 bg-clip-text text-transparent mb-2">
-              Dashboard
-            </h1>
-            <p className="text-slate-600">
-              Visão geral da fazenda {farms[0]?.name}
-            </p>
-          </div>
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold">Dashboard</h1>
+          <p className="text-muted-foreground">
+            Visão geral da sua fazenda {firstFarm?.name}
+          </p>
         </div>
 
-        {/* Critical Alerts */}
-        {stats.criticalAlerts > 0 && (
-          <Card className="border-red-200 bg-gradient-to-r from-red-50 to-orange-50 backdrop-blur-sm shadow-lg">
+        {/* Critical Alerts Row - First Row Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Critical Alerts Card */}
+          <Card className={`h-full ${stats.criticalAlerts > 0 ? 'bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20 border-red-200 dark:border-red-800' : 'bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 border-green-200 dark:border-green-800'}`}>
             <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <AlertTriangle className="w-5 h-5 text-red-600" />
-                <div>
-                  <p className="font-medium text-red-700">
-                    {stats.criticalAlerts} alerta{stats.criticalAlerts > 1 ? 's' : ''} crítico{stats.criticalAlerts > 1 ? 's' : ''}
-                  </p>
-                  <p className="text-sm text-red-600/70">
-                    Verifique os parâmetros de qualidade da água e mortalidade
-                  </p>
-                </div>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className={`text-sm font-medium ${stats.criticalAlerts > 0 ? 'text-red-700 dark:text-red-300' : 'text-green-700 dark:text-green-300'}`}>
+                  Alertas Críticos
+                </h3>
+                <AlertTriangle className={`h-5 w-5 ${stats.criticalAlerts > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`} />
+              </div>
+              <div className="space-y-2">
+                <span className={`text-2xl font-bold ${stats.criticalAlerts > 0 ? 'text-red-900 dark:text-red-100' : 'text-green-900 dark:text-green-100'}`}>
+                  {stats.criticalAlerts}
+                </span>
+                <p className={`text-xs ${stats.criticalAlerts > 0 ? 'text-red-600 dark:text-red-300' : 'text-green-600 dark:text-green-300'}`}>
+                  {stats.criticalAlerts === 0 ? 'Tudo funcionando bem' : 'Requer atenção'}
+                </p>
               </div>
             </CardContent>
           </Card>
-        )}
 
-        {/* Main Stats Grid - Using optimized StatsCard */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-          <StatsCard
-            title="Viveiros Ativos"
-            value={`${stats.activePonds}/${stats.totalPonds}`}
-            icon={<Fish className="w-full h-full" />}
-            progress={(stats.activePonds / Math.max(stats.totalPonds, 1)) * 100}
-            variant="primary"
-          />
-          <StatsCard
-            title="População Total"
-            value={stats.totalPopulation.toLocaleString()}
-            subtitle="camarões"
-            icon={<Users className="w-full h-full" />}
-            variant="success"
-          />
-          <StatsCard
-            title="Biomassa Total"
-            value={`${stats.totalBiomass.toFixed(1)} kg`}
-            subtitle="estimada"
-            icon={<Scale className="w-full h-full" />}
-            variant="accent"
-          />
-          <StatsCard
-            title="Valor do Estoque"
-            value={`R$ ${stats.inventoryValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
-            icon={<Package className="w-full h-full" />}
-            variant="secondary"
-          />
+          {/* Daily Feeding Progress */}
+          <FeedingProgressCard farmId={firstFarm?.id} />
+
+          {/* Weekly Growth Rate */}
+          <GrowthRateCard farmId={firstFarm?.id} />
+
+          {/* Weather */}
+          <WeatherCard farmLocation={firstFarm?.location} />
         </div>
 
-        {/* Secondary Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="backdrop-blur-sm bg-white/80 border-slate-200 hover:shadow-lg transition-all duration-300">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <Scale className="w-6 h-6 text-blue-600" />
-                <div>
-                  <p className="text-sm text-slate-600">Peso Médio</p>
-                  <p className="text-lg font-bold text-slate-800">{stats.averageWeight.toFixed(1)}g</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        {/* Biomass Table */}
+        <BiomassTable farmId={firstFarm?.id} />
 
-          <Card className="backdrop-blur-sm bg-white/80 border-slate-200 hover:shadow-lg transition-all duration-300">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <Activity className="w-6 h-6 text-red-600" />
-                <div>
-                  <p className="text-sm text-slate-600">Mortalidade Hoje</p>
-                  <p className="text-lg font-bold text-slate-800">{stats.todayMortality}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="backdrop-blur-sm bg-white/80 border-slate-200 hover:shadow-lg transition-all duration-300">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <ClipboardList className="w-6 h-6 text-orange-600" />
-                <div>
-                  <p className="text-sm text-slate-600">Tarefas Pendentes</p>
-                  <p className="text-lg font-bold text-slate-800">{stats.pendingTasks.length}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="backdrop-blur-sm bg-white/80 border-slate-200 hover:shadow-lg transition-all duration-300">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <AlertTriangle className="w-6 h-6 text-red-600" />
-                <div>
-                  <p className="text-sm text-slate-600">Alertas Críticos</p>
-                  <p className="text-lg font-bold text-slate-800">{stats.criticalAlerts}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Management Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Quick Actions */}
-          <Card className="backdrop-blur-sm bg-white/80 border-slate-200 hover:shadow-lg transition-all duration-300">
+          <Card className="lg:col-span-1">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-slate-800">
-                <Plus className="w-5 h-5 text-blue-600" />
-                Ações Rápidas
-              </CardTitle>
+              <CardTitle>Ações Rápidas</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
-              <Button 
-                onClick={() => navigate('/stocking')} 
-                className="w-full justify-start"
-                variant="outline"
-              >
-                <Fish className="w-4 h-4 mr-2" />
-                Novo Povoamento
-              </Button>
-              <Button 
-                onClick={() => navigate('/manejos', { state: { activeTab: 'biometry' } })} 
-                className="w-full justify-start"
-                variant="outline"
-              >
-                <TrendingUp className="w-4 h-4 mr-2" />
-                Registrar Biometria
-              </Button>
-              <Button 
-                onClick={() => navigate('/manejos', { state: { activeTab: 'water-quality' } })} 
-                className="w-full justify-start"
-                variant="outline"
-              >
-                <Droplets className="w-4 h-4 mr-2" />
-                Qualidade da Água
-              </Button>
-              <Button 
-                onClick={() => navigate('/feeding')} 
-                className="w-full justify-start"
-                variant="outline"
-              >
-                <Utensils className="w-4 h-4 mr-2" />
-                Plano de Arraçoamento
-              </Button>
-              <Button 
-                onClick={() => navigate('/manejos', { state: { activeTab: 'mortality' } })} 
-                className="w-full justify-start"
-                variant="outline"
-              >
-                <Activity className="w-4 h-4 mr-2" />
-                Registrar Mortalidade
-              </Button>
-              <Button 
-                onClick={() => navigate('/inventory')} 
-                className="w-full justify-start"
-                variant="outline"
-              >
-                <Package className="w-4 h-4 mr-2" />
-                Gerenciar Estoque
-              </Button>
+            <CardContent>
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { 
+                    label: 'Manejos', 
+                    path: '/manejos', 
+                    icon: Fish,
+                    color: 'from-blue-500 to-cyan-500'
+                  },
+                  { 
+                    label: 'Registrar Ração', 
+                    path: '/feeding', 
+                    icon: Utensils,
+                    color: 'from-orange-500 to-red-500'
+                  },
+                  { 
+                    label: 'Estoque', 
+                    path: '/inventory', 
+                    icon: Package,
+                    color: 'from-purple-500 to-indigo-500'
+                  },
+                  { 
+                    label: 'Relatórios', 
+                    path: '/reports', 
+                    icon: BarChart3,
+                    color: 'from-green-500 to-emerald-500'
+                  },
+                  { 
+                    label: 'Fazenda', 
+                    path: '/farm', 
+                    icon: Settings,
+                    color: 'from-gray-500 to-slate-600'
+                  },
+                  { 
+                    label: 'Financeiro', 
+                    path: '/financial', 
+                    icon: DollarSign,
+                    color: 'from-yellow-500 to-amber-500'
+                  },
+                ].map(({ label, path, icon: Icon, color }) => (
+                  <Button
+                    key={path}
+                    variant="outline"
+                    className={`h-20 flex flex-col gap-2 bg-gradient-to-br ${color} text-white border-0 hover:opacity-90`}
+                    onClick={() => navigate(path)}
+                  >
+                    <Icon className="h-6 w-6" />
+                    <span className="text-xs text-center">{label}</span>
+                  </Button>
+                ))}
+              </div>
             </CardContent>
           </Card>
 
           {/* Recent Activities */}
-          <Card className="backdrop-blur-sm bg-white/80 border-slate-200 hover:shadow-lg transition-all duration-300">
+          <Card className="lg:col-span-1">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-slate-800">
-                <Calendar className="w-5 h-5 text-blue-600" />
-                Atividades Recentes
-              </CardTitle>
+              <CardTitle>Atividades Recentes</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
-              {recentActivities.length > 0 ? (
-                recentActivities.map((activity) => (
-                  <div key={activity.id} className="flex items-center gap-3 p-2 rounded-lg bg-muted/30">
-                    <div className="w-2 h-2 rounded-full bg-primary"></div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">{activity.description}</p>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <span>{new Date(activity.date).toLocaleDateString('pt-BR')}</span>
-                        {'pond' in activity && activity.pond && <span>• {activity.pond}</span>}
-                        {'value' in activity && activity.value && (
-                          <span>• R$ {activity.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                        )}
+            <CardContent>
+              <div className="space-y-3">
+                {recentActivities.length === 0 ? (
+                  <p className="text-muted-foreground text-sm">Nenhuma atividade recente</p>
+                ) : (
+                  recentActivities.slice(0, 5).map((activity, index) => (
+                    <div key={index} className="flex items-start gap-3">
+                      <div className="w-2 h-2 bg-primary rounded-full mt-2" />
+                      <div className="flex-1">
+                        <p className="text-sm">{activity.description}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {format(new Date(activity.date), "dd MMM, HH:mm", { locale: ptBR })}
+                        </p>
                       </div>
                     </div>
-                  </div>
-                ))
-              ) : (
-                <p className="text-sm text-muted-foreground text-center py-4">
-                  Nenhuma atividade recente
-                </p>
-              )}
+                  ))
+                )}
+              </div>
             </CardContent>
           </Card>
 
-          {/* Pending Tasks */}
-          <Card className="backdrop-blur-sm bg-white/80 border-slate-200 hover:shadow-lg transition-all duration-300">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-slate-800">
-                <ClipboardList className="w-5 h-5 text-blue-600" />
-                Tarefas Pendentes
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {stats.pendingTasks.length > 0 ? (
-                stats.pendingTasks.map((task, index) => (
-                  <div key={index} className="flex items-center gap-3 p-2 rounded-lg bg-warning/10 border border-warning/20">
-                    <AlertTriangle className="w-4 h-4 text-warning" />
-                    <span className="text-sm font-medium">{task}</span>
-                  </div>
-                ))
-              ) : (
-                <div className="text-center py-4">
-                  <div className="text-success mb-2">✓</div>
-                  <p className="text-sm text-muted-foreground">
-                    Todas as tarefas em dia!
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Performance Summary */}
-        <Card className="backdrop-blur-sm bg-white/80 border-slate-200 hover:shadow-lg transition-all duration-300">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-slate-800">
-              <TrendingUp className="w-5 h-5 text-blue-600" />
-              Resumo de Performance
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-primary mb-1">
-                  {((stats.totalBiomass / Math.max(stats.activePonds, 1)) * 1000).toFixed(0)}
-                </div>
-                <div className="text-sm text-muted-foreground">kg/ha estimado</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-success mb-1">
-                  {((stats.totalPopulation / Math.max(stats.activePonds, 1)) / 1000).toFixed(0)}k
-                </div>
-                <div className="text-sm text-muted-foreground">PL/viveiro médio</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-accent mb-1">
-                  {stats.todayMortality > 0 ? ((stats.todayMortality / stats.totalPopulation) * 100).toFixed(2) : '0.00'}%
-                </div>
-                <div className="text-sm text-muted-foreground">Mortalidade hoje</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-secondary-foreground mb-1">
-                  R$ {(stats.inventoryValue / Math.max(stats.activePonds, 1)).toLocaleString('pt-BR', { maximumFractionDigits: 0 })}
-                </div>
-                <div className="text-sm text-muted-foreground">Estoque/viveiro</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+          {/* Task Manager */}
+          <TaskManager farmId={firstFarm?.id} />
         </div>
       </div>
     </Layout>
   );
-});
-
-export default Dashboard;
+}

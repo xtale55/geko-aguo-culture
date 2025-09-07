@@ -704,6 +704,42 @@ export type Database = {
           },
         ]
       }
+      user_tasks: {
+        Row: {
+          completed: boolean
+          created_at: string
+          description: string | null
+          due_date: string | null
+          farm_id: string
+          id: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed?: boolean
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          farm_id: string
+          id?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed?: boolean
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          farm_id?: string
+          id?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       water_quality: {
         Row: {
           alkalinity: number | null

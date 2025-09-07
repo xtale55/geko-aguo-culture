@@ -1,7 +1,7 @@
-import { memo } from 'react';
+import { memo, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { Fish, LogOut, Settings, Home, Waves, Scale, Skull, Utensils, Droplets, Package, BarChart3, DollarSign } from 'lucide-react';
+import { Fish, LogOut, Settings, Home, Waves, Scale, Skull, Utensils, Droplets, Package, BarChart3, DollarSign, MoreHorizontal } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
@@ -18,6 +18,13 @@ import {
   SidebarTrigger,
   useSidebar,
 } from '@/components/ui/sidebar';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from '@/components/ui/sheet';
 import { AppSidebar } from '@/components/AppSidebar';
 
 interface LayoutProps {
@@ -29,6 +36,7 @@ export const Layout = memo(function Layout({ children }: LayoutProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const isMobile = useIsMobile();
+  const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
 
   const handleSignOut = async () => {
     await signOut();
@@ -70,14 +78,11 @@ export const Layout = memo(function Layout({ children }: LayoutProps) {
         {/* Mobile Bottom Navigation */}
         <nav className="fixed bottom-0 left-0 right-0 bg-card/98 backdrop-blur-md border-t border-border z-50 shadow-xl">
           <div className="flex items-center justify-around py-1 px-2">
+            {/* Main navigation items */}
             {[
-              { path: '/dashboard', icon: Home, label: 'Home' },
-              { path: '/farm', icon: Waves, label: 'Fazenda' },
+              { path: '/dashboard', icon: Home, label: 'Dashboard' },
               { path: '/manejos', icon: Fish, label: 'Manejos' },
-              { path: '/feeding', icon: Utensils, label: 'Ração' },
-              { path: '/inventory', icon: Package, label: 'Estoque' },
-              { path: '/reports', icon: BarChart3, label: 'Relatórios' },
-              { path: '/financial', icon: DollarSign, label: 'Financeiro' }
+              { path: '/reports', icon: BarChart3, label: 'Relatórios' }
             ].map(({ path, icon: Icon, label }) => (
               <Button
                 key={path}
@@ -95,6 +100,58 @@ export const Layout = memo(function Layout({ children }: LayoutProps) {
                 <span className="text-xs leading-none truncate">{label}</span>
               </Button>
             ))}
+            
+            {/* More button with Sheet */}
+            <Sheet open={isMoreMenuOpen} onOpenChange={setIsMoreMenuOpen}>
+              <SheetTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="flex-1 flex-col h-12 px-1 min-w-0 transition-all duration-200 hover:bg-muted/50"
+                >
+                  <MoreHorizontal className="w-4 h-4 mb-1" />
+                  <span className="text-xs leading-none truncate">Mais</span>
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="bottom" className="h-auto max-h-[50vh] rounded-t-xl">
+                <SheetHeader className="pb-4">
+                  <SheetTitle className="text-center">Mais Opções</SheetTitle>
+                </SheetHeader>
+                
+                <div className="grid grid-cols-2 gap-3 pb-4">
+                  {[
+                    { path: '/farm', icon: Waves, label: 'Fazenda', color: 'from-blue-500 to-cyan-500' },
+                    { path: '/feeding', icon: Utensils, label: 'Ração', color: 'from-orange-500 to-red-500' },
+                    { path: '/inventory', icon: Package, label: 'Estoque', color: 'from-purple-500 to-indigo-500' },
+                    { path: '/financial', icon: DollarSign, label: 'Financeiro', color: 'from-green-500 to-emerald-500' }
+                  ].map(({ path, icon: Icon, label, color }) => (
+                    <Button
+                      key={path}
+                      variant="outline"
+                      size="lg"
+                      onClick={() => {
+                        navigate(path);
+                        setIsMoreMenuOpen(false);
+                      }}
+                      className={cn(
+                        "h-20 flex-col space-y-2 border-2 transition-all duration-200 hover:scale-105",
+                        isActive(path) 
+                          ? "bg-primary text-primary-foreground border-primary shadow-lg" 
+                          : "hover:bg-muted/50 hover:border-primary/20"
+                      )}
+                    >
+                      <div className={cn(
+                        "w-8 h-8 rounded-full flex items-center justify-center bg-gradient-to-br",
+                        color
+                      )}>
+                        <Icon className="w-4 h-4 text-white" />
+                      </div>
+                      <span className="text-sm font-medium">{label}</span>
+                    </Button>
+                  ))}
+                </div>
+              </SheetContent>
+            </Sheet>
           </div>
         </nav>
       </div>

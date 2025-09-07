@@ -34,10 +34,10 @@ export function useFeedingProgress(farmId?: string) {
 }
 
 export function useFeedingProgressStats(farmId?: string): FeedingProgress {
-  const { data: feedingRecords } = useFeedingProgress(farmId);
+  const { data: feedingRecords, isLoading, error } = useFeedingProgress(farmId);
   
   return useMemo(() => {
-    if (!feedingRecords || feedingRecords.length === 0) {
+    if (isLoading || error || !feedingRecords || feedingRecords.length === 0) {
       return {
         totalPlanned: 0,
         totalActual: 0,

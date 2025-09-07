@@ -5,7 +5,7 @@ import { LoadingScreen } from '@/components/LoadingScreen';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertTriangle, Plus, Fish, BarChart3, Utensils, Package, Settings, DollarSign } from 'lucide-react';
-import { useFarmsQuery, useActivePondsQuery } from '@/hooks/useSupabaseQuery';
+import { useFarmsQuery, useActivePondsQuery, useInventoryQuery, useWaterQualityQuery } from '@/hooks/useSupabaseQuery';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
 import { useRecentManagementData } from '@/hooks/useRecentManagementData';
 import { format } from 'date-fns';
@@ -24,14 +24,18 @@ export default function Dashboard() {
   const firstFarm = farms?.[0];
   
   const { data: pondsData, isLoading: pondsLoading } = useActivePondsQuery(firstFarm?.id);
-  const stats = useDashboardStats(pondsData, [], []);
+  const { data: inventoryData, isLoading: inventoryLoading } = useInventoryQuery(firstFarm?.id);
+  const { data: waterQualityData, isLoading: waterQualityLoading } = useWaterQualityQuery(
+    pondsData?.map(p => p.id) || []
+  );
+  const stats = useDashboardStats(pondsData, inventoryData, waterQualityData);
   const recentData = useRecentManagementData(firstFarm?.id);
   const recentActivities = recentData.recentBiometrics.map(bio => ({
     description: `Biometria registrada - ${bio.average_weight}g`,
     date: bio.created_at
   })).slice(0, 5);
 
-  const isLoading = farmsLoading || pondsLoading;
+  const isLoading = farmsLoading || pondsLoading || inventoryLoading || waterQualityLoading;
 
   if (isLoading) {
     return <LoadingScreen />;

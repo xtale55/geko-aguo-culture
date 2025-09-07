@@ -8,6 +8,23 @@ interface GrowthRateCardProps {
 
 export function GrowthRateCard({ farmId }: GrowthRateCardProps) {
   const { weeklyGrowthRate, activePonds, averageWeight, trend } = useGrowthRate(farmId);
+  
+  if (!farmId) {
+    return (
+      <Card className="h-full bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900/20 dark:to-gray-800/20 border-gray-200 dark:border-gray-800">
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">Crescimento Semanal</h3>
+            <Minus className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+          </div>
+          <div className="space-y-2">
+            <span className="text-2xl font-bold text-gray-600 dark:text-gray-400">-</span>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Sem dados disponíveis</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   const getTrendIcon = () => {
     switch (trend) {

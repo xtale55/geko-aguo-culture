@@ -34,10 +34,10 @@ export function useGrowthRateData(farmId?: string) {
 }
 
 export function useGrowthRate(farmId?: string): GrowthRateData {
-  const { data: biometrics } = useGrowthRateData(farmId);
+  const { data: biometrics, isLoading, error } = useGrowthRateData(farmId);
   
   return useMemo(() => {
-    if (!biometrics || biometrics.length < 2) {
+    if (isLoading || error || !biometrics || biometrics.length < 2) {
       return {
         weeklyGrowthRate: 0,
         activePonds: 0,

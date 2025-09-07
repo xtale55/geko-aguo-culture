@@ -82,6 +82,7 @@ export const Layout = memo(function Layout({ children }: LayoutProps) {
             {[
               { path: '/dashboard', icon: Home, label: 'Dashboard' },
               { path: '/manejos', icon: Fish, label: 'Manejos' },
+              { path: '/inventory', icon: Package, label: 'Estoque' },
               { path: '/reports', icon: BarChart3, label: 'Relatórios' }
             ].map(({ path, icon: Icon, label }) => (
               <Button
@@ -122,7 +123,6 @@ export const Layout = memo(function Layout({ children }: LayoutProps) {
                   {[
                     { path: '/farm', icon: Waves, label: 'Fazenda', color: 'from-blue-500 to-cyan-500' },
                     { path: '/feeding', icon: Utensils, label: 'Ração', color: 'from-orange-500 to-red-500' },
-                    { path: '/inventory', icon: Package, label: 'Estoque', color: 'from-purple-500 to-indigo-500' },
                     { path: '/financial', icon: DollarSign, label: 'Financeiro', color: 'from-green-500 to-emerald-500' }
                   ].map(({ path, icon: Icon, label, color }) => (
                     <Button

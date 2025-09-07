@@ -18,7 +18,7 @@ export default function AguaPage() {
                 variant="ghost" 
                 size="sm" 
                 onClick={() => navigate('/manejos')}
-                className="mb-2"
+                className="mb-2 bg-gradient-to-r from-slate-50 to-slate-100 hover:from-primary/10 hover:to-accent/10 border border-slate-200 hover:border-primary/20 text-slate-700 hover:text-primary transition-all duration-300"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Voltar para Manejos

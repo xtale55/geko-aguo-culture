@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
 import { LoadingScreen } from '@/components/LoadingScreen';
@@ -8,6 +8,7 @@ import { AlertTriangle, Plus, Fish, BarChart3, Utensils, Package, Settings, Doll
 import { useFarmsQuery, useActivePondsQuery, useInventoryQuery, useWaterQualityQuery } from '@/hooks/useSupabaseQuery';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
 import { useRecentManagementData } from '@/hooks/useRecentManagementData';
+import { useAlertsData } from '@/hooks/useAlertsData';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -17,9 +18,12 @@ import { FeedingProgressCard } from '@/components/dashboard/FeedingProgressCard'
 import { GrowthRateCard } from '@/components/dashboard/GrowthRateCard';
 import { BiomassTable } from '@/components/dashboard/BiomassTable';
 import { TaskManager } from '@/components/dashboard/TaskManager';
+import { AlertsModal } from '@/components/dashboard/AlertsModal';
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const [alertsModalOpen, setAlertsModalOpen] = useState(false);
+  
   const { data: farms, isLoading: farmsLoading } = useFarmsQuery();
   const firstFarm = farms?.[0];
   
@@ -28,7 +32,9 @@ export default function Dashboard() {
   const { data: waterQualityData, isLoading: waterQualityLoading } = useWaterQualityQuery(
     pondsData?.map(p => p.id) || []
   );
+  
   const stats = useDashboardStats(pondsData, inventoryData, waterQualityData);
+  const alerts = useAlertsData(pondsData, waterQualityData, inventoryData);
   const recentData = useRecentManagementData(firstFarm?.id);
   const recentActivities = recentData.recentBiometrics.map(bio => ({
     description: `Biometria registrada - ${bio.average_weight}g`,
@@ -72,21 +78,24 @@ export default function Dashboard() {
 
         {/* Critical Alerts Row - First Row Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Critical Alerts Card */}
-          <Card className={`h-full ${stats.criticalAlerts > 0 ? 'bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20 border-red-200 dark:border-red-800' : 'bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 border-green-200 dark:border-green-800'}`}>
+          {/* Critical Alerts Card - Clickable */}
+          <Card 
+            className={`h-full cursor-pointer transition-all hover:shadow-lg ${alerts.length > 0 ? 'bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20 border-red-200 dark:border-red-800 hover:border-red-300 dark:hover:border-red-700' : 'bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 border-green-200 dark:border-green-800 hover:border-green-300 dark:hover:border-green-700'}`}
+            onClick={() => setAlertsModalOpen(true)}
+          >
             <CardContent className="p-4">
               <div className="flex items-center justify-between mb-3">
-                <h3 className={`text-sm font-medium ${stats.criticalAlerts > 0 ? 'text-red-700 dark:text-red-300' : 'text-green-700 dark:text-green-300'}`}>
+                <h3 className={`text-sm font-medium ${alerts.length > 0 ? 'text-red-700 dark:text-red-300' : 'text-green-700 dark:text-green-300'}`}>
                   Alertas Críticos
                 </h3>
-                <AlertTriangle className={`h-5 w-5 ${stats.criticalAlerts > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`} />
+                <AlertTriangle className={`h-5 w-5 ${alerts.length > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`} />
               </div>
               <div className="space-y-2">
-                <span className={`text-2xl font-bold ${stats.criticalAlerts > 0 ? 'text-red-900 dark:text-red-100' : 'text-green-900 dark:text-green-100'}`}>
-                  {stats.criticalAlerts}
+                <span className={`text-2xl font-bold ${alerts.length > 0 ? 'text-red-900 dark:text-red-100' : 'text-green-900 dark:text-green-100'}`}>
+                  {alerts.length}
                 </span>
-                <p className={`text-xs ${stats.criticalAlerts > 0 ? 'text-red-600 dark:text-red-300' : 'text-green-600 dark:text-green-300'}`}>
-                  {stats.criticalAlerts === 0 ? 'Tudo funcionando bem' : 'Requer atenção'}
+                <p className={`text-xs ${alerts.length > 0 ? 'text-red-600 dark:text-red-300' : 'text-green-600 dark:text-green-300'}`}>
+                  {alerts.length === 0 ? 'Tudo funcionando bem' : `${alerts.length === 1 ? 'Clique para ver' : 'Clique para detalhes'}`}
                 </p>
               </div>
             </CardContent>
@@ -195,6 +204,13 @@ export default function Dashboard() {
           <TaskManager farmId={firstFarm?.id} />
         </div>
       </div>
+
+      {/* Alerts Modal */}
+      <AlertsModal 
+        isOpen={alertsModalOpen}
+        onClose={() => setAlertsModalOpen(false)}
+        alerts={alerts}
+      />
     </Layout>
   );
 }

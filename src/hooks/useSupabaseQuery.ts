@@ -63,6 +63,10 @@ export function useActivePondsQuery(farmId?: string) {
               measurement_date,
               uniformity,
               created_at
+            ),
+            mortality_records(
+              dead_count,
+              record_date
             )
           )
         `)

@@ -15,16 +15,31 @@ export function useFeedingProgress(farmId?: string) {
   return useSupabaseQuery(
     ['feeding-progress', farmId, today],
     async () => {
+      // First get all pond_batches for this farm
+      const pondBatchesResult = await supabase
+        .from('pond_batches')
+        .select(`
+          id,
+          ponds!inner(farm_id)
+        `)
+        .eq('ponds.farm_id', farmId!)
+        .eq('cycle_status', 'active');
+
+      if (pondBatchesResult.error) {
+        throw pondBatchesResult.error;
+      }
+
+      const pondBatchIds = pondBatchesResult.data?.map(pb => pb.id) || [];
+      
+      if (pondBatchIds.length === 0) {
+        return { data: [], error: null };
+      }
+
+      // Then get feeding records for those pond batches
       const result = await supabase
         .from('feeding_records')
-        .select(`
-          planned_amount,
-          actual_amount,
-          pond_batches!inner(
-            ponds!inner(farm_id)
-          )
-        `)
-        .eq('pond_batches.ponds.farm_id', farmId!)
+        .select('planned_amount, actual_amount, pond_batch_id')
+        .in('pond_batch_id', pondBatchIds)
         .eq('feeding_date', today);
       
       return result;

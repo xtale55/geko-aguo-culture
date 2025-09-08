@@ -3,10 +3,19 @@ import type { Config } from "tailwindcss";
 export default {
 	darkMode: ["class"],
 	content: [
-		"./pages/**/*.{ts,tsx}",
-		"./components/**/*.{ts,tsx}",
-		"./app/**/*.{ts,tsx}",
 		"./src/**/*.{ts,tsx}",
+	],
+	safelist: [
+		// Only include dynamic classes that are actually used
+		'text-sm', 'text-lg', 'text-xl',
+		'bg-success', 'bg-warning', 'bg-destructive',
+		'text-success-foreground', 'text-warning-foreground', 'text-destructive-foreground',
+		// Animation classes
+		'animate-pulse', 'animate-spin',
+		// Grid responsive classes
+		'grid-cols-1', 'grid-cols-2', 'grid-cols-3', 'grid-cols-4',
+		'md:grid-cols-2', 'md:grid-cols-3', 'md:grid-cols-4',
+		'lg:grid-cols-3', 'lg:grid-cols-4', 'lg:grid-cols-5'
 	],
 	prefix: "",
 	theme: {

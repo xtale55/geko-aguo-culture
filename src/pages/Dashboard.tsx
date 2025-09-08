@@ -4,44 +4,48 @@ import { Layout } from '@/components/Layout';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { AlertTriangle, Plus, Fish, BarChart3, Utensils, Package, Settings, DollarSign } from 'lucide-react';
-import { useFarmsQuery, useActivePondsQuery, useInventoryQuery, useWaterQualityQuery } from '@/hooks/useSupabaseQuery';
+import { Plus, BarChart3, Settings, DollarSign } from 'lucide-react';
+import { OptimizedStatsCard } from '@/components/dashboard/OptimizedDashboardCards';
+import { AlertTriangleIcon, FishIcon, UtensilsIcon, PackageIcon } from '@/components/OptimizedIcon';
+import { useDashboardData } from '@/hooks/useDashboardData';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
 import { useRecentManagementData } from '@/hooks/useRecentManagementData';
-import { useAlertsData } from '@/hooks/useAlertsData';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 // New dashboard components
-import { WeatherCard } from '@/components/dashboard/WeatherCard';
 import { FeedingProgressCard } from '@/components/dashboard/FeedingProgressCard';
 import { GrowthRateCard } from '@/components/dashboard/GrowthRateCard';
-import { BiomassTable } from '@/components/dashboard/BiomassTable';
-import { TaskManager } from '@/components/dashboard/TaskManager';
 import { AlertsModal } from '@/components/dashboard/AlertsModal';
+import { MemoizedWeatherCard } from '@/components/dashboard/MemoizedWeatherCard';
+import { MemoizedBiomassTable } from '@/components/dashboard/MemoizedBiomassTable';
+import { MemoizedTaskManager } from '@/components/dashboard/MemoizedTaskManager';
 
-export default function Dashboard() {
+const Dashboard = React.memo(() => {
   const navigate = useNavigate();
   const [alertsModalOpen, setAlertsModalOpen] = useState(false);
   
-  const { data: farms, isLoading: farmsLoading } = useFarmsQuery();
+  // Use unified data hook for better performance
+  const {
+    farms,
+    activePonds: pondsData,
+    inventory: inventoryData,
+    waterQuality: waterQualityData,
+    feedingStats,
+    alerts,
+    weather,
+    tasks,
+    isLoading,
+    error
+  } = useDashboardData();
+  
   const firstFarm = farms?.[0];
-  
-  const { data: pondsData, isLoading: pondsLoading } = useActivePondsQuery(firstFarm?.id);
-  const { data: inventoryData, isLoading: inventoryLoading } = useInventoryQuery(firstFarm?.id);
-  const { data: waterQualityData, isLoading: waterQualityLoading } = useWaterQualityQuery(
-    pondsData?.map(p => p.id) || []
-  );
-  
   const stats = useDashboardStats(pondsData, inventoryData, waterQualityData);
-  const alerts = useAlertsData(pondsData, waterQualityData, inventoryData);
   const recentData = useRecentManagementData(firstFarm?.id);
   const recentActivities = recentData.recentBiometrics.map(bio => ({
     description: `Biometria registrada - ${bio.average_weight}g`,
     date: bio.created_at
   })).slice(0, 5);
-
-  const isLoading = farmsLoading || pondsLoading || inventoryLoading || waterQualityLoading;
 
   if (isLoading) {
     return <LoadingScreen />;
@@ -88,7 +92,7 @@ export default function Dashboard() {
                 <h3 className={`text-sm font-medium ${alerts.length > 0 ? 'text-red-700 dark:text-red-300' : 'text-green-700 dark:text-green-300'}`}>
                   Alertas Críticos
                 </h3>
-                <AlertTriangle className={`h-5 w-5 ${alerts.length > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`} />
+                <AlertTriangleIcon className={`h-5 w-5 ${alerts.length > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`} />
               </div>
               <div className="space-y-2">
                 <span className={`text-2xl font-bold ${alerts.length > 0 ? 'text-red-900 dark:text-red-100' : 'text-green-900 dark:text-green-100'}`}>
@@ -108,11 +112,11 @@ export default function Dashboard() {
           <GrowthRateCard farmId={firstFarm?.id} />
 
           {/* Weather */}
-          <WeatherCard farmLocation={firstFarm?.location} />
+          <MemoizedWeatherCard farmLocation={firstFarm?.location} />
         </div>
 
         {/* Biomass Table */}
-        <BiomassTable farmId={firstFarm?.id} />
+        <MemoizedBiomassTable farmId={firstFarm?.id} />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Quick Actions */}
@@ -123,24 +127,24 @@ export default function Dashboard() {
             <CardContent>
               <div className="grid grid-cols-2 gap-3">
                 {[
-                  { 
-                    label: 'Manejos', 
-                    path: '/manejos', 
-                    icon: Fish,
-                    color: 'from-blue-500 to-cyan-500'
-                  },
-                  { 
-                    label: 'Registrar Ração', 
-                    path: '/feeding', 
-                    icon: Utensils,
-                    color: 'from-orange-500 to-red-500'
-                  },
-                  { 
-                    label: 'Estoque', 
-                    path: '/inventory', 
-                    icon: Package,
-                    color: 'from-purple-500 to-indigo-500'
-                  },
+                   { 
+                     label: 'Manejos', 
+                     path: '/manejos', 
+                     icon: FishIcon,
+                     color: 'from-blue-500 to-cyan-500'
+                   },
+                   { 
+                     label: 'Registrar Ração', 
+                     path: '/feeding', 
+                     icon: UtensilsIcon,
+                     color: 'from-orange-500 to-red-500'
+                   },
+                   { 
+                     label: 'Estoque', 
+                     path: '/inventory', 
+                     icon: PackageIcon,
+                     color: 'from-purple-500 to-indigo-500'
+                   },
                   { 
                     label: 'Relatórios', 
                     path: '/reports', 
@@ -201,7 +205,7 @@ export default function Dashboard() {
           </Card>
 
           {/* Task Manager */}
-          <TaskManager farmId={firstFarm?.id} />
+          <MemoizedTaskManager />
         </div>
       </div>
 
@@ -213,4 +217,8 @@ export default function Dashboard() {
       />
     </Layout>
   );
-}
+});
+
+Dashboard.displayName = 'Dashboard';
+
+export default Dashboard;

@@ -73,9 +73,11 @@
       }
     </style>
     
-    <!-- Load main CSS asynchronously to prevent render blocking -->
-    <link rel="preload" href="/src/index.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <noscript><link rel="stylesheet" href="/src/index.css"></noscript>
+    <!-- Load main CSS asynchronously via Vite's build process -->
+    <script>
+      // Async CSS loading with immediate fallback
+      !function(e){"use strict";var t=function(t,n,r){function o(e){return i.body?e():void setTimeout(function(){o(e)})}function a(){d.addEventListener&&d.removeEventListener("load",a),d.media=r||"all"}var i=e.document,d=i.createElement("link");if(n)d.href=n;else{var l=(i.body||i.getElementsByTagName("head")[0]).childNodes;d.href=l[l.length-1].href}var s=i.styleSheets;d.rel="stylesheet",d.media="only x",o(function(){i.head.appendChild(d)});var u=function(e){for(var t=d.href,n=s.length;n--;)if(s[n].href===t)return e();setTimeout(function(){u(e)})};return d.addEventListener&&d.addEventListener("load",a),d.onloadcssdefined=u,u(a),d};"undefined"!=typeof exports?exports.loadCSS=t:e.loadCSS=t}("undefined"!=typeof global?global:this);
+    </script>
 
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@aquahub_app" />

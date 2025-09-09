@@ -81,9 +81,15 @@ export default defineConfig(({ mode }) => ({
     modulePreload: {
       polyfill: false,
     },
-    cssCodeSplit: true,
+    cssCodeSplit: false, // Single CSS file for better caching
     assetsInlineLimit: 4096,
     sourcemap: false,
+  },
+  css: {
+    // Ensure CSS doesn't block rendering
+    postcss: {
+      plugins: []
+    }
   },
   optimizeDeps: {
     include: [

@@ -22,6 +22,7 @@ export default defineConfig(({ mode }) => ({
   build: {
     rollupOptions: {
       output: {
+        format: 'es',
         manualChunks: {
           'vendor-react': ['react', 'react-dom', 'react-router-dom'],
           'vendor-ui': ['@radix-ui/react-toast', '@radix-ui/react-dialog', '@radix-ui/react-popover'],
@@ -42,6 +43,11 @@ export default defineConfig(({ mode }) => ({
         drop_debugger: true,
       },
     } : undefined,
+    modulePreload: {
+      polyfill: false,
+    },
+    cssCodeSplit: true,
+    assetsInlineLimit: 4096,
   },
   optimizeDeps: {
     include: [

@@ -4,18 +4,24 @@ export default {
 	darkMode: ["class"],
 	content: [
 		"./src/**/*.{ts,tsx}",
+		"./index.html",
+		"./src/components/**/*.{ts,tsx}",
+		"./src/pages/**/*.{ts,tsx}",
+		"./src/hooks/**/*.{ts,tsx}",
 	],
 	safelist: [
-		// Only include dynamic classes that are actually used
-		'text-sm', 'text-lg', 'text-xl',
-		'bg-success', 'bg-warning', 'bg-destructive',
-		'text-success-foreground', 'text-warning-foreground', 'text-destructive-foreground',
-		// Animation classes
-		'animate-pulse', 'animate-spin',
-		// Grid responsive classes
-		'grid-cols-1', 'grid-cols-2', 'grid-cols-3', 'grid-cols-4',
-		'md:grid-cols-2', 'md:grid-cols-3', 'md:grid-cols-4',
-		'lg:grid-cols-3', 'lg:grid-cols-4', 'lg:grid-cols-5'
+		// Only truly dynamic classes that can't be detected at build time
+		{
+			pattern: /^(bg|text|border)-(success|warning|destructive)(-foreground)?$/,
+			variants: ['hover', 'focus'],
+		},
+		{
+			pattern: /^grid-cols-[1-6]$/,
+			variants: ['sm', 'md', 'lg', 'xl'],
+		},
+		// Core animations
+		'animate-pulse',
+		'animate-spin',
 	],
 	prefix: "",
 	theme: {

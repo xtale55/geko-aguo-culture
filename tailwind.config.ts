@@ -3,25 +3,10 @@ import type { Config } from "tailwindcss";
 export default {
 	darkMode: ["class"],
 	content: [
+		"./pages/**/*.{ts,tsx}",
+		"./components/**/*.{ts,tsx}",
+		"./app/**/*.{ts,tsx}",
 		"./src/**/*.{ts,tsx}",
-		"./index.html",
-		"./src/components/**/*.{ts,tsx}",
-		"./src/pages/**/*.{ts,tsx}",
-		"./src/hooks/**/*.{ts,tsx}",
-	],
-	safelist: [
-		// Only truly dynamic classes that can't be detected at build time
-		{
-			pattern: /^(bg|text|border)-(success|warning|destructive)(-foreground)?$/,
-			variants: ['hover', 'focus'],
-		},
-		{
-			pattern: /^grid-cols-[1-6]$/,
-			variants: ['sm', 'md', 'lg', 'xl'],
-		},
-		// Core animations
-		'animate-pulse',
-		'animate-spin',
 	],
 	prefix: "",
 	theme: {
@@ -33,9 +18,6 @@ export default {
 			}
 		},
 		extend: {
-			fontFamily: {
-				'sans': ['Helvetica', 'Arial', 'sans-serif'],
-			},
 			colors: {
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',

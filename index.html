@@ -14,68 +14,6 @@
     <link rel="icon" href="/favicon-shrimp.png" type="image/png">
     <link rel="apple-touch-icon" href="/favicon-shrimp.png">
     <link rel="manifest" href="/manifest.json">
-    
-    <!-- Preload critical resources -->
-    <link rel="preload" href="/favicon-shrimp.png" as="image">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="dns-prefetch" href="//fonts.googleapis.com">
-    <link rel="dns-prefetch" href="//fonts.gstatic.com">
-    
-    <!-- Critical CSS inlined for faster render -->
-    <style>
-      /* Critical CSS variables for immediate paint */
-      :root {
-        --background: 200 30% 97%;
-        --foreground: 205 45% 12%;
-        --primary: 205 85% 30%;
-        --primary-foreground: 200 40% 98%;
-        --card: 200 20% 99%;
-        --border: 210 25% 90%;
-        --muted: 210 40% 96%;
-        --accent: 185 70% 40%;
-      }
-      .dark {
-        --background: 205 30% 8%;
-        --foreground: 200 30% 95%;
-        --primary: 200 85% 55%;
-        --primary-foreground: 205 45% 12%;
-        --card: 205 20% 10%;
-        --border: 215 25% 20%;
-        --muted: 205 20% 15%;
-        --accent: 185 70% 50%;
-      }
-      
-      /* Critical layout styles */
-      * {
-        border-color: hsl(var(--border));
-      }
-      body {
-        background-color: hsl(var(--background));
-        color: hsl(var(--foreground));
-        font-feature-settings: "rlig" 1, "calt" 1;
-      }
-      
-      /* Critical loading screen styles */
-      .loading-screen {
-        min-height: 100vh;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: hsl(var(--background));
-      }
-      .loading-spinner {
-        animation: spin 2s linear infinite;
-      }
-      @keyframes spin {
-        from { transform: rotate(0deg); }
-        to { transform: rotate(360deg); }
-      }
-    </style>
-    
-    <!-- Load main CSS asynchronously to prevent render blocking -->
-    <link rel="preload" href="/src/index.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <noscript><link rel="stylesheet" href="/src/index.css"></noscript>
 
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@aquahub_app" />
@@ -84,6 +22,6 @@
 
   <body>
     <div id="root"></div>
-    <script type="module" crossorigin src="/src/main.tsx"></script>
+    <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

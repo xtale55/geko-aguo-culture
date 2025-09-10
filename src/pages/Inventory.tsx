@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Search, Package, Trash2, Edit, ArrowLeft, Beaker, X } from "lucide-react";
+import { Plus, Search, Package, Trash2, Edit, ArrowLeft } from "lucide-react";
 import { QuantityUtils } from "@/lib/quantityUtils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,9 +35,11 @@ interface Farm {
 
 const CATEGORIES = [
   "Ração",
-  "Probióticos",
+  "Medicamentos", 
+  "Equipamentos",
   "Fertilizantes",
-  "Misturas",
+  "Pós-Larvas",
+  "Combustível",
   "Outros"
 ];
 
@@ -49,12 +51,6 @@ export default function Inventory() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isMixtureDialogOpen, setIsMixtureDialogOpen] = useState(false);
-  const [selectedMixtureItems, setSelectedMixtureItems] = useState<{item: InventoryItem, quantity: number}[]>([]);
-  const [mixtureFormData, setMixtureFormData] = useState({
-    name: "",
-    farm_id: ""
-  });
   const { toast } = useToast();
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -188,147 +184,6 @@ export default function Inventory() {
     }
   };
 
-  const resetMixtureForm = () => {
-    setSelectedMixtureItems([]);
-    setMixtureFormData({
-      name: "",
-      farm_id: farms[0]?.id || ""
-    });
-    setIsMixtureDialogOpen(false);
-  };
-
-  const handleMixtureItemToggle = (item: InventoryItem) => {
-    setSelectedMixtureItems(prev => {
-      const existing = prev.find(selected => selected.item.id === item.id);
-      if (existing) {
-        return prev.filter(selected => selected.item.id !== item.id);
-      } else {
-        return [...prev, { item, quantity: 1 }];
-      }
-    });
-  };
-
-  const handleMixtureQuantityChange = (itemId: string, quantity: number) => {
-    setSelectedMixtureItems(prev =>
-      prev.map(selected =>
-        selected.item.id === itemId
-          ? { ...selected, quantity: Math.max(0.1, Math.min(quantity, QuantityUtils.gramsToKg(selected.item.quantity))) }
-          : selected
-      )
-    );
-  };
-
-  const calculateMixtureStats = () => {
-    const totalQuantity = selectedMixtureItems.reduce((sum, selected) => sum + selected.quantity, 0);
-    const totalCost = selectedMixtureItems.reduce((sum, selected) => {
-      return sum + (selected.quantity * selected.item.unit_price);
-    }, 0);
-    const avgCostPerKg = totalQuantity > 0 ? totalCost / totalQuantity : 0;
-    
-    return { totalQuantity, totalCost, avgCostPerKg };
-  };
-
-  const handleCreateMixture = async () => {
-    if (selectedMixtureItems.length < 2) {
-      toast({
-        title: "Erro",
-        description: "Selecione pelo menos 2 itens para criar uma mistura.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!mixtureFormData.name.trim()) {
-      toast({
-        title: "Erro",
-        description: "Digite um nome para a mistura.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      const { totalQuantity, avgCostPerKg, totalCost } = calculateMixtureStats();
-      
-      // Verificar se há quantidade suficiente para todos os itens
-      for (const selected of selectedMixtureItems) {
-        const availableKg = QuantityUtils.gramsToKg(selected.item.quantity);
-        if (selected.quantity > availableKg) {
-          toast({
-            title: "Erro",
-            description: `Quantidade insuficiente de ${selected.item.name}. Disponível: ${availableKg}kg`,
-            variant: "destructive",
-          });
-          return;
-        }
-      }
-
-      // Atualizar estoque dos itens existentes
-      for (const selected of selectedMixtureItems) {
-        const newQuantityGrams = selected.item.quantity - QuantityUtils.kgToGrams(selected.quantity);
-        const newQuantityKg = QuantityUtils.gramsToKg(newQuantityGrams);
-        const newTotalValue = newQuantityKg * selected.item.unit_price;
-
-        const { error: updateError } = await supabase
-          .from('inventory')
-          .update({ 
-            quantity: newQuantityGrams,
-            total_value: newTotalValue
-          })
-          .eq('id', selected.item.id);
-
-        if (updateError) throw updateError;
-      }
-
-      // Criar item de mistura
-      const mixtureQuantityGrams = QuantityUtils.kgToGrams(totalQuantity);
-      const mixtureData = {
-        name: mixtureFormData.name,
-        category: "Misturas",
-        brand: null,
-        supplier: "Mistura Interna",
-        quantity: mixtureQuantityGrams,
-        unit_price: avgCostPerKg,
-        total_value: totalCost,
-        entry_date: new Date().toISOString().split('T')[0],
-        farm_id: mixtureFormData.farm_id
-      };
-
-      const { error: insertError } = await supabase
-        .from('inventory')
-        .insert([mixtureData]);
-
-      if (insertError) throw insertError;
-
-      const mixtureComponents = selectedMixtureItems
-        .map(selected => `${selected.item.name} (${selected.quantity}kg)`)
-        .join(', ');
-
-      toast({
-        title: "Mistura criada",
-        description: `Mistura "${mixtureFormData.name}" criada com sucesso usando: ${mixtureComponents}`,
-      });
-
-      fetchInventoryItems();
-      resetMixtureForm();
-    } catch (error: any) {
-      toast({
-        title: "Erro ao criar mistura",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
-  };
-
-  const mixableItems = items.filter(item => 
-    ["Ração", "Probióticos", "Fertilizantes"].includes(item.category) && 
-    item.quantity > 0
-  );
-
-  const canCreateMixture = selectedMixtureItems.length >= 2 && 
-                           mixtureFormData.name.trim() && 
-                           mixtureFormData.farm_id;
-
   const resetForm = () => {
     setFormData({
       name: "",
@@ -398,33 +253,13 @@ export default function Inventory() {
               Controle de Estoque
             </h1>
           </div>
-        <div className="flex gap-2">
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={() => setEditingItem(null)}>
-                <Plus className="w-4 h-4 mr-2" />
-                Adicionar Item
-              </Button>
-            </DialogTrigger>
-          </Dialog>
-          
-          <Dialog open={isMixtureDialogOpen} onOpenChange={setIsMixtureDialogOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline" onClick={() => {
-                setMixtureFormData({
-                  name: "",
-                  farm_id: farms[0]?.id || ""
-                });
-                setSelectedMixtureItems([]);
-              }}>
-                <Beaker className="w-4 h-4 mr-2" />
-                Mistura
-              </Button>
-            </DialogTrigger>
-          </Dialog>
-        </div>
-        
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button onClick={() => setEditingItem(null)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Adicionar Item
+            </Button>
+          </DialogTrigger>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>{editingItem ? "Editar Item" : "Adicionar Item"}</DialogTitle>
@@ -534,131 +369,6 @@ export default function Inventory() {
                 </Button>
               </div>
             </form>
-          </DialogContent>
-        </Dialog>
-
-        {/* Dialog de Mistura */}
-        <Dialog open={isMixtureDialogOpen} onOpenChange={setIsMixtureDialogOpen}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Criar Mistura de Itens</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-6">
-              {/* Configuração da Mistura */}
-              <div className="grid grid-cols-2 gap-4 p-4 bg-muted/30 rounded-lg">
-                <div>
-                  <Label htmlFor="mixture-name">Nome da Mistura</Label>
-                  <Input
-                    id="mixture-name"
-                    value={mixtureFormData.name}
-                    onChange={(e) => setMixtureFormData({...mixtureFormData, name: e.target.value})}
-                    placeholder="Ex: Ração Premium com Probióticos"
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="mixture-farm">Fazenda</Label>
-                  <Select value={mixtureFormData.farm_id} onValueChange={(value) => setMixtureFormData({...mixtureFormData, farm_id: value})}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {farms.map(farm => (
-                        <SelectItem key={farm.id} value={farm.id}>{farm.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              {/* Seleção de Itens */}
-              <div>
-                <h3 className="font-semibold mb-3">Selecione os itens para mistura:</h3>
-                <div className="space-y-2 max-h-60 overflow-y-auto border rounded-lg p-2">
-                  {mixableItems.map((item) => {
-                    const selected = selectedMixtureItems.find(s => s.item.id === item.id);
-                    const availableKg = QuantityUtils.gramsToKg(item.quantity);
-                    
-                    return (
-                      <div key={item.id} className={`flex items-center space-x-3 p-3 rounded border ${selected ? 'bg-primary/10 border-primary' : 'hover:bg-muted/50'}`}>
-                        <input
-                          type="checkbox"
-                          checked={!!selected}
-                          onChange={() => handleMixtureItemToggle(item)}
-                          className="w-4 h-4"
-                        />
-                        <div className="flex-1">
-                          <div className="font-medium">{item.name}</div>
-                          <div className="text-sm text-muted-foreground">
-                            {item.category} • Disponível: {QuantityUtils.formatKg(item.quantity)}kg • R$ {item.unit_price.toFixed(2)}/kg
-                          </div>
-                        </div>
-                        {selected && (
-                          <div className="flex items-center space-x-2">
-                            <Label className="text-sm">Usar:</Label>
-                            <Input
-                              type="number"
-                              step="0.1"
-                              min="0.1"
-                              max={availableKg}
-                              value={selected.quantity}
-                              onChange={(e) => handleMixtureQuantityChange(item.id, parseFloat(e.target.value) || 0.1)}
-                              className="w-20"
-                            />
-                            <span className="text-sm text-muted-foreground">kg</span>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                  {mixableItems.length === 0 && (
-                    <p className="text-muted-foreground text-center py-4">
-                      Nenhum item disponível para mistura. Adicione itens de ração, probióticos ou fertilizantes ao estoque.
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              {/* Resumo da Mistura */}
-              {selectedMixtureItems.length > 0 && (
-                <div className="p-4 bg-primary/5 rounded-lg">
-                  <h4 className="font-semibold mb-2">Resumo da Mistura:</h4>
-                  <div className="grid grid-cols-3 gap-4 text-sm">
-                    <div>
-                      <span className="text-muted-foreground">Quantidade Total:</span>
-                      <p className="font-medium">{calculateMixtureStats().totalQuantity.toFixed(1)} kg</p>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">Custo Total:</span>
-                      <p className="font-medium">R$ {calculateMixtureStats().totalCost.toFixed(2)}</p>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">Custo por kg:</span>
-                      <p className="font-medium">R$ {calculateMixtureStats().avgCostPerKg.toFixed(2)}</p>
-                    </div>
-                  </div>
-                  <div className="mt-2">
-                    <span className="text-muted-foreground text-sm">Componentes:</span>
-                    <p className="text-sm">
-                      {selectedMixtureItems.map(s => `${s.item.name} (${s.quantity}kg)`).join(', ')}
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {/* Botões */}
-              <div className="flex justify-end space-x-2">
-                <Button variant="outline" onClick={resetMixtureForm}>
-                  Cancelar
-                </Button>
-                <Button 
-                  onClick={handleCreateMixture}
-                  disabled={!canCreateMixture}
-                >
-                  Criar Mistura
-                </Button>
-              </div>
-            </div>
           </DialogContent>
         </Dialog>
       </div>

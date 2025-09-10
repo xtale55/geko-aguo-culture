@@ -1,18 +1,25 @@
 import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Scale, BarChart3 } from 'lucide-react';
+import { ArrowLeft, Scale } from 'lucide-react';
 import { BiometryTab } from '@/components/BiometryTab';
+
 export default function BiometriaPage() {
-  console.log('BiometriaPage component loading...');
   const navigate = useNavigate();
-  return <Layout>
+
+  return (
+    <Layout>
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-emerald-50/20">
         <div className="space-y-6">
           {/* Header */}
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="flex items-center justify-between">
             <div>
-              <Button variant="ghost" size="sm" onClick={() => navigate('/manejos')} className="mb-2 bg-gradient-to-r from-slate-50 to-slate-100 hover:from-primary/10 hover:to-accent/10 border border-slate-200 hover:border-primary/20 text-slate-700 hover:text-primary transition-all duration-300">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => navigate('/manejos')}
+                className="mb-2 bg-gradient-to-r from-slate-50 to-slate-100 hover:from-primary/10 hover:to-accent/10 border border-slate-200 hover:border-primary/20 text-slate-700 hover:text-primary transition-all duration-300"
+              >
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Voltar para Manejos
               </Button>
@@ -24,13 +31,9 @@ export default function BiometriaPage() {
                   Biometria
                 </h1>
               </div>
-              <p className="text-slate-600">Registre biometrias individuais ou em lote e acompanhe as medições de peso e crescimento dos camarões</p>
-            </div>
-            <div className="w-full md:w-auto">
-              <Button onClick={() => window.dispatchEvent(new CustomEvent('open-batch-biometry'))} className="w-full flex items-center gap-2">
-                <BarChart3 className="w-4 h-4" />
-                Biometria em Lote
-              </Button>
+              <p className="text-slate-600">
+                Registre e acompanhe as medições de peso e crescimento dos camarões
+              </p>
             </div>
           </div>
 
@@ -38,5 +41,6 @@ export default function BiometriaPage() {
           <BiometryTab />
         </div>
       </div>
-    </Layout>;
+    </Layout>
+  );
 }

@@ -748,7 +748,6 @@ export type Database = {
           hardness: number | null
           id: string
           measurement_date: string
-          nitrite: number | null
           notes: string | null
           oxygen_level: number | null
           ph_level: number | null
@@ -764,7 +763,6 @@ export type Database = {
           hardness?: number | null
           id?: string
           measurement_date: string
-          nitrite?: number | null
           notes?: string | null
           oxygen_level?: number | null
           ph_level?: number | null
@@ -780,7 +778,6 @@ export type Database = {
           hardness?: number | null
           id?: string
           measurement_date?: string
-          nitrite?: number | null
           notes?: string | null
           oxygen_level?: number | null
           ph_level?: number | null

@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { Edit2, Clock, Plus, History } from 'lucide-react';
+import { Edit2, Clock, Plus, History, Utensils, Target, TrendingUp } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { FeedingHistoryDialog } from './FeedingHistoryDialog';
 import { QuantityUtils } from '@/lib/quantityUtils';
@@ -414,112 +414,22 @@ export function FeedingSchedule({
   const totalActualFeed = getTotalActualFeed();
   const feedingsToday = feedingRecords.length;
 
+  const progressPercentage = dailyFeed > 0 ? Math.min((totalActualFeed / dailyFeed) * 100, 100) : 0;
+
   return (
     <Card className="shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-ocean)] transition-shadow">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
+      <CardHeader className="pb-4">
+        <div className="flex items-center justify-between mb-3">
           <CardTitle className="text-lg">{pondName}</CardTitle>
           <div className="flex items-center gap-2">
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={handleEditFeedingRate}
-                >
-                  <Edit2 className="w-3 h-3 mr-1" />
-                  {feedingRate}%
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Editar Taxa de Alimentação - {pondName}</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label>Percentual da Biomassa (%)</Label>
-                      <Input
-                        type="number"
-                        step="0.1"
-                        value={newFeedingRate}
-                        onChange={(e) => setNewFeedingRate(e.target.value)}
-                        placeholder="Ex: 5.0"
-                      />
-                    </div>
-                    <div>
-                      <Label>Refeições por Dia</Label>
-                      <Input
-                        type="number"
-                        min="1"
-                        max="10"
-                        value={newMealsPerDay}
-                        onChange={(e) => setNewMealsPerDay(e.target.value)}
-                        placeholder="Ex: 3"
-                      />
-                    </div>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Peso atual dos animais: {averageWeight}g
-                  </p>
-                  <div className="flex gap-2">
-                    <Button onClick={handleSaveFeedingRate} disabled={!newFeedingRate || !newMealsPerDay}>
-                      Salvar
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      onClick={() => {
-                        setEditingRate(false);
-                        setNewFeedingRate("");
-                        setNewMealsPerDay("");
-                      }}
-                    >
-                      Cancelar
-                    </Button>
-                  </div>
-                </div>
-              </DialogContent>
-            </Dialog>
-            <Badge variant="secondary">
-              {feedingsToday} alimentações hoje
+            <Badge variant="secondary" className="text-xs">
+              Lote: {batchName} • DOC: {doc}
             </Badge>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Task Summary */}
-        <div className="bg-muted/50 rounded-lg p-3 space-y-2">
-          <div className="flex items-start justify-between">
-            <div className="grid grid-cols-2 gap-4 text-sm flex-1">
-              <div>
-                <span className="text-muted-foreground">Lote:</span>
-                <span className="font-medium ml-1">{batchName}</span>
-              </div>
-              <div>
-                <span className="text-muted-foreground">DOC:</span>
-                <span className="font-medium ml-1">{doc} dias</span>
-              </div>
-              <div>
-                <span className="text-muted-foreground">Biomassa:</span>
-                <span className="font-medium ml-1">{biomass.toFixed(1)} kg</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-muted-foreground">Peso médio:</span>
-                <span className="font-medium ml-1">
-                  {averageWeight < 0.1 ? '<0,1g' : `${averageWeight.toFixed(1)}g`}
-                </span>
-                {isWeightEstimated && (
-                  <Badge variant="secondary" className="text-xs">
-                    Estimado
-                  </Badge>
-                )}
-              </div>
-            </div>
             <Button 
               variant="outline"
               size="sm"
               onClick={() => setIsHistoryDialogOpen(true)}
-              className="h-6 px-2 text-xs ml-4 border-border/60 bg-background/50 hover:bg-accent/80 hover:border-border"
+              className="h-7 px-2 text-xs"
             >
               <History className="w-3 h-3 mr-1" />
               Histórico
@@ -527,27 +437,146 @@ export function FeedingSchedule({
           </div>
         </div>
 
-        {/* Daily Feed Summary */}
-        <div className="grid grid-cols-3 gap-4">
-          <div className="border-l-4 border-primary pl-4">
-            <div className="text-sm text-muted-foreground">Planejado/dia</div>
-            <div className="text-xl font-bold text-primary">{dailyFeed.toFixed(1)} kg</div>
-            <div className="text-xs text-muted-foreground">
-              {mealsPerDay}x • {feedPerMeal.toFixed(1)}kg/refeição
+        {/* Main Feeding Information - Enhanced Gray Card */}
+        <div className="bg-muted/50 rounded-lg p-4 space-y-4">
+          {/* Top Row - Main Numbers */}
+          <div className="grid grid-cols-3 gap-6">
+            <div className="text-center">
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <Target className="w-4 h-4 text-primary" />
+                <span className="text-sm font-medium text-muted-foreground">Quantidade Diária</span>
+              </div>
+              <div className="text-2xl font-bold text-primary">{dailyFeed.toFixed(1)} kg</div>
+              <div className="text-xs text-muted-foreground">Total recomendado</div>
+            </div>
+            
+            <div className="text-center">
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <Utensils className="w-4 h-4 text-ocean" />
+                <span className="text-sm font-medium text-muted-foreground">Por Refeição</span>
+              </div>
+              <div className="text-2xl font-bold text-ocean">{feedPerMeal.toFixed(1)} kg</div>
+              <div className="text-xs text-muted-foreground">{mealsPerDay}x ao dia</div>
+            </div>
+            
+            <div className="text-center">
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <TrendingUp className="w-4 h-4 text-accent" />
+                <span className="text-sm font-medium text-muted-foreground">Taxa de Alimentação</span>
+              </div>
+              <div className="text-3xl font-bold text-accent">{feedingRate}%</div>
+              <div className="flex items-center justify-center gap-1">
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={handleEditFeedingRate}
+                      className="h-6 px-2 text-xs hover:bg-accent/20"
+                    >
+                      <Edit2 className="w-3 h-3 mr-1" />
+                      Editar
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Editar Taxa de Alimentação - {pondName}</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label>Percentual da Biomassa (%)</Label>
+                          <Input
+                            type="number"
+                            step="0.1"
+                            value={newFeedingRate}
+                            onChange={(e) => setNewFeedingRate(e.target.value)}
+                            placeholder="Ex: 5.0"
+                          />
+                        </div>
+                        <div>
+                          <Label>Refeições por Dia</Label>
+                          <Input
+                            type="number"
+                            min="1"
+                            max="10"
+                            value={newMealsPerDay}
+                            onChange={(e) => setNewMealsPerDay(e.target.value)}
+                            placeholder="Ex: 3"
+                          />
+                        </div>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Peso atual dos animais: {averageWeight}g
+                      </p>
+                      <div className="flex gap-2">
+                        <Button onClick={handleSaveFeedingRate} disabled={!newFeedingRate || !newMealsPerDay}>
+                          Salvar
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          onClick={() => {
+                            setEditingRate(false);
+                            setNewFeedingRate("");
+                            setNewMealsPerDay("");
+                          }}
+                        >
+                          Cancelar
+                        </Button>
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </div>
             </div>
           </div>
-          <div className="border-l-4 border-success pl-4">
-            <div className="text-sm text-muted-foreground">Realizado hoje</div>
+
+          {/* Bottom Row - Context Info */}
+          <div className="flex items-center justify-between text-sm border-t border-border/50 pt-3">
+            <div>
+              <span className="text-muted-foreground">Biomassa atual:</span>
+              <span className="font-medium ml-1">{biomass.toFixed(1)} kg</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-muted-foreground">Peso médio:</span>
+              <span className="font-medium">
+                {averageWeight < 0.1 ? '<0,1g' : `${averageWeight.toFixed(1)}g`}
+              </span>
+              {isWeightEstimated && (
+                <Badge variant="secondary" className="text-xs">
+                  Estimado
+                </Badge>
+              )}
+            </div>
+          </div>
+        </div>
+      </CardHeader>
+
+      <CardContent className="space-y-4">
+        {/* Progress Summary - Simplified */}
+        <div className="grid grid-cols-2 gap-4">
+          <div className="bg-success/10 border border-success/20 rounded-lg p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-2 h-2 bg-success rounded-full"></div>
+              <span className="text-sm font-medium text-success">Realizado Hoje</span>
+            </div>
             <div className="text-xl font-bold text-success">{totalActualFeed.toFixed(1)} kg</div>
             <div className="text-xs text-muted-foreground">
-              {feedingsToday} alimentações
+              {feedingsToday} de {mealsPerDay} alimentações
             </div>
           </div>
-          <div className="border-l-4 border-ocean pl-4">
-            <div className="text-sm text-muted-foreground">Taxa atual</div>
-            <div className="text-xl font-bold text-ocean">{feedingRate}%</div>
-            <div className="text-xs text-muted-foreground">
-              da biomassa ({biomass.toFixed(1)}kg)
+          
+          <div className="bg-primary/10 border border-primary/20 rounded-lg p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-2 h-2 bg-primary rounded-full"></div>
+              <span className="text-sm font-medium text-primary">Progresso</span>
+            </div>
+            <div className="text-xl font-bold text-primary">{progressPercentage.toFixed(0)}%</div>
+            <div className="w-full bg-border rounded-full h-2 mt-2">
+              <div 
+                className="bg-primary rounded-full h-2 transition-all duration-300" 
+                style={{ width: `${Math.min(progressPercentage, 100)}%` }}
+              ></div>
             </div>
           </div>
         </div>

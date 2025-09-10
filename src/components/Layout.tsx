@@ -49,14 +49,14 @@ export const Layout = memo(function Layout({ children }: LayoutProps) {
     return (
       <div className="min-h-screen bg-background">
         {/* Mobile Header */}
-        <header className="border-b border-border/50 bg-card/60 backdrop-blur-xl sticky top-0 z-50 shadow-sm">
+        <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
           <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/70 rounded-xl flex items-center justify-center shadow-lg">
+            <div className="flex items-center space-x-2">
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-emerald-500 rounded-full flex items-center justify-center">
                 <Fish className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-foreground">
+                <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
                   AquaHub
                 </h1>
                 <p className="text-xs text-muted-foreground -mt-1">
@@ -64,7 +64,7 @@ export const Layout = memo(function Layout({ children }: LayoutProps) {
                 </p>
               </div>
             </div>
-            <Button variant="ghost" size="sm" onClick={handleSignOut} className="text-muted-foreground hover:text-foreground">
+            <Button variant="ghost" size="sm" onClick={handleSignOut}>
               <LogOut className="w-4 h-4" />
             </Button>
           </div>
@@ -166,27 +166,21 @@ export const Layout = memo(function Layout({ children }: LayoutProps) {
         
         <div className="flex-1 flex flex-col">
           {/* Desktop Header */}
-          <header className="border-b border-border/50 bg-card/60 backdrop-blur-xl h-16 flex items-center px-6 shadow-sm">
-            <SidebarTrigger className="mr-4 hover:bg-muted/50 transition-colors" />
+          <header className="border-b border-border bg-card/50 backdrop-blur-sm h-16 flex items-center px-4">
+            <SidebarTrigger className="mr-4" />
             <div className="flex-1" />
             <div className="flex items-center space-x-4">
-              <div className="text-sm text-muted-foreground font-medium">
+              <div className="text-sm text-muted-foreground">
                 {user?.email}
               </div>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={handleSignOut}
-                className="text-muted-foreground hover:text-foreground hover:bg-muted/50"
-              >
+              <Button variant="ghost" size="sm" onClick={handleSignOut}>
                 <LogOut className="w-4 h-4" />
-                <span className="ml-2 hidden sm:inline">Sair</span>
               </Button>
             </div>
           </header>
 
           {/* Desktop Content */}
-          <main className="flex-1 container mx-auto px-8 py-8 max-w-7xl">
+          <main className="flex-1 container mx-auto px-6 py-6">
             {children}
           </main>
         </div>

@@ -2,65 +2,65 @@
 @tailwind components;
 @tailwind utilities;
 
-/* AquaHub Design System - Modern Aquaculture inspired design */
+/* AquaHub Design System - Aquaculture inspired colors and gradients */
 
 @layer base {
   :root {
-    /* Base colors - Modern neutral with aqua accents */
-    --background: 0 0% 100%;
-    --foreground: 224 71% 4%;
+    /* Base colors - Ocean Blue & Aqua Green palette */
+    --background: 200 30% 97%;
+    --foreground: 205 45% 12%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 224 71% 4%;
+    --card: 200 20% 99%;
+    --card-foreground: 205 45% 12%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 224 71% 4%;
+    --popover: 200 20% 99%;
+    --popover-foreground: 205 45% 12%;
 
-    /* Primary - Refined Ocean Blue */
-    --primary: 221 83% 53%;
-    --primary-foreground: 210 40% 98%;
-    --primary-hover: 221 83% 45%;
+    /* Primary - Deep Ocean Blue */
+    --primary: 205 85% 30%;
+    --primary-foreground: 200 40% 98%;
+    --primary-hover: 205 85% 25%;
 
-    /* Secondary - Soft Gray */
-    --secondary: 210 40% 96%;
-    --secondary-foreground: 222 84% 4.9%;
-    --secondary-hover: 210 40% 90%;
+    /* Secondary - Aqua Green */
+    --secondary: 165 75% 80%;
+    --secondary-foreground: 205 45% 12%;
+    --secondary-hover: 165 75% 75%;
 
-    /* Accent - Modern Teal */
-    --accent: 210 40% 96%;
-    --accent-foreground: 222 84% 4.9%;
-    --accent-hover: 210 40% 90%;
+    /* Accent - Teal Blue */
+    --accent: 185 70% 40%;
+    --accent-foreground: 200 40% 98%;
+    --accent-hover: 185 70% 35%;
 
     --muted: 210 40% 96%;
-    --muted-foreground: 215 20% 65%;
+    --muted-foreground: 215 16% 47%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 221 83% 53%;
+    --border: 210 25% 90%;
+    --input: 210 25% 95%;
+    --ring: 210 85% 25%;
 
-    /* Success - Modern Green */
-    --success: 142 76% 36%;
-    --success-foreground: 355 100% 97%;
+    /* Success - Ocean Green */
+    --success: 155 65% 45%;
+    --success-foreground: 200 40% 98%;
 
-    /* Warning - Modern Orange */
-    --warning: 32 95% 44%;
-    --warning-foreground: 355 100% 97%;
+    /* Warning - Aqua Yellow */
+    --warning: 50 90% 60%;
+    --warning-foreground: 205 45% 12%;
 
-    /* Modern gradients */
-    --gradient-subtle: linear-gradient(180deg, hsl(0 0% 100%), hsl(210 40% 98%));
-    --gradient-card: linear-gradient(145deg, hsl(0 0% 100% / 0.8), hsl(210 40% 98% / 0.4));
-    --gradient-primary: linear-gradient(135deg, hsl(221 83% 53%), hsl(221 83% 45%));
-    --gradient-accent: linear-gradient(135deg, hsl(210 40% 96%), hsl(214 32% 91%));
+    /* Gradients - Blue & Green Ocean theme */
+    --gradient-ocean: linear-gradient(135deg, hsl(205 85% 30%), hsl(165 75% 35%));
+    --gradient-aqua: linear-gradient(135deg, hsl(165 75% 80%), hsl(155 65% 65%));
+    --gradient-hero: linear-gradient(135deg, hsl(205 85% 30%) 0%, hsl(190 75% 35%) 40%, hsl(165 75% 35%) 100%);
+    --gradient-card: linear-gradient(145deg, hsl(200 20% 99% / 0.9), hsl(200 30% 97% / 0.7));
+    --gradient-primary: linear-gradient(135deg, hsl(205 85% 30%), hsl(165 75% 30%));
+    --gradient-accent: linear-gradient(135deg, hsl(185 70% 40%), hsl(155 65% 40%));
 
-    /* Modern shadows */
-    --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.05);
-    --shadow: 0 1px 3px 0 hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
-    --shadow-md: 0 4px 6px -1px hsl(0 0% 0% / 0.1), 0 2px 4px -2px hsl(0 0% 0% / 0.1);
-    --shadow-lg: 0 10px 15px -3px hsl(0 0% 0% / 0.1), 0 4px 6px -4px hsl(0 0% 0% / 0.1);
-    --shadow-xl: 0 20px 25px -5px hsl(0 0% 0% / 0.1), 0 8px 10px -6px hsl(0 0% 0% / 0.1);
+    /* Shadows with blue-green tints */
+    --shadow-ocean: 0 10px 30px -5px hsl(205 85% 30% / 0.3);
+    --shadow-soft: 0 4px 20px -2px hsl(200 30% 50% / 0.1);
+    --shadow-card: 0 6px 25px -5px hsl(205 85% 30% / 0.15);
 
     --radius: 0.75rem;
 

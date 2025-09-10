@@ -39,51 +39,41 @@ export function AppSidebar() {
   const isActive = (path: string) => location.pathname === path;
 
   return (
-    <Sidebar collapsible="icon" className="border-r-0 bg-card/30 backdrop-blur-xl">
-      <SidebarHeader className="border-b border-border/50 p-4">
-        <div className="flex items-center space-x-3">
-          <div className="w-8 h-8 bg-gradient-to-br from-primary to-primary/70 rounded-xl flex items-center justify-center shadow-lg">
-            <Fish className="w-5 h-5 text-white" />
+    <Sidebar collapsible="none" className="w-auto min-w-44">
+      <SidebarHeader className="border-b border-border p-2">
+        <div className="flex flex-col items-center space-y-1">
+          <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-emerald-500 rounded-full flex items-center justify-center">
+            <Fish className="w-4 h-4 text-white" />
           </div>
-          <div className="min-w-0">
-            <h1 className="text-lg font-bold text-foreground">
+          <div className="text-center">
+            <h1 className="text-sm font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
               AquaHub
             </h1>
-            <p className="text-xs text-muted-foreground truncate">
-              ERP Aquicultura
-            </p>
           </div>
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="pt-6 px-3">
+      <SidebarContent className="pt-4">
         <SidebarGroup>
-          <SidebarGroupLabel className="text-xs font-medium text-muted-foreground px-3 mb-2">
-            Menu Principal
-          </SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu className="space-y-1">
+            <SidebarMenu>
               {navigationItems.map((item) => (
                 <SidebarMenuItem key={item.path}>
                   <SidebarMenuButton 
                     asChild
                     isActive={isActive(item.path)}
-                    className="group"
                   >
                     <button
                       onClick={() => navigate(item.path)}
                       className={cn(
-                        "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
+                        "w-full min-w-0 flex items-center justify-start gap-2 px-3 py-2 rounded-md text-sm transition-colors",
                         isActive(item.path)
-                          ? "bg-primary text-primary-foreground shadow-md shadow-primary/25 scale-[1.02]"
-                          : "hover:bg-muted/50 hover:scale-[1.01] text-muted-foreground hover:text-foreground"
+                          ? "bg-primary text-primary-foreground"
+                          : "hover:bg-muted"
                       )}
                     >
-                      <item.icon className={cn(
-                        "w-4 h-4 shrink-0 transition-colors",
-                        isActive(item.path) ? "text-primary-foreground" : "text-muted-foreground group-hover:text-foreground"
-                      )} />
-                      <span className="flex-1 text-left truncate">{item.label}</span>
+                      <item.icon className="w-4 h-4 shrink-0" />
+                      <span className="flex-1 truncate text-left leading-tight">{item.label}</span>
                     </button>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -93,15 +83,9 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-border/50 p-3">
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          onClick={handleSignOut} 
-          className="w-full justify-start gap-3 px-3 py-2.5 text-muted-foreground hover:text-foreground hover:bg-muted/50"
-        >
+      <SidebarFooter className="border-t border-border p-2">
+        <Button variant="ghost" size="sm" onClick={handleSignOut} className="w-full">
           <LogOut className="w-4 h-4" />
-          <span>Sair</span>
         </Button>
       </SidebarFooter>
     </Sidebar>

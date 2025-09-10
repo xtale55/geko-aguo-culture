@@ -9,9 +9,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { Scale, History, Trash2 } from 'lucide-react';
+import { Scale, History, Trash2, BarChart3 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getCurrentDateForInput, formatDateForDisplay } from '@/lib/utils';
+import { BatchBiometryModal } from './BatchBiometryModal';
 
 interface PondWithBatch {
   id: string;
@@ -58,6 +59,7 @@ export function BiometryTab() {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [showDialog, setShowDialog] = useState(false);
+  const [showBatchDialog, setShowBatchDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedPond, setSelectedPond] = useState<PondWithBatch | null>(null);
   const [recordToDelete, setRecordToDelete] = useState<BiometryRecord | null>(null);
@@ -320,6 +322,24 @@ export function BiometryTab() {
         </TabsList>
         
         <TabsContent value="active" className="mt-6">
+          {/* Header with Batch Button */}
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <h3 className="text-lg font-semibold">Viveiros Ativos</h3>
+              <p className="text-sm text-muted-foreground">
+                Registre biometrias individuais ou em lote
+              </p>
+            </div>
+            <Button
+              onClick={() => setShowBatchDialog(true)}
+              variant="default"
+              className="flex items-center gap-2"
+            >
+              <BarChart3 className="w-4 h-4" />
+              Biometria em Lote
+            </Button>
+          </div>
+
           {/* Ponds Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {ponds.map((pond) => {
@@ -542,6 +562,17 @@ export function BiometryTab() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Batch Biometry Modal */}
+      <BatchBiometryModal
+        open={showBatchDialog}
+        onOpenChange={setShowBatchDialog}
+        ponds={ponds}
+        onSuccess={() => {
+          loadActivePonds();
+          loadBiometryHistory();
+        }}
+      />
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>

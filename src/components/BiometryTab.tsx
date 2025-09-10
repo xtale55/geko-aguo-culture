@@ -76,6 +76,13 @@ export function BiometryTab() {
     }
   }, [user]);
 
+  // Listen for global event to open batch biometry dialog (triggered from page header)
+  useEffect(() => {
+    const handler = (_e: Event) => setShowBatchDialog(true);
+    window.addEventListener('open-batch-biometry', handler);
+    return () => window.removeEventListener('open-batch-biometry', handler);
+  }, []);
+
   const loadActivePonds = async () => {
     try {
       // Load farms first

@@ -172,26 +172,15 @@ export function FeedingCard({
               )}
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleEditFeedingRate}
-              className="h-8 px-2 text-xs"
-            >
-              <Edit2 className="w-3 h-3 mr-1" />
-              {feedingRate}%
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setIsHistoryDialogOpen(true)}
-              className="h-8 px-2 text-xs"
-            >
-              <History className="w-3 h-3 mr-1" />
-              Histórico
-            </Button>
-          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsHistoryDialogOpen(true)}
+            className="h-8 px-2 text-xs"
+          >
+            <History className="w-3 h-3 mr-1" />
+            Histórico
+          </Button>
         </div>
       </CardHeader>
 
@@ -226,6 +215,15 @@ export function FeedingCard({
             <div className="text-center">
               <p className="text-xs text-slate-500 mb-1">Taxa</p>
               <p className="text-lg font-bold text-purple-700">{feedingRate.toFixed(1)}%</p>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleEditFeedingRate}
+                className="h-6 px-2 text-xs mt-1"
+              >
+                <Edit2 className="w-3 h-3 mr-1" />
+                Editar
+              </Button>
             </div>
           </div>
         </div>

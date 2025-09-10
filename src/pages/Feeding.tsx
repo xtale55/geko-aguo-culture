@@ -462,31 +462,34 @@ export default function Feeding() {
           onRateUpdate={loadFeedingData}
         />
 
-        {/* Feeding Tasks */}
+        {/* Feeding Tasks - New Card Design */}
         <div>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-2xl font-semibold">Controle de Alimentação</h2>
           </div>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {feedingTasks.map((task) => (
-              <FeedingSchedule
+              <FeedingCard
                 key={task.pond_id}
-                pondId={task.pond_id}
                 pondName={task.pond_name}
                 batchName={task.batch_name}
-                pondBatchId={task.pond_batch_id}
-                biomass={task.biomass}
-                feedingRate={task.feeding_rate}
-                mealsPerDay={task.meals_per_day}
-                dailyFeed={task.daily_feed}
                 doc={task.doc}
-                selectedDate={selectedDate}
-                currentPopulation={task.current_population}
+                biomass={task.biomass}
                 averageWeight={task.average_weight}
-                farmId={farms[0]?.id}
-                onFeedingUpdate={loadFeedingData}
-                onRateUpdate={loadFeedingData}
+                population={task.current_population}
+                dailyFeed={task.daily_feed}
+                feedPerMeal={task.feed_per_meal}
+                feedingRate={task.feeding_rate}
+                pondBatchId={task.pond_batch_id}
                 isWeightEstimated={task.is_weight_estimated}
+                onRegisterFeeding={() => {
+                  // TODO: Open feeding registration dialog
+                  console.log('Register feeding for', task.pond_name);
+                }}
+                onViewHistory={() => {
+                  // TODO: Open feeding history dialog
+                  console.log('View history for', task.pond_name);
+                }}
               />
             ))}
           </div>

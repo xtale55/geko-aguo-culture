@@ -36,10 +36,7 @@ interface Farm {
 const CATEGORIES = [
   "Ração",
   "Medicamentos", 
-  "Equipamentos",
   "Fertilizantes",
-  "Pós-Larvas",
-  "Combustível",
   "Outros"
 ];
 

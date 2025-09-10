@@ -162,7 +162,7 @@ export function InputApplicationTab() {
         category,
         farm:farms!inner(user_id)
       `)
-      .in('category', ['Fertilizantes', 'Medicamentos'])
+      .in('category', ['Ração', 'Medicamentos', 'Fertilizantes', 'Outros'])
       .eq('farm.user_id', user?.id)
       .gt('quantity', 0);
 

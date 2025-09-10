@@ -959,9 +959,9 @@ export default function PondHistory() {
         </Card>
 
         {/* Performance Records */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-6 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {/* Biometry Records */}
-          <Card className="lg:col-span-2">
+          <Card className="col-span-1">
             <CardHeader className="pb-4">
               <CardTitle className="flex items-center gap-2 text-base">
                 <Scale className="w-4 h-4" />
@@ -1055,7 +1055,7 @@ export default function PondHistory() {
           </Card>
 
           {/* Mortality Records */}
-          <Card className="lg:col-span-1">
+          <Card className="col-span-1">
             <CardHeader className="pb-4">
               <CardTitle className="flex items-center gap-2 text-base">
                 <Skull className="w-4 h-4" />
@@ -1090,7 +1090,7 @@ export default function PondHistory() {
           </Card>
 
           {/* Weekly Feeding Records */}
-          <Card className="lg:col-span-2">
+          <Card className="col-span-1">
             <CardHeader className="pb-4">
               <CardTitle className="flex items-center gap-2 text-base">
                 <Fish className="w-4 h-4" />
@@ -1141,7 +1141,7 @@ export default function PondHistory() {
           </Card>
 
           {/* Input Applications Records */}
-          <Card className="lg:col-span-1">
+          <Card className="col-span-1">
             <CardHeader className="pb-4">
               <CardTitle className="flex items-center gap-2 text-base">
                 <Package className="w-4 h-4" />
@@ -1186,7 +1186,7 @@ export default function PondHistory() {
           </Card>
 
           {/* Operational Costs Records */}
-          <Card className="lg:col-span-1">
+          <Card className="col-span-1">
             <CardHeader className="pb-4">
               <CardTitle className="flex items-center gap-2 text-base">
                 <DollarSign className="w-4 h-4" />
@@ -1228,7 +1228,7 @@ export default function PondHistory() {
           </Card>
 
           {/* Water Quality */}
-          <Card className="lg:col-span-1">
+          <Card className="col-span-1">
             <CardHeader className="pb-4">
               <CardTitle className="flex items-center gap-2 text-base">
                 <Droplets className="w-4 h-4" />

@@ -23,6 +23,7 @@ interface CostBreakdown {
   pl_cost: number;
   preparation_cost: number;
   feed_cost: number;
+  inputs_cost: number;
   operational_cost: number;
   total_cost: number;
 }
@@ -79,12 +80,39 @@ interface WaterQualityRecord {
   ph_level: number;
 }
 
+interface InputRecord {
+  application_date: string;
+  input_item_name: string;
+  quantity_applied: number;
+  total_cost: number;
+  purpose: string;
+}
+
+interface OperationalCostRecord {
+  cost_date: string;
+  category: string;
+  description: string;
+  amount: number;
+}
+
+interface WeeklyFeedingRecord {
+  week_number: number;
+  week_start: string;
+  week_end: string;
+  total_amount: number;
+  total_cost: number;
+}
+
 export default function PondHistory() {
   const [pondName, setPondName] = useState("");
   const [cycles, setCycles] = useState<PondCycleHistory[]>([]);
   const [biometryRecords, setBiometryRecords] = useState<BiometryRecord[]>([]);
   const [mortalityRecords, setMortalityRecords] = useState<MortalityRecord[]>([]);
   const [feedingRecords, setFeedingRecords] = useState<FeedingRecord[]>([]);
+  const [weeklyFeedingRecords, setWeeklyFeedingRecords] = useState<WeeklyFeedingRecord[]>([]);
+  const [totalAccumulatedFeed, setTotalAccumulatedFeed] = useState<number>(0);
+  const [inputRecords, setInputRecords] = useState<InputRecord[]>([]);
+  const [operationalCostRecords, setOperationalCostRecords] = useState<OperationalCostRecord[]>([]);
   const [waterQualityRecords, setWaterQualityRecords] = useState<WaterQualityRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [priceTable, setPriceTable] = useState<number>(19);
@@ -175,10 +203,22 @@ export default function PondHistory() {
           )
           .order('feeding_date', { ascending: false });
 
-        // Get operational costs for each cycle
+         // Get operational costs for each cycle
         const { data: operationalCostsData } = await supabase
           .from('operational_costs')
           .select('amount, pond_batch_id')
+          .in('pond_batch_id', 
+            await supabase
+              .from('pond_batches')
+              .select('id')
+              .eq('pond_id', actualPondId)
+              .then(({ data }) => data?.map(pb => pb.id) || [])
+          );
+
+        // Get input applications for each cycle
+        const { data: inputApplicationsData } = await supabase
+          .from('input_applications')
+          .select('total_cost, pond_batch_id')
           .in('pond_batch_id', 
             await supabase
               .from('pond_batches')
@@ -270,6 +310,11 @@ export default function PondHistory() {
             ?.filter(feed => feed.pond_batch_id === cycle.id)
             ?.reduce((sum, feed) => sum + (QuantityUtils.gramsToKg(feed.actual_amount) * (feed.unit_cost || 0)), 0) || 0;
           
+          // Calculate input costs for this cycle from previously fetched data
+          const totalInputCost = inputApplicationsData
+            ?.filter(input => input.pond_batch_id === cycle.id)
+            ?.reduce((sum, input) => sum + (input.total_cost || 0), 0) || 0;
+          
           // Calculate allocated costs from harvests
           const allocatedFeedCost = harvestRecords
             ?.filter(hr => hr.pond_batch_id === cycle.id)
@@ -293,13 +338,14 @@ export default function PondHistory() {
           const realFeedCost = isActiveCase ? Math.max(0, totalRealFeedCost - allocatedFeedCost) : (allocatedFeedCost > 0 ? allocatedFeedCost : totalRealFeedCost);
           const effectivePlCost = isActiveCase ? Math.max(0, plCostTotal - allocatedPlCost) : (allocatedPlCost > 0 ? allocatedPlCost : plCostTotal);
           const effectivePrepCost = isActiveCase ? Math.max(0, preparationCost - allocatedPrepCost) : (allocatedPrepCost > 0 ? allocatedPrepCost : preparationCost);
+          const effectiveInputCost = isActiveCase ? Math.max(0, totalInputCost - allocatedInputCost) : (allocatedInputCost > 0 ? allocatedInputCost : totalInputCost);
           
           // Calculate operational costs for this specific cycle
           const operationalCost = operationalCostsData
             ?.filter(cost => cost.pond_batch_id === cycle.id)
             ?.reduce((sum, cost) => sum + cost.amount, 0) || 0;
           
-          const totalCost = effectivePlCost + effectivePrepCost + realFeedCost + operationalCost;
+          const totalCost = effectivePlCost + effectivePrepCost + realFeedCost + effectiveInputCost + operationalCost;
           
           // Calculate estimated revenue using dynamic price table
           const pricePerKg = calculatePriceByWeight(latestBiometry.average_weight, priceTable);
@@ -369,6 +415,7 @@ export default function PondHistory() {
               pl_cost: plCostTotal,
               preparation_cost: preparationCost,
               feed_cost: realFeedCost,
+              inputs_cost: effectiveInputCost,
               operational_cost: operationalCost,
               total_cost: totalCost
             },
@@ -395,14 +442,89 @@ export default function PondHistory() {
         new Date(b.feeding_date).getTime() - new Date(a.feeding_date).getTime()
       ));
       
-      // Get water quality records (all for the pond, not filtered by active cycle)
-      const { data: waterData } = await supabase
-        .from('water_quality')
-        .select('measurement_date, oxygen_level, temperature, ph_level')
-        .eq('pond_id', actualPondId)
-        .order('measurement_date', { ascending: false });
-        
-      setWaterQualityRecords(waterData || []);
+        // Get water quality records (all for the pond, not filtered by active cycle)
+        const { data: waterData } = await supabase
+          .from('water_quality')
+          .select('measurement_date, oxygen_level, temperature, ph_level')
+          .eq('pond_id', actualPondId)
+          .order('measurement_date', { ascending: false });
+          
+        setWaterQualityRecords(waterData || []);
+
+        // Process feeding data for weekly consolidation (only for active cycle)
+        if (activeCycleId) {
+          const activeCycleFeedingData = feedingData?.filter(feed => feed.pond_batch_id === activeCycleId) || [];
+          const activeCycleData = cyclesData?.find(c => c.id === activeCycleId);
+          
+          if (activeCycleData && activeCycleFeedingData.length > 0) {
+            const stockingDate = new Date(activeCycleData.stocking_date);
+            const weeks: WeeklyFeedingRecord[] = [];
+            
+            // Calculate total accumulated feed
+            const totalFeed = activeCycleFeedingData.reduce((sum, feed) => sum + QuantityUtils.gramsToKg(feed.actual_amount), 0);
+            setTotalAccumulatedFeed(totalFeed);
+            
+            // Group feeding by weeks starting from stocking date
+            const feedingByWeek = new Map<number, { amount: number; cost: number }>();
+            
+            activeCycleFeedingData.forEach(feed => {
+              const feedDate = new Date(feed.feeding_date);
+              const daysSinceStocking = Math.floor((feedDate.getTime() - stockingDate.getTime()) / (1000 * 60 * 60 * 24));
+              const weekNumber = Math.floor(daysSinceStocking / 7) + 1; // Start from week 1
+              
+              if (weekNumber > 0) {
+                const existing = feedingByWeek.get(weekNumber) || { amount: 0, cost: 0 };
+                feedingByWeek.set(weekNumber, {
+                  amount: existing.amount + QuantityUtils.gramsToKg(feed.actual_amount),
+                  cost: existing.cost + (QuantityUtils.gramsToKg(feed.actual_amount) * (feed.unit_cost || 0))
+                });
+              }
+            });
+            
+            // Convert to array and calculate week dates
+            Array.from(feedingByWeek.entries()).forEach(([weekNumber, data]) => {
+              const weekStartDate = new Date(stockingDate);
+              weekStartDate.setDate(stockingDate.getDate() + (weekNumber - 1) * 7);
+              
+              const weekEndDate = new Date(weekStartDate);
+              weekEndDate.setDate(weekStartDate.getDate() + 6);
+              
+              weeks.push({
+                week_number: weekNumber,
+                week_start: weekStartDate.toISOString().split('T')[0],
+                week_end: weekEndDate.toISOString().split('T')[0],
+                total_amount: data.amount,
+                total_cost: data.cost
+              });
+            });
+            
+            setWeeklyFeedingRecords(weeks.sort((a, b) => b.week_number - a.week_number));
+          }
+        }
+
+        // Get input applications for recent history (active cycle only)
+        if (activeCycleId) {
+          const { data: inputData } = await supabase
+            .from('input_applications')
+            .select('application_date, input_item_name, quantity_applied, total_cost, purpose')
+            .eq('pond_batch_id', activeCycleId)
+            .order('application_date', { ascending: false })
+            .limit(10);
+            
+          setInputRecords(inputData || []);
+        }
+
+        // Get operational costs for recent history (active cycle only)
+        if (activeCycleId) {
+          const { data: opCostData } = await supabase
+            .from('operational_costs')
+            .select('cost_date, category, description, amount')
+            .eq('pond_batch_id', activeCycleId)
+            .order('cost_date', { ascending: false })
+            .limit(10);
+            
+          setOperationalCostRecords(opCostData || []);
+        }
       } else {
         throw new Error('Ciclo não encontrado');
       }
@@ -812,6 +934,15 @@ export default function PondHistory() {
                       <p className="font-medium">R$ {cycle.costs.feed_cost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
                     </div>
                     
+                    {/* Insumos */}
+                    <div>
+                      <div className="flex items-center justify-between">
+                        <p className="text-muted-foreground">Insumos</p>
+                        <span className="text-xs text-muted-foreground">(Aplicados)</span>
+                      </div>
+                      <p className="font-medium">R$ {cycle.costs.inputs_cost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                    </div>
+                    
                     {/* Custos Operacionais */}
                     <div>
                       <div className="flex items-center justify-between">
@@ -828,7 +959,7 @@ export default function PondHistory() {
         </Card>
 
         {/* Performance Records */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-6 gap-6">
           {/* Biometry Records */}
           <Card>
             <CardHeader>
@@ -952,37 +1083,122 @@ export default function PondHistory() {
             </CardContent>
           </Card>
 
-          {/* Feeding Records */}
+          {/* Weekly Feeding Records */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Fish className="w-4 h-4" />
-                Alimentação Recente
+                Alimentação Semanal
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {totalAccumulatedFeed > 0 && (
+                <div className="bg-muted/50 p-3 rounded-lg mb-4">
+                  <div className="text-center">
+                    <p className="text-sm text-muted-foreground">Total Acumulado</p>
+                    <p className="text-lg font-bold text-primary">{totalAccumulatedFeed.toFixed(1)} kg</p>
+                  </div>
+                </div>
+              )}
+              <ScrollArea className="h-64">
+                <div className="space-y-3">
+                  {weeklyFeedingRecords.map((record, index) => (
+                    <div key={index} className="text-sm border-b border-border pb-3 last:border-b-0">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="font-medium">Semana {record.week_number}</p>
+                          <p className="text-muted-foreground text-xs">
+                            {new Date(record.week_start).toLocaleDateString('pt-BR')} - {new Date(record.week_end).toLocaleDateString('pt-BR')}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-medium text-primary">{record.total_amount.toFixed(1)} kg</p>
+                          <p className="text-muted-foreground text-xs">
+                            R$ {record.total_cost.toFixed(2)}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {weeklyFeedingRecords.length === 0 && (
+                    <p className="text-muted-foreground text-sm">Nenhum registro de alimentação encontrado.</p>
+                  )}
+                </div>
+              </ScrollArea>
+            </CardContent>
+          </Card>
+
+          {/* Input Applications Records */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Package className="w-4 h-4" />
+                Insumos Recentes
               </CardTitle>
             </CardHeader>
             <CardContent>
               <ScrollArea className="h-64">
                 <div className="space-y-3">
-                  {feedingRecords.map((record, index) => (
-                <div key={index} className="text-sm">
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <p className="font-medium">{QuantityUtils.formatKg(record.actual_amount)} kg</p>
-                      <p className="text-muted-foreground">
-                        {new Date(record.feeding_date).toLocaleDateString('pt-BR')} • {record.feeding_time}
-                      </p>
+                  {inputRecords.map((record, index) => (
+                    <div key={index} className="text-sm border-b border-border pb-3 last:border-b-0">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="font-medium">{record.input_item_name}</p>
+                          <p className="text-muted-foreground text-xs">
+                            {new Date(record.application_date).toLocaleDateString('pt-BR')}
+                          </p>
+                          {record.purpose && (
+                            <p className="text-muted-foreground text-xs">{record.purpose}</p>
+                          )}
+                        </div>
+                        <div className="text-right">
+                          <p className="font-medium">{record.quantity_applied} un</p>
+                          <p className="text-muted-foreground text-xs">
+                            R$ {record.total_cost.toFixed(2)}
+                          </p>
+                        </div>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <Badge variant="outline">{record.feed_type_name}</Badge>
-                      <p className="text-muted-foreground text-xs mt-1">
-                        R$ {(QuantityUtils.gramsToKg(record.actual_amount) * record.unit_cost).toFixed(2)}
-                      </p>
-                    </div>
-                  </div>
-                </div>
                   ))}
-                  {feedingRecords.length === 0 && (
-                    <p className="text-muted-foreground text-sm">Nenhum registro de alimentação encontrado.</p>
+                  {inputRecords.length === 0 && (
+                    <p className="text-muted-foreground text-sm">Nenhum registro de insumos encontrado.</p>
+                  )}
+                </div>
+              </ScrollArea>
+            </CardContent>
+          </Card>
+
+          {/* Operational Costs Records */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <DollarSign className="w-4 h-4" />
+                Custos Operacionais
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ScrollArea className="h-64">
+                <div className="space-y-3">
+                  {operationalCostRecords.map((record, index) => (
+                    <div key={index} className="text-sm border-b border-border pb-3 last:border-b-0">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="font-medium">{record.category}</p>
+                          <p className="text-muted-foreground text-xs">
+                            {new Date(record.cost_date).toLocaleDateString('pt-BR')}
+                          </p>
+                          {record.description && (
+                            <p className="text-muted-foreground text-xs">{record.description}</p>
+                          )}
+                        </div>
+                        <div className="text-right">
+                          <p className="font-medium text-red-600">R$ {record.amount.toFixed(2)}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {operationalCostRecords.length === 0 && (
+                    <p className="text-muted-foreground text-sm">Nenhum registro de custos encontrado.</p>
                   )}
                 </div>
               </ScrollArea>

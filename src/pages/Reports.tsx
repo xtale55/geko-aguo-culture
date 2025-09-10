@@ -353,6 +353,7 @@ export default function Reports() {
           const remainingPLCost = Math.max(0, (plCost * (cycle.pl_quantity / 1000)) - allocatedPL);
           const remainingPreparationCost = Math.max(0, preparationCost - allocatedPrep);
 
+          // Include input costs in total cycle cost calculation
           const cycleCost = remainingFeedCost + remainingInputsCost + remainingPLCost + remainingPreparationCost;
           totalCosts += cycleCost;
 
@@ -396,7 +397,7 @@ export default function Reports() {
             profit_margin: profitMargin
           });
 
-          // Calculate cost per kg
+          // Calculate cost per kg (now includes input costs)
           const costPerKg = biomass > 0 ? cycleCost / biomass : 0;
 
           // Calculate density (units per m²)

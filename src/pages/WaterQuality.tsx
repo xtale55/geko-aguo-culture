@@ -34,6 +34,7 @@ interface WaterQualityRecord {
   alkalinity: number | null;
   hardness: number | null;
   ammonia: number | null;
+  nitrite: number | null;
   turbidity: number | null;
   notes: string | null;
 }
@@ -57,6 +58,7 @@ export default function WaterQuality() {
     alkalinity: { min: 80, max: 150, unit: 'mg/L', name: 'Alcalinidade' },
     hardness: { min: 100, max: 300, unit: 'mg/L', name: 'Dureza' },
     ammonia: { min: 0, max: 0.5, unit: 'mg/L', name: 'Amônia' },
+    nitrite: { min: 0, max: 0.5, unit: 'mg/L', name: 'Nitrito' },
     turbidity: { min: 0, max: 30, unit: 'NTU', name: 'Turbidez' }
   };
 
@@ -136,6 +138,7 @@ export default function WaterQuality() {
         alkalinity: formData.get('alkalinity') ? parseFloat(formData.get('alkalinity') as string) : null,
         hardness: formData.get('hardness') ? parseFloat(formData.get('hardness') as string) : null,
         ammonia: formData.get('ammonia') ? parseFloat(formData.get('ammonia') as string) : null,
+        nitrite: formData.get('nitrite') ? parseFloat(formData.get('nitrite') as string) : null,
         turbidity: formData.get('turbidity') ? parseFloat(formData.get('turbidity') as string) : null,
         notes: formData.get('notes') as string || null
       };
@@ -168,8 +171,8 @@ export default function WaterQuality() {
   const getParameterStatus = (value: number | null, parameter: keyof typeof parameterRanges) => {
     if (value === null) return 'unknown';
     const range = parameterRanges[parameter];
-    if (parameter === 'ammonia') {
-      // For ammonia, lower is better
+    if (parameter === 'ammonia' || parameter === 'nitrite') {
+      // For ammonia and nitrite, lower is better
       return value <= range.max ? 'good' : 'bad';
     }
     return value >= range.min && value <= range.max ? 'good' : 'bad';

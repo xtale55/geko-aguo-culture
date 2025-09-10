@@ -249,12 +249,12 @@ export default function Feeding() {
     }
 
     // Default feeding rate based on weight
-    if (weight < 1) return 8;
-    if (weight < 3) return 6;
-    if (weight < 5) return 5;
+    if (weight < 1) return 10;
+    if (weight < 3) return 8;
+    if (weight < 5) return 6;
     if (weight < 10) return 4;
-    if (weight < 15) return 3.5;
-    return 3;
+    if (weight < 15) return 2.5;
+    return 2;
   };
 
   const getMealsPerDay = async (pondBatchId: string, weight: number, farmId: string): Promise<number> => {

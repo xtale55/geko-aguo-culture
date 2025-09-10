@@ -959,19 +959,19 @@ export default function PondHistory() {
         </Card>
 
         {/* Performance Records */}
-        <div className="grid grid-cols-1 md:grid-cols-6 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-6 gap-6">
           {/* Biometry Records */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+          <Card className="lg:col-span-2">
+            <CardHeader className="pb-4">
+              <CardTitle className="flex items-center gap-2 text-base">
                 <Scale className="w-4 h-4" />
                 Biometrias Recentes
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-64">
-                <div className="space-y-3">
-                  {biometryRecords.map((record, index) => {
+              <ScrollArea className="h-80">
+                <div className="space-y-4">
+                  {biometryRecords.slice(0, 8).map((record, index) => {
                 // Encontrar o ciclo ativo para calcular FCA
                 const activeCycle = cycles.find(c => c.status === 'active');
                 let fcaReal = 0;
@@ -1014,28 +1014,28 @@ export default function PondHistory() {
                 }
                 
                 return (
-                  <div key={index} className="border-b border-border pb-3 last:border-b-0">
-                    <div className="flex justify-between items-start text-sm">
+                  <div key={index} className="border-b border-border pb-4 last:border-b-0">
+                    <div className="flex justify-between items-start mb-2">
                       <div>
-                        <p className="font-medium">{record.average_weight.toFixed(1)}g</p>
-                        <p className="text-muted-foreground">
+                        <p className="font-semibold text-primary">{record.average_weight.toFixed(1)}g</p>
+                        <p className="text-muted-foreground text-sm">
                           {new Date(record.measurement_date).toLocaleDateString('pt-BR')}
                         </p>
                       </div>
                       {record.uniformity > 0 && (
-                        <Badge variant="outline">{record.uniformity}% unif.</Badge>
+                        <Badge variant="outline" className="text-xs">{record.uniformity}% unif.</Badge>
                       )}
                     </div>
                     {activeCycle && (
-                      <div className="mt-2 space-y-1">
-                        <div className="flex justify-between text-xs text-muted-foreground">
-                          <span>FCA Real:</span>
-                          <span className="font-medium">{fcaReal > 0 ? fcaReal.toFixed(2) : '-'}</span>
+                      <div className="grid grid-cols-2 gap-2 mt-3">
+                        <div className="text-center bg-muted/50 rounded-lg p-2">
+                          <p className="text-xs text-muted-foreground">FCA Real</p>
+                          <p className="font-semibold text-sm">{fcaReal > 0 ? fcaReal.toFixed(2) : '-'}</p>
                         </div>
                         {fcaSemanal > 0 && (
-                          <div className="flex justify-between text-xs text-muted-foreground">
-                            <span>FCA Semanal:</span>
-                            <span className="font-medium">{fcaSemanal.toFixed(2)}</span>
+                          <div className="text-center bg-muted/50 rounded-lg p-2">
+                            <p className="text-xs text-muted-foreground">FCA Semanal</p>
+                            <p className="font-semibold text-sm">{fcaSemanal.toFixed(2)}</p>
                           </div>
                         )}
                       </div>
@@ -1044,7 +1044,10 @@ export default function PondHistory() {
                 );
                   })}
                   {biometryRecords.length === 0 && (
-                    <p className="text-muted-foreground text-sm">Nenhum registro de biometria encontrado.</p>
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Scale className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                      <p className="text-sm">Nenhum registro de biometria encontrado.</p>
+                    </div>
                   )}
                 </div>
               </ScrollArea>
@@ -1052,31 +1055,34 @@ export default function PondHistory() {
           </Card>
 
           {/* Mortality Records */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+          <Card className="lg:col-span-1">
+            <CardHeader className="pb-4">
+              <CardTitle className="flex items-center gap-2 text-base">
                 <Skull className="w-4 h-4" />
-                Mortalidade Recente
+                Mortalidade
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-64">
-                <div className="space-y-3">
-                  {mortalityRecords.map((record, index) => (
-                <div key={index} className="text-sm">
-                  <div className="flex justify-between items-center">
-                    <p className="font-medium text-red-600">{record.dead_count.toLocaleString()} mortos</p>
-                    <p className="text-muted-foreground">
+              <ScrollArea className="h-80">
+                <div className="space-y-4">
+                  {mortalityRecords.slice(0, 6).map((record, index) => (
+                <div key={index} className="border-b border-border pb-3 last:border-b-0">
+                  <div className="flex justify-between items-start mb-1">
+                    <p className="font-semibold text-red-600">{record.dead_count.toLocaleString()}</p>
+                    <p className="text-muted-foreground text-xs">
                       {new Date(record.record_date).toLocaleDateString('pt-BR')}
                     </p>
                   </div>
                   {record.notes && (
-                    <p className="text-muted-foreground text-xs mt-1">{record.notes}</p>
+                    <p className="text-muted-foreground text-xs bg-muted/30 rounded p-2 mt-2">{record.notes}</p>
                   )}
                 </div>
                   ))}
                   {mortalityRecords.length === 0 && (
-                    <p className="text-muted-foreground text-sm">Nenhum registro de mortalidade encontrado.</p>
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Skull className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                      <p className="text-sm">Nenhum registro encontrado.</p>
+                    </div>
                   )}
                 </div>
               </ScrollArea>
@@ -1084,36 +1090,39 @@ export default function PondHistory() {
           </Card>
 
           {/* Weekly Feeding Records */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+          <Card className="lg:col-span-2">
+            <CardHeader className="pb-4">
+              <CardTitle className="flex items-center gap-2 text-base">
                 <Fish className="w-4 h-4" />
                 Alimentação Semanal
               </CardTitle>
             </CardHeader>
             <CardContent>
               {totalAccumulatedFeed > 0 && (
-                <div className="bg-muted/50 p-3 rounded-lg mb-4">
+                <div className="bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20 rounded-lg p-4 mb-4">
                   <div className="text-center">
-                    <p className="text-sm text-muted-foreground">Total Acumulado</p>
-                    <p className="text-lg font-bold text-primary">{totalAccumulatedFeed.toFixed(1)} kg</p>
+                    <p className="text-sm text-muted-foreground mb-1">Total Acumulado do Ciclo</p>
+                    <p className="text-2xl font-bold text-primary">{totalAccumulatedFeed.toFixed(1)} kg</p>
+                    <p className="text-xs text-muted-foreground">
+                      R$ {(weeklyFeedingRecords.reduce((sum, w) => sum + w.total_cost, 0)).toFixed(2)}
+                    </p>
                   </div>
                 </div>
               )}
-              <ScrollArea className="h-64">
+              <ScrollArea className="h-80">
                 <div className="space-y-3">
                   {weeklyFeedingRecords.map((record, index) => (
-                    <div key={index} className="text-sm border-b border-border pb-3 last:border-b-0">
-                      <div className="flex justify-between items-start">
+                    <div key={index} className="bg-muted/30 rounded-lg p-3 border border-border/50 hover:bg-muted/50 transition-colors">
+                      <div className="flex justify-between items-start mb-2">
                         <div>
-                          <p className="font-medium">Semana {record.week_number}</p>
+                          <p className="font-semibold text-primary">Semana {record.week_number}</p>
                           <p className="text-muted-foreground text-xs">
-                            {new Date(record.week_start).toLocaleDateString('pt-BR')} - {new Date(record.week_end).toLocaleDateString('pt-BR')}
+                            {new Date(record.week_start).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })} - {new Date(record.week_end).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
                           </p>
                         </div>
                         <div className="text-right">
-                          <p className="font-medium text-primary">{record.total_amount.toFixed(1)} kg</p>
-                          <p className="text-muted-foreground text-xs">
+                          <p className="font-bold text-lg text-primary">{record.total_amount.toFixed(1)} kg</p>
+                          <p className="text-muted-foreground text-sm">
                             R$ {record.total_cost.toFixed(2)}
                           </p>
                         </div>
@@ -1121,7 +1130,10 @@ export default function PondHistory() {
                     </div>
                   ))}
                   {weeklyFeedingRecords.length === 0 && (
-                    <p className="text-muted-foreground text-sm">Nenhum registro de alimentação encontrado.</p>
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Fish className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                      <p className="text-sm">Nenhum registro de alimentação encontrado.</p>
+                    </div>
                   )}
                 </div>
               </ScrollArea>
@@ -1129,39 +1141,44 @@ export default function PondHistory() {
           </Card>
 
           {/* Input Applications Records */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+          <Card className="lg:col-span-1">
+            <CardHeader className="pb-4">
+              <CardTitle className="flex items-center gap-2 text-base">
                 <Package className="w-4 h-4" />
-                Insumos Recentes
+                Insumos
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-64">
+              <ScrollArea className="h-80">
                 <div className="space-y-3">
-                  {inputRecords.map((record, index) => (
-                    <div key={index} className="text-sm border-b border-border pb-3 last:border-b-0">
-                      <div className="flex justify-between items-start">
+                  {inputRecords.slice(0, 6).map((record, index) => (
+                    <div key={index} className="border border-border/50 rounded-lg p-3 hover:bg-muted/30 transition-colors">
+                      <div className="flex justify-between items-start mb-2">
                         <div>
-                          <p className="font-medium">{record.input_item_name}</p>
+                          <p className="font-semibold text-sm">{record.input_item_name}</p>
                           <p className="text-muted-foreground text-xs">
                             {new Date(record.application_date).toLocaleDateString('pt-BR')}
                           </p>
-                          {record.purpose && (
-                            <p className="text-muted-foreground text-xs">{record.purpose}</p>
-                          )}
                         </div>
                         <div className="text-right">
-                          <p className="font-medium">{record.quantity_applied} un</p>
-                          <p className="text-muted-foreground text-xs">
+                          <p className="font-semibold">{record.quantity_applied} un</p>
+                          <p className="text-green-600 text-sm font-medium">
                             R$ {record.total_cost.toFixed(2)}
                           </p>
                         </div>
                       </div>
+                      {record.purpose && (
+                        <div className="bg-muted/50 rounded px-2 py-1 mt-2">
+                          <p className="text-muted-foreground text-xs">{record.purpose}</p>
+                        </div>
+                      )}
                     </div>
                   ))}
                   {inputRecords.length === 0 && (
-                    <p className="text-muted-foreground text-sm">Nenhum registro de insumos encontrado.</p>
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Package className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                      <p className="text-sm">Nenhum registro encontrado.</p>
+                    </div>
                   )}
                 </div>
               </ScrollArea>
@@ -1169,36 +1186,41 @@ export default function PondHistory() {
           </Card>
 
           {/* Operational Costs Records */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+          <Card className="lg:col-span-1">
+            <CardHeader className="pb-4">
+              <CardTitle className="flex items-center gap-2 text-base">
                 <DollarSign className="w-4 h-4" />
                 Custos Operacionais
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-64">
+              <ScrollArea className="h-80">
                 <div className="space-y-3">
-                  {operationalCostRecords.map((record, index) => (
-                    <div key={index} className="text-sm border-b border-border pb-3 last:border-b-0">
-                      <div className="flex justify-between items-start">
+                  {operationalCostRecords.slice(0, 6).map((record, index) => (
+                    <div key={index} className="border border-border/50 rounded-lg p-3 hover:bg-muted/30 transition-colors">
+                      <div className="flex justify-between items-start mb-2">
                         <div>
-                          <p className="font-medium">{record.category}</p>
+                          <p className="font-semibold text-sm">{record.category}</p>
                           <p className="text-muted-foreground text-xs">
                             {new Date(record.cost_date).toLocaleDateString('pt-BR')}
                           </p>
-                          {record.description && (
-                            <p className="text-muted-foreground text-xs">{record.description}</p>
-                          )}
                         </div>
                         <div className="text-right">
-                          <p className="font-medium text-red-600">R$ {record.amount.toFixed(2)}</p>
+                          <p className="font-semibold text-red-600">R$ {record.amount.toFixed(2)}</p>
                         </div>
                       </div>
+                      {record.description && (
+                        <div className="bg-muted/50 rounded px-2 py-1 mt-2">
+                          <p className="text-muted-foreground text-xs">{record.description}</p>
+                        </div>
+                      )}
                     </div>
                   ))}
                   {operationalCostRecords.length === 0 && (
-                    <p className="text-muted-foreground text-sm">Nenhum registro de custos encontrado.</p>
+                    <div className="text-center py-8 text-muted-foreground">
+                      <DollarSign className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                      <p className="text-sm">Nenhum registro encontrado.</p>
+                    </div>
                   )}
                 </div>
               </ScrollArea>
@@ -1206,35 +1228,55 @@ export default function PondHistory() {
           </Card>
 
           {/* Water Quality */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+          <Card className="lg:col-span-1">
+            <CardHeader className="pb-4">
+              <CardTitle className="flex items-center gap-2 text-base">
                 <Droplets className="w-4 h-4" />
                 Qualidade da Água
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-64">
+              <ScrollArea className="h-80">
                 <div className="space-y-3">
-                  {waterQualityRecords.map((record, index) => (
-                <div key={index} className="text-sm">
-                  <div className="flex justify-between items-center">
+                  {waterQualityRecords.slice(0, 6).map((record, index) => (
+                <div key={index} className="border border-border/50 rounded-lg p-3 hover:bg-muted/30 transition-colors">
+                  <div className="flex justify-between items-start mb-2">
                     <div>
-                      <p className="font-medium">
-                        {record.temperature}°C • pH {record.ph_level}
+                      <p className="font-semibold text-blue-600">
+                        {record.temperature}°C
                       </p>
-                      <p className="text-muted-foreground">
+                      <p className="text-muted-foreground text-xs">
                         {new Date(record.measurement_date).toLocaleDateString('pt-BR')}
                       </p>
                     </div>
-                    <p className="text-muted-foreground">
-                      O₂: {record.oxygen_level} mg/L
-                    </p>
+                    <div className="text-right">
+                      <p className="text-sm font-medium">pH {record.ph_level}</p>
+                      <p className="text-muted-foreground text-xs">
+                        O₂: {record.oxygen_level} mg/L
+                      </p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 mt-2">
+                    <div className="bg-blue-50 dark:bg-blue-950/20 rounded px-2 py-1 text-center">
+                      <p className="text-xs text-muted-foreground">Temp</p>
+                      <p className="text-xs font-medium">{record.temperature}°</p>
+                    </div>
+                    <div className="bg-green-50 dark:bg-green-950/20 rounded px-2 py-1 text-center">
+                      <p className="text-xs text-muted-foreground">pH</p>
+                      <p className="text-xs font-medium">{record.ph_level}</p>
+                    </div>
+                    <div className="bg-orange-50 dark:bg-orange-950/20 rounded px-2 py-1 text-center">
+                      <p className="text-xs text-muted-foreground">O₂</p>
+                      <p className="text-xs font-medium">{record.oxygen_level}</p>
+                    </div>
                   </div>
                 </div>
                   ))}
                   {waterQualityRecords.length === 0 && (
-                    <p className="text-muted-foreground text-sm">Nenhum registro de qualidade da água encontrado.</p>
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Droplets className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                      <p className="text-sm">Nenhum registro encontrado.</p>
+                    </div>
                   )}
                 </div>
               </ScrollArea>

@@ -732,7 +732,6 @@ export function BiometryTab() {
                     <TableHead className="font-semibold">Novo Peso (g)</TableHead>
                     <TableHead className="font-semibold">Uniformidade (%)</TableHead>
                     <TableHead className="font-semibold">Amostra</TableHead>
-                    <TableHead className="font-semibold">Status</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -760,7 +759,7 @@ export function BiometryTab() {
                           placeholder="0.00"
                           value={row.new_weight}
                           onChange={(e) => updateBatchRow(row.pondId, 'new_weight', e.target.value)}
-                          className="w-full text-center"
+                          className="w-full text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                           disabled={row.status === 'saving' || row.status === 'saved'}
                         />
                       </TableCell>
@@ -771,7 +770,7 @@ export function BiometryTab() {
                           placeholder="0.0"
                           value={row.uniformity}
                           onChange={(e) => updateBatchRow(row.pondId, 'uniformity', e.target.value)}
-                          className="w-full text-center"
+                          className="w-full text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                           disabled={row.status === 'saving' || row.status === 'saved'}
                         />
                       </TableCell>
@@ -781,34 +780,9 @@ export function BiometryTab() {
                           placeholder="0"
                           value={row.sample_size}
                           onChange={(e) => updateBatchRow(row.pondId, 'sample_size', e.target.value)}
-                          className="w-full text-center"
+                          className="w-full text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                           disabled={row.status === 'saving' || row.status === 'saved'}
                         />
-                      </TableCell>
-                      <TableCell className="text-center">
-                        {row.status === 'pending' && row.new_weight && (
-                          <Badge variant="secondary">
-                            <Clock className="w-3 h-3 mr-1" />
-                            Pronto
-                          </Badge>
-                        )}
-                        {row.status === 'saving' && (
-                          <Badge variant="outline">
-                            <Clock className="w-3 h-3 mr-1 animate-spin" />
-                            Salvando...
-                          </Badge>
-                        )}
-                        {row.status === 'saved' && (
-                          <Badge variant="default" className="bg-success">
-                            <CheckCircle className="w-3 h-3 mr-1" />
-                            Salvo
-                          </Badge>
-                        )}
-                        {row.status === 'error' && (
-                          <Badge variant="destructive">
-                            Erro
-                          </Badge>
-                        )}
                       </TableCell>
                     </TableRow>
                   ))}

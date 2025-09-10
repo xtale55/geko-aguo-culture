@@ -13,6 +13,7 @@ import { Scale, History, Trash2, BarChart3 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getCurrentDateForInput, formatDateForDisplay } from '@/lib/utils';
 import { BatchBiometryModal } from './BatchBiometryModal';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface PondWithBatch {
   id: string;
@@ -66,6 +67,7 @@ export function BiometryTab() {
   const [recordToDelete, setRecordToDelete] = useState<BiometryRecord | null>(null);
   const { user } = useAuth();
   const { toast } = useToast();
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     if (user) {
@@ -324,7 +326,7 @@ export function BiometryTab() {
         
         <TabsContent value="active" className="mt-6">
           {/* Header with Batch Button */}
-          <div className="flex justify-between items-center mb-6">
+          <div className={`mb-6 ${isMobile ? 'space-y-4' : 'flex justify-between items-center'}`}>
             <div>
               <h3 className="text-lg font-semibold">Viveiros Ativos</h3>
               <p className="text-sm text-muted-foreground">
@@ -334,7 +336,8 @@ export function BiometryTab() {
             <Button
               onClick={() => setShowBatchDialog(true)}
               variant="default"
-              className="flex items-center gap-2"
+              className={`flex items-center gap-2 ${isMobile ? 'w-full justify-center' : ''}`}
+              size={isMobile ? "default" : "default"}
             >
               <BarChart3 className="w-4 h-4" />
               Biometria em Lote

@@ -39,6 +39,7 @@ interface InventoryItem {
   quantity: number;
   unit_price: number;
   brand?: string;
+  category: string;
 }
 
 interface InputApplication {
@@ -79,7 +80,7 @@ export function InputApplicationTab() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [pondBatches, setPondBatches] = useState<PondBatch[]>([]);
-  const [fertilizers, setFertilizers] = useState<InventoryItem[]>([]);
+  const [availableInputs, setAvailableInputs] = useState<InventoryItem[]>([]);
   const [applications, setApplications] = useState<InputApplication[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -106,7 +107,7 @@ export function InputApplicationTab() {
       setLoading(true);
       await Promise.all([
         fetchActivePondBatches(),
-        fetchFertilizers(),
+        fetchAvailableInputs(),
         fetchApplications()
       ]);
     } finally {
@@ -149,7 +150,7 @@ export function InputApplicationTab() {
     setPondBatches(data || []);
   };
 
-  const fetchFertilizers = async () => {
+  const fetchAvailableInputs = async () => {
     const { data, error } = await supabase
       .from('inventory')
       .select(`
@@ -158,18 +159,19 @@ export function InputApplicationTab() {
         quantity,
         unit_price,
         brand,
+        category,
         farm:farms!inner(user_id)
       `)
-      .eq('category', 'Fertilizantes')
+      .in('category', ['Fertilizantes', 'Medicamentos'])
       .eq('farm.user_id', user?.id)
       .gt('quantity', 0);
 
     if (error) {
-      console.error('Error fetching fertilizers:', error);
+      console.error('Error fetching available inputs:', error);
       return;
     }
 
-    setFertilizers(data || []);
+    setAvailableInputs(data || []);
   };
 
   const fetchApplications = async () => {
@@ -254,19 +256,19 @@ export function InputApplicationTab() {
 
     setSubmitting(true);
     try {
-      // Get selected fertilizer details
-      const selectedFertilizer = fertilizers.find(f => f.id === formData.input_item_id);
-      if (!selectedFertilizer) {
-        throw new Error('Fertilizante não encontrado');
+      // Get selected input details
+      const selectedInput = availableInputs.find(f => f.id === formData.input_item_id);
+      if (!selectedInput) {
+        throw new Error('Insumo não encontrado');
       }
 
       // Check if quantity is available (Anti-Drift: usar QuantityUtils para conversão precisa)
       const quantityAppliedGrams = QuantityUtils.parseInputToGrams(formData.quantity_applied);
       const quantityApplied = QuantityUtils.gramsToKg(quantityAppliedGrams);
-      if (quantityAppliedGrams > selectedFertilizer.quantity) {
+      if (quantityAppliedGrams > selectedInput.quantity) {
         toast({
           title: "Erro",
-          description: `Quantidade insuficiente em estoque. Disponível: ${QuantityUtils.formatKg(selectedFertilizer.quantity)}kg`,
+          description: `Quantidade insuficiente em estoque. Disponível: ${QuantityUtils.formatKg(selectedInput.quantity)}kg`,
           variant: "destructive"
         });
         return;
@@ -277,7 +279,7 @@ export function InputApplicationTab() {
       const dosagePerHectare = selectedPondBatch ? quantityApplied / selectedPondBatch.pond.area : null;
 
       // Calculate costs
-      const unitCost = selectedFertilizer.unit_price;
+      const unitCost = selectedInput.unit_price;
       const totalCost = quantityApplied * unitCost;
 
       // Insert application record
@@ -286,7 +288,7 @@ export function InputApplicationTab() {
         .insert({
           pond_batch_id: formData.pond_batch_id,
           input_item_id: formData.input_item_id,
-          input_item_name: selectedFertilizer.name,
+          input_item_name: selectedInput.name,
           application_date: formData.application_date,
           application_time: formData.application_time || null,
           quantity_applied: quantityAppliedGrams,
@@ -300,7 +302,7 @@ export function InputApplicationTab() {
       if (insertError) throw insertError;
 
       // Update inventory quantity (Anti-Drift: operação com inteiros)
-      const newQuantity = selectedFertilizer.quantity - quantityAppliedGrams;
+      const newQuantity = selectedInput.quantity - quantityAppliedGrams;
       const { error: updateError } = await supabase
         .from('inventory')
         .update({ quantity: newQuantity })
@@ -382,7 +384,7 @@ export function InputApplicationTab() {
     return <div className="flex justify-center p-8">Carregando...</div>;
   }
 
-  const selectedFertilizer = fertilizers.find(f => f.id === formData.input_item_id);
+  const selectedInput = availableInputs.find(f => f.id === formData.input_item_id);
 
   return (
     <div className="space-y-6">
@@ -430,9 +432,9 @@ export function InputApplicationTab() {
                     <SelectValue placeholder="Selecione o insumo" />
                   </SelectTrigger>
                   <SelectContent>
-                    {fertilizers.map((fertilizer) => (
-                      <SelectItem key={fertilizer.id} value={fertilizer.id}>
-                        {fertilizer.name} {fertilizer.brand && `(${fertilizer.brand})`} - {QuantityUtils.formatKg(fertilizer.quantity)}kg disponível
+                    {availableInputs.map((input) => (
+                      <SelectItem key={input.id} value={input.id}>
+                        {input.name} {input.brand && `(${input.brand})`} - {input.category} - {QuantityUtils.formatKg(input.quantity)}kg disponível
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -468,14 +470,14 @@ export function InputApplicationTab() {
                   type="number"
                   step="0.01"
                   min="0"
-                  max={selectedFertilizer ? QuantityUtils.gramsToKg(selectedFertilizer.quantity) : 999999}
+                  max={selectedInput ? QuantityUtils.gramsToKg(selectedInput.quantity) : 999999}
                   value={formData.quantity_applied}
                   onChange={(e) => setFormData({...formData, quantity_applied: e.target.value})}
                   required
                 />
-                {selectedFertilizer && (
+                {selectedInput && (
                   <p className="text-sm text-muted-foreground mt-1">
-                    Disponível: {QuantityUtils.formatKg(selectedFertilizer.quantity)}kg - Custo: R$ {selectedFertilizer.unit_price}/kg
+                    Disponível: {QuantityUtils.formatKg(selectedInput.quantity)}kg - Custo: R$ {selectedInput.unit_price}/kg
                   </p>
                 )}
               </div>
@@ -538,7 +540,7 @@ export function InputApplicationTab() {
             <Package className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{fertilizers.length}</div>
+            <div className="text-2xl font-bold">{availableInputs.length}</div>
           </CardContent>
         </Card>
         

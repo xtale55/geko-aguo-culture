@@ -437,44 +437,44 @@ export function FeedingSchedule({
           </div>
         </div>
 
-        {/* Main Feeding Information - Enhanced Gray Card */}
-        <div className="bg-muted/50 rounded-lg p-4 space-y-4">
+        {/* Main Feeding Information - Compact Gray Card */}
+        <div className="bg-muted/50 rounded-lg p-3 space-y-3">
           {/* Top Row - Main Numbers */}
-          <div className="grid grid-cols-3 gap-6">
+          <div className="grid grid-cols-3 gap-4">
             <div className="text-center">
-              <div className="flex items-center justify-center gap-2 mb-2">
-                <Target className="w-4 h-4 text-primary" />
-                <span className="text-sm font-medium text-muted-foreground">Quantidade Diária</span>
+              <div className="flex items-center justify-center gap-1 mb-1">
+                <Target className="w-3 h-3 text-primary" />
+                <span className="text-xs font-medium text-muted-foreground">Diária</span>
               </div>
-              <div className="text-2xl font-bold text-primary">{dailyFeed.toFixed(1)} kg</div>
-              <div className="text-xs text-muted-foreground">Total recomendado</div>
+              <div className="text-lg font-bold text-primary">{dailyFeed.toFixed(1)} kg</div>
+              <div className="text-xs text-muted-foreground">Total</div>
             </div>
             
             <div className="text-center">
-              <div className="flex items-center justify-center gap-2 mb-2">
-                <Utensils className="w-4 h-4 text-ocean" />
-                <span className="text-sm font-medium text-muted-foreground">Por Refeição</span>
+              <div className="flex items-center justify-center gap-1 mb-1">
+                <Utensils className="w-3 h-3 text-ocean" />
+                <span className="text-xs font-medium text-muted-foreground">Por Refeição</span>
               </div>
-              <div className="text-2xl font-bold text-ocean">{feedPerMeal.toFixed(1)} kg</div>
-              <div className="text-xs text-muted-foreground">{mealsPerDay}x ao dia</div>
+              <div className="text-lg font-bold text-ocean">{feedPerMeal.toFixed(1)} kg</div>
+              <div className="text-xs text-muted-foreground">{mealsPerDay}x/dia</div>
             </div>
             
             <div className="text-center">
-              <div className="flex items-center justify-center gap-2 mb-2">
-                <TrendingUp className="w-4 h-4 text-accent" />
-                <span className="text-sm font-medium text-muted-foreground">Taxa de Alimentação</span>
+              <div className="flex items-center justify-center gap-1 mb-1">
+                <TrendingUp className="w-3 h-3 text-accent" />
+                <span className="text-xs font-medium text-muted-foreground">Taxa</span>
               </div>
-              <div className="text-3xl font-bold text-accent">{feedingRate}%</div>
-              <div className="flex items-center justify-center gap-1">
+              <div className="text-xl font-bold text-accent">{feedingRate}%</div>
+              <div className="flex items-center justify-center">
                 <Dialog>
                   <DialogTrigger asChild>
                     <Button 
                       variant="ghost" 
                       size="sm"
                       onClick={handleEditFeedingRate}
-                      className="h-6 px-2 text-xs hover:bg-accent/20"
+                      className="h-5 px-1 text-xs hover:bg-accent/20"
                     >
-                      <Edit2 className="w-3 h-3 mr-1" />
+                      <Edit2 className="w-2 h-2 mr-1" />
                       Editar
                     </Button>
                   </DialogTrigger>
@@ -531,22 +531,26 @@ export function FeedingSchedule({
             </div>
           </div>
 
-          {/* Bottom Row - Context Info */}
-          <div className="flex items-center justify-between text-sm border-t border-border/50 pt-3">
-            <div>
-              <span className="text-muted-foreground">Biomassa atual:</span>
-              <span className="font-medium ml-1">{biomass.toFixed(1)} kg</span>
+          {/* Bottom Row - Context Info with Population */}
+          <div className="grid grid-cols-3 gap-4 text-xs border-t border-border/50 pt-2">
+            <div className="text-center">
+              <span className="text-muted-foreground">Biomassa</span>
+              <div className="font-medium">{biomass.toFixed(1)} kg</div>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-muted-foreground">Peso médio:</span>
-              <span className="font-medium">
+            <div className="text-center">
+              <span className="text-muted-foreground">Peso médio</span>
+              <div className="font-medium flex items-center justify-center gap-1">
                 {averageWeight < 0.1 ? '<0,1g' : `${averageWeight.toFixed(1)}g`}
-              </span>
-              {isWeightEstimated && (
-                <Badge variant="secondary" className="text-xs">
-                  Estimado
-                </Badge>
-              )}
+                {isWeightEstimated && (
+                  <Badge variant="secondary" className="text-xs">
+                    Est.
+                  </Badge>
+                )}
+              </div>
+            </div>
+            <div className="text-center">
+              <span className="text-muted-foreground">População</span>
+              <div className="font-medium">{currentPopulation.toLocaleString()}</div>
             </div>
           </div>
         </div>

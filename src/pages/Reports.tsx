@@ -210,10 +210,10 @@ export default function Reports() {
         };
       });
 
-      // Get operational costs for all farms
+      // Get operational costs for all farms and specific pond batches
       const { data: operationalCosts } = await supabase
         .from('operational_costs')
-        .select('amount, category')
+        .select('amount, category, pond_batch_id')
         .in('farm_id', farmIds);
 
       // Get inventory costs for all farms
@@ -337,6 +337,11 @@ export default function Reports() {
             ?.filter(ia => ia.pond_batch_id === cycle.id)
             ?.reduce((sum, ia) => sum + (ia.total_cost || 0), 0)) || 0;
 
+          // Operational costs for this specific cycle
+          const operationalCostForCycle = operationalCosts
+            ?.filter(oc => oc.pond_batch_id === cycle.id)
+            ?.reduce((sum, oc) => sum + oc.amount, 0) || 0;
+
           // Costs already allocated to previous harvests (partial harvests)
           const allocatedFeed = harvestRecords?.filter(hr => hr.pond_batch_id === cycle.id)
             ?.reduce((sum, hr) => sum + (hr.allocated_feed_cost || 0), 0) || 0;
@@ -353,8 +358,8 @@ export default function Reports() {
           const remainingPLCost = Math.max(0, (plCost * (cycle.pl_quantity / 1000)) - allocatedPL);
           const remainingPreparationCost = Math.max(0, preparationCost - allocatedPrep);
 
-          // Include input costs in total cycle cost calculation
-          const cycleCost = remainingFeedCost + remainingInputsCost + remainingPLCost + remainingPreparationCost;
+          // Include operational costs in total cycle cost calculation
+          const cycleCost = remainingFeedCost + remainingInputsCost + remainingPLCost + remainingPreparationCost + operationalCostForCycle;
           totalCosts += cycleCost;
 
           // Calculate revenue using price table

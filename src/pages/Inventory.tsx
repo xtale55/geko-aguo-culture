@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Search, Package, Trash2, Edit, ArrowLeft, RefreshCw } from "lucide-react";
+import { Plus, Search, Package, Trash2, Edit, ArrowLeft } from "lucide-react";
 import { QuantityUtils } from "@/lib/quantityUtils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,7 +35,6 @@ interface Farm {
 
 const CATEGORIES = [
   "Ração",
-  "Medicamentos", 
   "Probióticos",
   "Fertilizantes",
   "Outros"
@@ -49,8 +48,6 @@ export default function Inventory() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isExchangeDialogOpen, setIsExchangeDialogOpen] = useState(false);
-  const [exchangingItem, setExchangingItem] = useState<InventoryItem | null>(null);
   const { toast } = useToast();
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -181,57 +178,6 @@ export default function Inventory() {
         description: "Item removido do inventário.",
       });
       fetchInventoryItems();
-    }
-  };
-
-  const handleExchange = async (medicamentItem: InventoryItem) => {
-    setExchangingItem(medicamentItem);
-    setIsExchangeDialogOpen(true);
-  };
-
-  const confirmExchange = async () => {
-    if (!exchangingItem) return;
-
-    try {
-      // Remove o medicamento
-      await supabase
-        .from('inventory')
-        .delete()
-        .eq('id', exchangingItem.id);
-
-      // Adiciona probiótico com os mesmos dados
-      const probioticData = {
-        name: exchangingItem.name.replace(/medicament/gi, 'probiótico'),
-        category: "Probióticos",
-        brand: exchangingItem.brand,
-        supplier: exchangingItem.supplier,
-        quantity: exchangingItem.quantity,
-        unit_price: exchangingItem.unit_price,
-        total_value: exchangingItem.total_value,
-        entry_date: new Date().toISOString().split('T')[0],
-        farm_id: exchangingItem.farm_id
-      };
-
-      const { error } = await supabase
-        .from('inventory')
-        .insert([probioticData]);
-
-      if (error) throw error;
-
-      toast({
-        title: "Troca realizada",
-        description: "Medicamento foi trocado por probiótico com sucesso.",
-      });
-
-      fetchInventoryItems();
-      setIsExchangeDialogOpen(false);
-      setExchangingItem(null);
-    } catch (error: any) {
-      toast({
-        title: "Erro na troca",
-        description: error.message,
-        variant: "destructive",
-      });
     }
   };
 
@@ -422,28 +368,6 @@ export default function Inventory() {
             </form>
           </DialogContent>
         </Dialog>
-
-        {/* Dialog de Troca */}
-        <Dialog open={isExchangeDialogOpen} onOpenChange={setIsExchangeDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Trocar Medicamento por Probiótico</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <p className="text-muted-foreground">
-                Tem certeza que deseja trocar o medicamento "{exchangingItem?.name}" por um probiótico equivalente?
-              </p>
-              <div className="flex justify-end space-x-2">
-                <Button variant="outline" onClick={() => setIsExchangeDialogOpen(false)}>
-                  Cancelar
-                </Button>
-                <Button onClick={confirmExchange} className="bg-emerald-600 hover:bg-emerald-700">
-                  Confirmar Troca
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
       </div>
 
       {/* Filtros e Resumo */}
@@ -558,16 +482,6 @@ export default function Inventory() {
                         </div>
                         
                         <div className="flex gap-2">
-                          {item.category === "Medicamentos" && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleExchange(item)}
-                              className="text-emerald-600 hover:text-emerald-700"
-                            >
-                              <RefreshCw className="h-4 w-4" />
-                            </Button>
-                          )}
                           <Button
                             variant="outline"
                             size="sm"

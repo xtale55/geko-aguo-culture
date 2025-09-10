@@ -10,9 +10,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { Scale, History, Trash2, FileText } from 'lucide-react';
+import { Scale, History, Trash2, FileText, Calendar, Save, CheckCircle, Clock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getCurrentDateForInput, formatDateForDisplay } from '@/lib/utils';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { format } from 'date-fns';
 
 interface PondWithBatch {
   id: string;
@@ -52,6 +55,21 @@ interface BiometryRecord {
   batch_name: string;
 }
 
+interface BatchBiometryRow {
+  pondId: string;
+  pond_batch_id: string;
+  pond_name: string;
+  batch_name: string;
+  doc: number;
+  current_population: number;
+  current_weight: number | null;
+  new_weight: string;
+  uniformity: string;
+  sample_size: string;
+  status: 'pending' | 'saving' | 'saved' | 'error';
+  error_message?: string;
+}
+
 export function BiometryTab() {
   const [ponds, setPonds] = useState<PondWithBatch[]>([]);
   const [biometryHistory, setBiometryHistory] = useState<BiometryRecord[]>([]);
@@ -64,6 +82,9 @@ export function BiometryTab() {
   const [selectedPond, setSelectedPond] = useState<PondWithBatch | null>(null);
   const [recordToDelete, setRecordToDelete] = useState<BiometryRecord | null>(null);
   const [selectedPonds, setSelectedPonds] = useState<string[]>([]);
+  const [batchDate, setBatchDate] = useState<Date | undefined>(new Date());
+  const [batchRows, setBatchRows] = useState<BatchBiometryRow[]>([]);
+  const [isSavingBatch, setIsSavingBatch] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -284,50 +305,65 @@ export function BiometryTab() {
   };
 
   const openBatchDialog = () => {
-    setSelectedPonds([]);
+    // Prepare batch rows from active ponds
+    const rows: BatchBiometryRow[] = ponds.map(pond => {
+      const batch = pond.current_batch!;
+      return {
+        pondId: pond.id,
+        pond_batch_id: batch.id,
+        pond_name: pond.name,
+        batch_name: batch.batch_name,
+        doc: calculateDOC(batch.stocking_date),
+        current_population: batch.current_population,
+        current_weight: batch.latest_biometry?.average_weight || null,
+        new_weight: '',
+        uniformity: '',
+        sample_size: '',
+        status: 'pending'
+      };
+    });
+    
+    setBatchRows(rows);
+    setBatchDate(new Date());
     setShowBatchDialog(true);
   };
 
-  const handlePondSelection = (pondId: string, checked: boolean) => {
-    setSelectedPonds(prev => 
-      checked 
-        ? [...prev, pondId]
-        : prev.filter(id => id !== pondId)
+  const updateBatchRow = (pondId: string, field: keyof BatchBiometryRow, value: string) => {
+    setBatchRows(prev => prev.map(row => 
+      row.pondId === pondId 
+        ? { ...row, [field]: value, status: 'pending' }
+        : row
+    ));
+  };
+
+  const getValidRows = () => {
+    return batchRows.filter(row => 
+      row.new_weight.trim() !== '' && 
+      !isNaN(parseFloat(row.new_weight))
     );
   };
 
-  const selectAllPonds = () => {
-    setSelectedPonds(ponds.map(pond => pond.id));
-  };
+  const handleBatchBiometrySubmit = async () => {
+    const validRows = getValidRows();
+    if (validRows.length === 0 || !batchDate) return;
 
-  const deselectAllPonds = () => {
-    setSelectedPonds([]);
-  };
-
-  const handleBatchBiometrySubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (selectedPonds.length === 0) return;
-
-    const formData = new FormData(e.currentTarget);
-    setSubmitting(true);
+    setIsSavingBatch(true);
+    
+    // Mark all valid rows as saving
+    setBatchRows(prev => prev.map(row => 
+      validRows.some(vr => vr.pondId === row.pondId)
+        ? { ...row, status: 'saving' }
+        : row
+    ));
 
     try {
-      const measurementDate = formData.get('measurement_date') as string;
-      const averageWeight = parseFloat(formData.get('average_weight') as string);
-      const uniformity = parseFloat(formData.get('uniformity') as string) || 0;
-      const sampleSize = parseInt(formData.get('sample_size') as string) || 0;
-
-      // Prepare batch data for all selected ponds
-      const batchData = selectedPonds.map(pondId => {
-        const pond = ponds.find(p => p.id === pondId);
-        return {
-          pond_batch_id: pond?.current_batch?.id,
-          measurement_date: measurementDate,
-          average_weight: averageWeight,
-          uniformity: uniformity,
-          sample_size: sampleSize
-        };
-      }).filter(data => data.pond_batch_id);
+      const batchData = validRows.map(row => ({
+        pond_batch_id: row.pond_batch_id,
+        measurement_date: format(batchDate, 'yyyy-MM-dd'),
+        average_weight: parseFloat(row.new_weight),
+        uniformity: row.uniformity ? parseFloat(row.uniformity) : 0,
+        sample_size: row.sample_size ? parseInt(row.sample_size) : 0
+      }));
 
       const { error } = await supabase
         .from('biometrics')
@@ -335,23 +371,40 @@ export function BiometryTab() {
 
       if (error) throw error;
 
+      // Mark successful rows as saved
+      setBatchRows(prev => prev.map(row => 
+        validRows.some(vr => vr.pondId === row.pondId)
+          ? { ...row, status: 'saved' }
+          : row
+      ));
+
       toast({
         title: "Biometrias registradas!",
-        description: `Peso médio de ${averageWeight}g registrado para ${selectedPonds.length} viveiros.`
+        description: `${validRows.length} biometrias salvas com sucesso.`
       });
 
-      setShowBatchDialog(false);
-      setSelectedPonds([]);
-      loadActivePonds();
-      loadBiometryHistory();
+      // Reload data and close dialog after a delay
+      setTimeout(() => {
+        loadActivePonds();
+        loadBiometryHistory();
+        setShowBatchDialog(false);
+      }, 1500);
+
     } catch (error: any) {
+      // Mark failed rows as error
+      setBatchRows(prev => prev.map(row => 
+        validRows.some(vr => vr.pondId === row.pondId)
+          ? { ...row, status: 'error', error_message: error.message }
+          : row
+      ));
+
       toast({
         variant: "destructive",
-        title: "Erro",
+        title: "Erro no salvamento",
         description: error.message
       });
     } finally {
-      setSubmitting(false);
+      setIsSavingBatch(false);
     }
   };
 
@@ -631,122 +684,147 @@ export function BiometryTab() {
         </DialogContent>
       </Dialog>
 
-      {/* Batch Biometry Dialog */}
+      {/* Batch Biometry Dialog - Excel Style */}
       <Dialog open={showBatchDialog} onOpenChange={setShowBatchDialog}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+        <DialogContent className="max-w-7xl max-h-[95vh] overflow-hidden flex flex-col">
           <DialogHeader className="flex-shrink-0">
-            <DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="w-5 h-5" />
               Registro de Biometria em Lote
             </DialogTitle>
           </DialogHeader>
-          <div className="overflow-y-auto flex-1 space-y-6">
-            {/* Pond Selection */}
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <h4 className="font-medium">Selecionar Viveiros</h4>
-                <div className="flex gap-2">
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    size="sm"
-                    onClick={selectAllPonds}
+          
+          <div className="overflow-y-auto flex-1 space-y-4">
+            {/* Date Picker */}
+            <div className="flex items-center gap-4 p-4 bg-muted/50 rounded-lg">
+              <Label htmlFor="batch-date" className="font-medium">Data da Medição:</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="w-[240px] justify-start text-left font-normal"
                   >
-                    Selecionar Todos
+                    <Calendar className="mr-2 h-4 w-4" />
+                    {batchDate ? format(batchDate, 'dd/MM/yyyy') : 'Selecionar data'}
                   </Button>
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    size="sm"
-                    onClick={deselectAllPonds}
-                  >
-                    Desmarcar Todos
-                  </Button>
-                </div>
-              </div>
-              
-              <div className="border rounded-lg p-4 max-h-48 overflow-y-auto space-y-3">
-                {ponds.map((pond) => {
-                  const batch = pond.current_batch!;
-                  const doc = calculateDOC(batch.stocking_date);
-                  
-                  return (
-                    <div key={pond.id} className="flex items-center space-x-3 p-2 hover:bg-muted rounded">
-                      <Checkbox 
-                        id={`pond-${pond.id}`}
-                        checked={selectedPonds.includes(pond.id)}
-                        onCheckedChange={(checked) => handlePondSelection(pond.id, checked as boolean)}
-                      />
-                      <Label 
-                        htmlFor={`pond-${pond.id}`} 
-                        className="flex-1 cursor-pointer"
-                      >
-                        <div className="flex justify-between items-center">
-                          <div>
-                            <span className="font-medium">{pond.name}</span>
-                            <span className="text-sm text-muted-foreground ml-2">
-                              ({batch.batch_name})
-                            </span>
-                          </div>
-                          <div className="text-sm text-muted-foreground">
-                            DOC {doc} • {batch.current_population.toLocaleString()} PL
-                          </div>
-                        </div>
-                      </Label>
-                    </div>
-                  );
-                })}
-              </div>
-              
-              {selectedPonds.length > 0 && (
-                <p className="text-sm text-muted-foreground">
-                  {selectedPonds.length} viveiro{selectedPonds.length !== 1 ? 's' : ''} selecionado{selectedPonds.length !== 1 ? 's' : ''}
-                </p>
-              )}
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <CalendarComponent
+                    mode="single"
+                    selected={batchDate}
+                    onSelect={setBatchDate}
+                    initialFocus
+                    className="p-3 pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
 
-            {/* Biometry Form */}
-            <form id="batch-biometry-form" onSubmit={handleBatchBiometrySubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="batch_measurement_date">Data da Medição</Label>
-                <Input
-                  id="batch_measurement_date"
-                  name="measurement_date"
-                  type="date"
-                  defaultValue={getCurrentDateForInput()}
-                  required
-                />
+            {/* Excel-style Table */}
+            <div className="border rounded-lg overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/50">
+                    <TableHead className="font-semibold">Viveiro</TableHead>
+                    <TableHead className="font-semibold">DOC</TableHead>
+                    <TableHead className="font-semibold">População</TableHead>
+                    <TableHead className="font-semibold">Peso Atual</TableHead>
+                    <TableHead className="font-semibold">Novo Peso (g)</TableHead>
+                    <TableHead className="font-semibold">Uniformidade (%)</TableHead>
+                    <TableHead className="font-semibold">Amostra</TableHead>
+                    <TableHead className="font-semibold">Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {batchRows.map((row) => (
+                    <TableRow key={row.pondId} className="hover:bg-muted/30">
+                      <TableCell className="font-medium">
+                        <div>
+                          <div className="font-semibold">{row.pond_name}</div>
+                          <div className="text-sm text-muted-foreground">{row.batch_name}</div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Badge variant="outline">{row.doc}</Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {row.current_population.toLocaleString()}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {row.current_weight ? `${row.current_weight}g` : '-'}
+                      </TableCell>
+                      <TableCell>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          placeholder="0.00"
+                          value={row.new_weight}
+                          onChange={(e) => updateBatchRow(row.pondId, 'new_weight', e.target.value)}
+                          className="w-full text-center"
+                          disabled={row.status === 'saving' || row.status === 'saved'}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Input
+                          type="number"
+                          step="0.1"
+                          placeholder="0.0"
+                          value={row.uniformity}
+                          onChange={(e) => updateBatchRow(row.pondId, 'uniformity', e.target.value)}
+                          className="w-full text-center"
+                          disabled={row.status === 'saving' || row.status === 'saved'}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Input
+                          type="number"
+                          placeholder="0"
+                          value={row.sample_size}
+                          onChange={(e) => updateBatchRow(row.pondId, 'sample_size', e.target.value)}
+                          className="w-full text-center"
+                          disabled={row.status === 'saving' || row.status === 'saved'}
+                        />
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {row.status === 'pending' && row.new_weight && (
+                          <Badge variant="secondary">
+                            <Clock className="w-3 h-3 mr-1" />
+                            Pronto
+                          </Badge>
+                        )}
+                        {row.status === 'saving' && (
+                          <Badge variant="outline">
+                            <Clock className="w-3 h-3 mr-1 animate-spin" />
+                            Salvando...
+                          </Badge>
+                        )}
+                        {row.status === 'saved' && (
+                          <Badge variant="default" className="bg-success">
+                            <CheckCircle className="w-3 h-3 mr-1" />
+                            Salvo
+                          </Badge>
+                        )}
+                        {row.status === 'error' && (
+                          <Badge variant="destructive">
+                            Erro
+                          </Badge>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+
+            {/* Summary */}
+            <div className="flex justify-between items-center p-4 bg-muted/50 rounded-lg">
+              <div className="text-sm text-muted-foreground">
+                {getValidRows().length} de {batchRows.length} viveiros com dados válidos
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="batch_average_weight">Peso Médio (g)</Label>
-                <Input
-                  id="batch_average_weight"
-                  name="average_weight"
-                  type="number"
-                  step="0.01"
-                  placeholder="Ex: 12.5"
-                  required
-                />
+              <div className="text-sm text-muted-foreground">
+                {batchRows.filter(r => r.status === 'saved').length} salvos
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="batch_uniformity">Uniformidade (%)</Label>
-                <Input
-                  id="batch_uniformity"
-                  name="uniformity"
-                  type="number"
-                  step="0.1"
-                  placeholder="Ex: 85.0"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="batch_sample_size">Tamanho da Amostra</Label>
-                <Input
-                  id="batch_sample_size"
-                  name="sample_size"
-                  type="number"
-                  placeholder="Ex: 100"
-                />
-              </div>
-            </form>
+            </div>
           </div>
           
           <div className="flex gap-2 pt-4 border-t bg-background flex-shrink-0">
@@ -755,18 +833,19 @@ export function BiometryTab() {
               variant="outline" 
               onClick={() => setShowBatchDialog(false)}
               className="flex-1"
+              disabled={isSavingBatch}
             >
               Cancelar
             </Button>
             <Button 
-              type="submit" 
-              disabled={submitting || selectedPonds.length === 0}
+              onClick={handleBatchBiometrySubmit}
+              disabled={isSavingBatch || getValidRows().length === 0 || !batchDate}
               className="flex-1"
-              form="batch-biometry-form"
             >
-              {submitting 
+              <Save className="w-4 h-4 mr-2" />
+              {isSavingBatch 
                 ? 'Salvando...' 
-                : `Salvar ${selectedPonds.length} Biometria${selectedPonds.length !== 1 ? 's' : ''}`
+                : `Salvar ${getValidRows().length} Biometria${getValidRows().length !== 1 ? 's' : ''}`
               }
             </Button>
           </div>

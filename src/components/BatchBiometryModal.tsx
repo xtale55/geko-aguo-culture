@@ -1,14 +1,13 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { getCurrentDateForInput, formatDateForDisplay } from '@/lib/utils';
-import { Progress } from '@/components/ui/progress';
 import { Scale, Save, X } from 'lucide-react';
 
 interface PondWithBatch {
@@ -44,7 +43,17 @@ interface BatchBiometryModalProps {
 }
 
 export function BatchBiometryModal({ open, onOpenChange, ponds, onSuccess }: BatchBiometryModalProps) {
-  const [measurementDate, setMeasurementDate] = useState(getCurrentDateForInput());
+  console.log('BatchBiometryModal component loading...');
+  
+  const getCurrentDate = () => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+  
+  const [measurementDate, setMeasurementDate] = useState(getCurrentDate());
   const [biometryData, setBiometryData] = useState<BatchBiometryData[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -61,7 +70,7 @@ export function BatchBiometryModal({ open, onOpenChange, ponds, onSuccess }: Bat
         sample_size: ''
       }));
       setBiometryData(initialData);
-      setMeasurementDate(getCurrentDateForInput());
+      setMeasurementDate(getCurrentDate());
       setProgress(0);
     }
   }, [open, ponds]);

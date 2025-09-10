@@ -5,6 +5,7 @@ import { ArrowLeft, Scale } from 'lucide-react';
 import { BiometryTab } from '@/components/BiometryTab';
 
 export default function BiometriaPage() {
+  console.log('BiometriaPage component loading...');
   const navigate = useNavigate();
 
   return (

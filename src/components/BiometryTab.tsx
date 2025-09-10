@@ -53,6 +53,7 @@ interface BiometryRecord {
 }
 
 export function BiometryTab() {
+  console.log('BiometryTab component loading...');
   const [ponds, setPonds] = useState<PondWithBatch[]>([]);
   const [biometryHistory, setBiometryHistory] = useState<BiometryRecord[]>([]);
   const [loading, setLoading] = useState(true);

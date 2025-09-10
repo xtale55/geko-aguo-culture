@@ -289,16 +289,7 @@ export function BiometryTab() {
         
         <TabsContent value="active" className="mt-6">
           {/* Header with Batch Button */}
-          <div className={`mb-6 ${isMobile ? 'space-y-4' : 'flex justify-between items-center'}`}>
-            <div>
-              
-              
-            </div>
-            <Button onClick={() => setShowBatchDialog(true)} variant="default" className={`flex items-center gap-2 ${isMobile ? 'w-full justify-center' : ''}`} size={isMobile ? "default" : "default"}>
-              <BarChart3 className="w-4 h-4" />
-              Biometria em Lote
-            </Button>
-          </div>
+          
 
           {/* Ponds Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

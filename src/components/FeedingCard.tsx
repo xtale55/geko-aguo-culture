@@ -1,11 +1,21 @@
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { History, Plus } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { History, Plus, Edit2 } from 'lucide-react';
 import { useFeedingProgress } from '@/hooks/useFeedingProgress';
+import { FeedingHistoryDialog } from '@/components/FeedingHistoryDialog';
+import { FeedingSchedule } from '@/components/FeedingSchedule';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/hooks/use-toast';
 
 interface FeedingCardProps {
+  pondId: string;
   pondName: string;
   batchName: string;
   doc: number;
@@ -15,13 +25,17 @@ interface FeedingCardProps {
   dailyFeed: number;
   feedPerMeal: number;
   feedingRate: number;
+  mealsPerDay: number;
   pondBatchId: string;
-  onRegisterFeeding: () => void;
-  onViewHistory: () => void;
+  farmId: string;
+  selectedDate: string;
+  onFeedingUpdate: () => void;
+  onRateUpdate: () => void;
   isWeightEstimated?: boolean;
 }
 
 export function FeedingCard({
+  pondId,
   pondName,
   batchName,
   doc,
@@ -31,11 +45,21 @@ export function FeedingCard({
   dailyFeed,
   feedPerMeal,
   feedingRate,
+  mealsPerDay,
   pondBatchId,
-  onRegisterFeeding,
-  onViewHistory,
+  farmId,
+  selectedDate,
+  onFeedingUpdate,
+  onRateUpdate,
   isWeightEstimated = false
 }: FeedingCardProps) {
+  const [isHistoryDialogOpen, setIsHistoryDialogOpen] = useState(false);
+  const [isFeedingDialogOpen, setIsFeedingDialogOpen] = useState(false);
+  const [isEditRateDialogOpen, setIsEditRateDialogOpen] = useState(false);
+  const [newFeedingRate, setNewFeedingRate] = useState<string>("");
+  const [newMealsPerDay, setNewMealsPerDay] = useState<string>("");
+  const { user } = useAuth();
+  const { toast } = useToast();
   const { data: feedingRecords } = useFeedingProgress(undefined);
   
   // Calculate progress for this specific pond
@@ -44,6 +68,88 @@ export function FeedingCard({
   const totalActual = todayRecords.reduce((sum, record) => sum + (record.actual_amount / 1000), 0);
   const percentage = totalPlanned > 0 ? Math.round((totalActual / totalPlanned) * 100) : 0;
   const progressPercentage = Math.min(percentage, 100);
+
+  const handleEditFeedingRate = () => {
+    setNewFeedingRate(feedingRate.toString());
+    setNewMealsPerDay(mealsPerDay.toString());
+    setIsEditRateDialogOpen(true);
+  };
+
+  const handleSaveFeedingRate = async () => {
+    try {
+      const newRate = parseFloat(newFeedingRate);
+      const newMeals = parseInt(newMealsPerDay);
+      
+      if (isNaN(newRate) || newRate <= 0) {
+        toast({
+          variant: "destructive",
+          title: "Erro",
+          description: "Por favor, insira um percentual válido"
+        });
+        return;
+      }
+
+      if (isNaN(newMeals) || newMeals < 1 || newMeals > 10) {
+        toast({
+          variant: "destructive",
+          title: "Erro",
+          description: "Por favor, insira um número válido de refeições (1-10)"
+        });
+        return;
+      }
+
+      // Check if there's already a rate for this weight range
+      const { data: existingRates } = await supabase
+        .from('feeding_rates')
+        .select('*')
+        .eq('pond_batch_id', pondBatchId)
+        .lte('weight_range_min', averageWeight)
+        .gte('weight_range_max', averageWeight);
+
+      if (existingRates && existingRates.length > 0) {
+        // Update existing rate
+        const { error } = await supabase
+          .from('feeding_rates')
+          .update({ 
+            feeding_percentage: newRate,
+            meals_per_day: newMeals
+          })
+          .eq('id', existingRates[0].id);
+
+        if (error) throw error;
+      } else {
+        // Create new rate for current weight
+        const { error } = await supabase
+          .from('feeding_rates')
+          .insert({
+            pond_batch_id: pondBatchId,
+            weight_range_min: Math.max(0, averageWeight - 1),
+            weight_range_max: averageWeight + 10,
+            feeding_percentage: newRate,
+            meals_per_day: newMeals,
+            created_by: user?.id
+          });
+
+        if (error) throw error;
+      }
+
+      toast({
+        title: "Taxa atualizada",
+        description: `Nova taxa: ${newRate}% da biomassa • ${newMeals}x/dia`
+      });
+
+      setIsEditRateDialogOpen(false);
+      setNewFeedingRate("");
+      setNewMealsPerDay("");
+      onRateUpdate();
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: error.message
+      });
+    }
+  };
 
   return (
     <Card className="relative overflow-hidden bg-gradient-to-br from-white via-blue-50/30 to-emerald-50/20 border border-slate-200 hover:border-primary/30 transition-all duration-300 hover:shadow-lg">
@@ -66,14 +172,26 @@ export function FeedingCard({
               )}
             </div>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onViewHistory}
-            className="h-8 w-8 p-0 text-slate-500 hover:text-primary"
-          >
-            <History className="w-4 h-4" />
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleEditFeedingRate}
+              className="h-8 px-2 text-xs"
+            >
+              <Edit2 className="w-3 h-3 mr-1" />
+              {feedingRate}%
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsHistoryDialogOpen(true)}
+              className="h-8 px-2 text-xs"
+            >
+              <History className="w-3 h-3 mr-1" />
+              Histórico
+            </Button>
+          </div>
         </div>
       </CardHeader>
 
@@ -136,12 +254,103 @@ export function FeedingCard({
 
         {/* Action Button */}
         <Button 
-          onClick={onRegisterFeeding}
+          onClick={() => setIsFeedingDialogOpen(true)}
           className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-medium"
         >
           <Plus className="w-4 h-4 mr-2" />
           Registrar Alimentação
         </Button>
+
+        {/* Feeding History Dialog */}
+        <FeedingHistoryDialog
+          open={isHistoryDialogOpen}
+          onOpenChange={setIsHistoryDialogOpen}
+          pondBatchId={pondBatchId}
+          pondName={pondName}
+          batchName={batchName}
+        />
+
+        {/* Feeding Registration Dialog */}
+        <Dialog open={isFeedingDialogOpen} onOpenChange={setIsFeedingDialogOpen}>
+          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Registrar Alimentação - {pondName}</DialogTitle>
+            </DialogHeader>
+            <FeedingSchedule
+              pondId={pondId}
+              pondName={pondName}
+              batchName={batchName}
+              pondBatchId={pondBatchId}
+              biomass={biomass}
+              feedingRate={feedingRate}
+              mealsPerDay={mealsPerDay}
+              dailyFeed={dailyFeed}
+              doc={doc}
+              selectedDate={selectedDate}
+              currentPopulation={population}
+              averageWeight={averageWeight}
+              farmId={farmId}
+              onFeedingUpdate={() => {
+                onFeedingUpdate();
+                setIsFeedingDialogOpen(false);
+              }}
+              onRateUpdate={onRateUpdate}
+              isWeightEstimated={isWeightEstimated}
+            />
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit Rate Dialog */}
+        <Dialog open={isEditRateDialogOpen} onOpenChange={setIsEditRateDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Editar Taxa de Alimentação - {pondName}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Percentual da Biomassa (%)</Label>
+                  <Input
+                    type="number"
+                    step="0.1"
+                    value={newFeedingRate}
+                    onChange={(e) => setNewFeedingRate(e.target.value)}
+                    placeholder="Ex: 5.0"
+                  />
+                </div>
+                <div>
+                  <Label>Refeições por Dia</Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    max="10"
+                    value={newMealsPerDay}
+                    onChange={(e) => setNewMealsPerDay(e.target.value)}
+                    placeholder="Ex: 3"
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Peso atual dos animais: {averageWeight}g
+              </p>
+              <div className="flex gap-2">
+                <Button onClick={handleSaveFeedingRate} disabled={!newFeedingRate || !newMealsPerDay}>
+                  Salvar
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setIsEditRateDialogOpen(false);
+                    setNewFeedingRate("");
+                    setNewMealsPerDay("");
+                  }}
+                >
+                  Cancelar
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </CardContent>
     </Card>
   );

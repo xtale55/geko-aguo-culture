@@ -471,6 +471,7 @@ export default function Feeding() {
             {feedingTasks.map((task) => (
               <FeedingCard
                 key={task.pond_id}
+                pondId={task.pond_id}
                 pondName={task.pond_name}
                 batchName={task.batch_name}
                 doc={task.doc}
@@ -480,16 +481,13 @@ export default function Feeding() {
                 dailyFeed={task.daily_feed}
                 feedPerMeal={task.feed_per_meal}
                 feedingRate={task.feeding_rate}
+                mealsPerDay={task.meals_per_day}
                 pondBatchId={task.pond_batch_id}
+                farmId={farms[0]?.id}
+                selectedDate={selectedDate}
+                onFeedingUpdate={loadFeedingData}
+                onRateUpdate={loadFeedingData}
                 isWeightEstimated={task.is_weight_estimated}
-                onRegisterFeeding={() => {
-                  // TODO: Open feeding registration dialog
-                  console.log('Register feeding for', task.pond_name);
-                }}
-                onViewHistory={() => {
-                  // TODO: Open feeding history dialog
-                  console.log('View history for', task.pond_name);
-                }}
               />
             ))}
           </div>

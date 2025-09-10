@@ -7,9 +7,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { Scale, History, Trash2 } from 'lucide-react';
+import { Scale, History, Trash2, FileText } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getCurrentDateForInput, formatDateForDisplay } from '@/lib/utils';
 
@@ -59,8 +60,10 @@ export function BiometryTab() {
   const [submitting, setSubmitting] = useState(false);
   const [showDialog, setShowDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showBatchDialog, setShowBatchDialog] = useState(false);
   const [selectedPond, setSelectedPond] = useState<PondWithBatch | null>(null);
   const [recordToDelete, setRecordToDelete] = useState<BiometryRecord | null>(null);
+  const [selectedPonds, setSelectedPonds] = useState<string[]>([]);
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -280,6 +283,78 @@ export function BiometryTab() {
     }
   };
 
+  const openBatchDialog = () => {
+    setSelectedPonds([]);
+    setShowBatchDialog(true);
+  };
+
+  const handlePondSelection = (pondId: string, checked: boolean) => {
+    setSelectedPonds(prev => 
+      checked 
+        ? [...prev, pondId]
+        : prev.filter(id => id !== pondId)
+    );
+  };
+
+  const selectAllPonds = () => {
+    setSelectedPonds(ponds.map(pond => pond.id));
+  };
+
+  const deselectAllPonds = () => {
+    setSelectedPonds([]);
+  };
+
+  const handleBatchBiometrySubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (selectedPonds.length === 0) return;
+
+    const formData = new FormData(e.currentTarget);
+    setSubmitting(true);
+
+    try {
+      const measurementDate = formData.get('measurement_date') as string;
+      const averageWeight = parseFloat(formData.get('average_weight') as string);
+      const uniformity = parseFloat(formData.get('uniformity') as string) || 0;
+      const sampleSize = parseInt(formData.get('sample_size') as string) || 0;
+
+      // Prepare batch data for all selected ponds
+      const batchData = selectedPonds.map(pondId => {
+        const pond = ponds.find(p => p.id === pondId);
+        return {
+          pond_batch_id: pond?.current_batch?.id,
+          measurement_date: measurementDate,
+          average_weight: averageWeight,
+          uniformity: uniformity,
+          sample_size: sampleSize
+        };
+      }).filter(data => data.pond_batch_id);
+
+      const { error } = await supabase
+        .from('biometrics')
+        .insert(batchData);
+
+      if (error) throw error;
+
+      toast({
+        title: "Biometrias registradas!",
+        description: `Peso médio de ${averageWeight}g registrado para ${selectedPonds.length} viveiros.`
+      });
+
+      setShowBatchDialog(false);
+      setSelectedPonds([]);
+      loadActivePonds();
+      loadBiometryHistory();
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: error.message
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="animate-pulse space-y-4">
@@ -320,6 +395,19 @@ export function BiometryTab() {
         </TabsList>
         
         <TabsContent value="active" className="mt-6">
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <h3 className="text-lg font-semibold">Viveiros Ativos</h3>
+              <p className="text-sm text-muted-foreground">
+                {ponds.length} viveiro{ponds.length !== 1 ? 's' : ''} com população ativa
+              </p>
+            </div>
+            <Button onClick={openBatchDialog} variant="outline" className="flex items-center gap-2">
+              <FileText className="w-4 h-4" />
+              Registro em Lote
+            </Button>
+          </div>
+          
           {/* Ponds Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {ponds.map((pond) => {
@@ -538,6 +626,148 @@ export function BiometryTab() {
               form="biometry-form"
             >
               {submitting ? 'Salvando...' : 'Salvar Biometria'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Batch Biometry Dialog */}
+      <Dialog open={showBatchDialog} onOpenChange={setShowBatchDialog}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogHeader className="flex-shrink-0">
+            <DialogTitle>
+              Registro de Biometria em Lote
+            </DialogTitle>
+          </DialogHeader>
+          <div className="overflow-y-auto flex-1 space-y-6">
+            {/* Pond Selection */}
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <h4 className="font-medium">Selecionar Viveiros</h4>
+                <div className="flex gap-2">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm"
+                    onClick={selectAllPonds}
+                  >
+                    Selecionar Todos
+                  </Button>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm"
+                    onClick={deselectAllPonds}
+                  >
+                    Desmarcar Todos
+                  </Button>
+                </div>
+              </div>
+              
+              <div className="border rounded-lg p-4 max-h-48 overflow-y-auto space-y-3">
+                {ponds.map((pond) => {
+                  const batch = pond.current_batch!;
+                  const doc = calculateDOC(batch.stocking_date);
+                  
+                  return (
+                    <div key={pond.id} className="flex items-center space-x-3 p-2 hover:bg-muted rounded">
+                      <Checkbox 
+                        id={`pond-${pond.id}`}
+                        checked={selectedPonds.includes(pond.id)}
+                        onCheckedChange={(checked) => handlePondSelection(pond.id, checked as boolean)}
+                      />
+                      <Label 
+                        htmlFor={`pond-${pond.id}`} 
+                        className="flex-1 cursor-pointer"
+                      >
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <span className="font-medium">{pond.name}</span>
+                            <span className="text-sm text-muted-foreground ml-2">
+                              ({batch.batch_name})
+                            </span>
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            DOC {doc} • {batch.current_population.toLocaleString()} PL
+                          </div>
+                        </div>
+                      </Label>
+                    </div>
+                  );
+                })}
+              </div>
+              
+              {selectedPonds.length > 0 && (
+                <p className="text-sm text-muted-foreground">
+                  {selectedPonds.length} viveiro{selectedPonds.length !== 1 ? 's' : ''} selecionado{selectedPonds.length !== 1 ? 's' : ''}
+                </p>
+              )}
+            </div>
+
+            {/* Biometry Form */}
+            <form id="batch-biometry-form" onSubmit={handleBatchBiometrySubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="batch_measurement_date">Data da Medição</Label>
+                <Input
+                  id="batch_measurement_date"
+                  name="measurement_date"
+                  type="date"
+                  defaultValue={getCurrentDateForInput()}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="batch_average_weight">Peso Médio (g)</Label>
+                <Input
+                  id="batch_average_weight"
+                  name="average_weight"
+                  type="number"
+                  step="0.01"
+                  placeholder="Ex: 12.5"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="batch_uniformity">Uniformidade (%)</Label>
+                <Input
+                  id="batch_uniformity"
+                  name="uniformity"
+                  type="number"
+                  step="0.1"
+                  placeholder="Ex: 85.0"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="batch_sample_size">Tamanho da Amostra</Label>
+                <Input
+                  id="batch_sample_size"
+                  name="sample_size"
+                  type="number"
+                  placeholder="Ex: 100"
+                />
+              </div>
+            </form>
+          </div>
+          
+          <div className="flex gap-2 pt-4 border-t bg-background flex-shrink-0">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => setShowBatchDialog(false)}
+              className="flex-1"
+            >
+              Cancelar
+            </Button>
+            <Button 
+              type="submit" 
+              disabled={submitting || selectedPonds.length === 0}
+              className="flex-1"
+              form="batch-biometry-form"
+            >
+              {submitting 
+                ? 'Salvando...' 
+                : `Salvar ${selectedPonds.length} Biometria${selectedPonds.length !== 1 ? 's' : ''}`
+              }
             </Button>
           </div>
         </DialogContent>

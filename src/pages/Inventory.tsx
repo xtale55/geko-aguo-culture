@@ -35,11 +35,8 @@ interface Farm {
 
 const CATEGORIES = [
   "Ração",
-  "Medicamentos", 
-  "Equipamentos",
+  "Probióticos",
   "Fertilizantes",
-  "Pós-Larvas",
-  "Combustível",
   "Outros"
 ];
 
@@ -253,13 +250,23 @@ export default function Inventory() {
               Controle de Estoque
             </h1>
           </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={() => setEditingItem(null)}>
-              <Plus className="w-4 h-4 mr-2" />
-              Adicionar Item
-            </Button>
-          </DialogTrigger>
+        <div className="flex gap-2">
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={() => setEditingItem(null)}>
+                <Plus className="w-4 h-4 mr-2" />
+                Adicionar Item
+              </Button>
+            </DialogTrigger>
+          
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => {/* TODO: Implement mixture feature */}}
+          >
+            Mistura
+          </Button>
+        </div>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>{editingItem ? "Editar Item" : "Adicionar Item"}</DialogTitle>

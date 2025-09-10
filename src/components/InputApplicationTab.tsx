@@ -160,7 +160,7 @@ export function InputApplicationTab() {
         brand,
         farm:farms!inner(user_id)
       `)
-      .eq('category', 'Fertilizantes')
+      .in('category', ['Fertilizantes', 'Probióticos'])
       .eq('farm.user_id', user?.id)
       .gt('quantity', 0);
 
@@ -391,7 +391,7 @@ export function InputApplicationTab() {
         <div>
           <h2 className="text-2xl font-bold text-foreground">Aplicação de Insumos</h2>
           <p className="text-muted-foreground">
-            Registre o uso de fertilizantes, probióticos e outros insumos
+            Registre o uso de fertilizantes e probióticos
           </p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>

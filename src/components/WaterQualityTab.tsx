@@ -59,6 +59,7 @@ export function WaterQualityTab() {
     alkalinity: { min: 80, max: 150, unit: 'mg/L', name: 'Alcalinidade' },
     hardness: { min: 100, max: 300, unit: 'mg/L', name: 'Dureza' },
     ammonia: { min: 0, max: 0.5, unit: 'mg/L', name: 'Amônia' },
+    nitrite: { min: 0, max: 0.1, unit: 'mg/L', name: 'Nitrito' },
     turbidity: { min: 0, max: 30, unit: 'NTU', name: 'Turbidez' }
   };
 
@@ -172,8 +173,8 @@ export function WaterQualityTab() {
   const getParameterStatus = (value: number | null, parameter: keyof typeof parameterRanges) => {
     if (value === null) return 'unknown';
     const range = parameterRanges[parameter];
-    if (parameter === 'ammonia') {
-      // For ammonia, lower is better
+    if (parameter === 'ammonia' || parameter === 'nitrite') {
+      // For ammonia and nitrite, lower is better
       return value <= range.max ? 'good' : 'bad';
     }
     return value >= range.min && value <= range.max ? 'good' : 'bad';

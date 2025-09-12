@@ -127,47 +127,6 @@ export function useAlertsData(
           });
         }
 
-        // Alkalinity alerts - only if very out of range
-        if (wq.alkalinity !== null) {
-          if (wq.alkalinity < 40) {
-            alerts.push({
-              id: `alkalinity-very-low-${wq.id}`,
-              type: 'water',
-              title: `Alcalinidade muito baixa - ${pondName}`,
-              description: `Alcalinidade de ${wq.alkalinity.toFixed(1)} mg/L está muito abaixo do recomendado (80-150 mg/L)`,
-              severity: 'medium'
-            });
-          } else if (wq.alkalinity > 300) {
-            alerts.push({
-              id: `alkalinity-very-high-${wq.id}`,
-              type: 'water',
-              title: `Alcalinidade muito alta - ${pondName}`,
-              description: `Alcalinidade de ${wq.alkalinity.toFixed(1)} mg/L está muito acima do recomendado (80-150 mg/L)`,
-              severity: 'medium'
-            });
-          }
-        }
-
-        // Hardness alerts - only if very out of range
-        if (wq.hardness !== null) {
-          if (wq.hardness < 50) {
-            alerts.push({
-              id: `hardness-very-low-${wq.id}`,
-              type: 'water',
-              title: `Dureza muito baixa - ${pondName}`,
-              description: `Dureza de ${wq.hardness.toFixed(1)} mg/L está muito abaixo do recomendado (100-300 mg/L)`,
-              severity: 'medium'
-            });
-          } else if (wq.hardness > 600) {
-            alerts.push({
-              id: `hardness-very-high-${wq.id}`,
-              type: 'water',
-              title: `Dureza muito alta - ${pondName}`,
-              description: `Dureza de ${wq.hardness.toFixed(1)} mg/L está muito acima do recomendado (100-300 mg/L)`,
-              severity: 'medium'
-            });
-          }
-        }
       });
     }
 

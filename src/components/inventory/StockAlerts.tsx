@@ -113,7 +113,7 @@ export function StockAlerts({ inventoryData, onItemClick }: StockAlertsProps) {
                           {getSeverityIcon(alert.severity)}
                           <h5 className="font-medium text-sm truncate flex-1">{alert.itemName}</h5>
                           {getSeverityBadge(alert.severity)}
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground ml-2">
+                          <div className="flex items-center gap-2 text-xs text-foreground ml-2">
                             <span>Estoque: {QuantityUtils.formatKg(QuantityUtils.kgToGrams(alert.currentStock))}kg</span>
                             <span>•</span>
                             <span>Limite: {QuantityUtils.formatKg(QuantityUtils.kgToGrams(alert.threshold))}kg</span>

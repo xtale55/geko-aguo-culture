@@ -1,9 +1,8 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { useStockAlerts } from '@/hooks/useStockAlerts';
 import { QuantityUtils } from '@/lib/quantityUtils';
-import { AlertTriangle, Package, ShoppingCart } from 'lucide-react';
+import { AlertTriangle, Package } from 'lucide-react';
 
 interface StockAlertsProps {
   inventoryData: any[];
@@ -102,41 +101,23 @@ export function StockAlerts({ inventoryData, onItemClick }: StockAlertsProps) {
                 </Badge>
               </div>
               
-              <div className="space-y-2">
+              <div className="space-y-1">
                 {categoryAlerts.map((alert) => (
                   <div 
                     key={alert.id} 
-                    className="border rounded-lg p-3 hover:bg-muted/50 transition-colors"
+                    className="border rounded-lg p-2 hover:bg-muted/50 transition-colors"
                   >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
                           {getSeverityIcon(alert.severity)}
-                          <h5 className="font-medium">{alert.itemName}</h5>
+                          <h5 className="font-medium text-sm truncate">{alert.itemName}</h5>
                           {getSeverityBadge(alert.severity)}
                         </div>
-                        <p className="text-sm text-muted-foreground mb-2">
-                          {alert.description}
-                        </p>
-                        <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                        <div className="flex items-center gap-3 text-xs text-muted-foreground">
                           <span>Estoque: {QuantityUtils.formatKg(QuantityUtils.kgToGrams(alert.currentStock))}kg</span>
                           <span>Limite: {QuantityUtils.formatKg(QuantityUtils.kgToGrams(alert.threshold))}kg</span>
                         </div>
-                      </div>
-                      <div className="flex flex-col gap-2 ml-4">
-                        {onItemClick && (
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => onItemClick(alert.id.replace('stock-alert-', ''))}
-                          >
-                            Ver Item
-                          </Button>
-                        )}
-                        <Button variant="outline" size="sm">
-                          <ShoppingCart className="w-3 h-3 mr-1" />
-                          Comprar
-                        </Button>
                       </div>
                     </div>
                   </div>

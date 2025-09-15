@@ -87,7 +87,7 @@ export function useInventoryQuery(farmId?: string) {
     async () => {
       const result = await supabase
         .from('inventory')
-        .select('id, name, quantity, category, farm_id, minimum_stock_threshold, unit_price, total_value, brand, supplier, entry_date')
+        .select('*')
         .eq('farm_id', farmId!)
         .order('entry_date', { ascending: false });
       return result;

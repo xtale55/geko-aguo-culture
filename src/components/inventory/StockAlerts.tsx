@@ -1,0 +1,151 @@
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { useStockAlerts } from '@/hooks/useStockAlerts';
+import { QuantityUtils } from '@/lib/quantityUtils';
+import { AlertTriangle, Package, ShoppingCart } from 'lucide-react';
+
+interface StockAlertsProps {
+  inventoryData: any[];
+  onItemClick?: (itemId: string) => void;
+}
+
+export function StockAlerts({ inventoryData, onItemClick }: StockAlertsProps) {
+  const alerts = useStockAlerts(inventoryData);
+
+  const getSeverityIcon = (severity: string) => {
+    switch (severity) {
+      case 'high':
+        return <AlertTriangle className="w-4 h-4 text-red-600" />;
+      case 'medium':
+        return <AlertTriangle className="w-4 h-4 text-orange-600" />;
+      default:
+        return <Package className="w-4 h-4 text-yellow-600" />;
+    }
+  };
+
+  const getSeverityBadge = (severity: string) => {
+    const colors = {
+      high: 'bg-red-100 text-red-800',
+      medium: 'bg-orange-100 text-orange-800',
+      low: 'bg-yellow-100 text-yellow-800'
+    };
+    const labels = {
+      high: 'Crítico',
+      medium: 'Atenção',
+      low: 'Aviso'
+    };
+    
+    return (
+      <Badge className={colors[severity as keyof typeof colors]}>
+        {labels[severity as keyof typeof labels]}
+      </Badge>
+    );
+  };
+
+  const getCategoryIcon = (category: string) => {
+    // You can customize icons per category if needed
+    return <Package className="w-4 h-4 text-muted-foreground" />;
+  };
+
+  if (alerts.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-green-600">
+            <Package className="w-5 h-5" />
+            Estoque OK
+          </CardTitle>
+          <CardDescription>
+            Todos os itens estão com estoque adequado
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-4 text-muted-foreground">
+            <Package className="w-8 h-8 mx-auto mb-2 text-green-600" />
+            <p>Nenhum alerta de estoque no momento</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Group alerts by category
+  const alertsByCategory = alerts.reduce((groups, alert) => {
+    if (!groups[alert.category]) {
+      groups[alert.category] = [];
+    }
+    groups[alert.category].push(alert);
+    return groups;
+  }, {} as Record<string, typeof alerts>);
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <AlertTriangle className="w-5 h-5 text-orange-600" />
+          Alertas de Estoque
+        </CardTitle>
+        <CardDescription>
+          {alerts.length} {alerts.length === 1 ? 'item precisa' : 'itens precisam'} de atenção
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          {Object.entries(alertsByCategory).map(([category, categoryAlerts]) => (
+            <div key={category} className="space-y-2">
+              <div className="flex items-center gap-2 pb-2 border-b">
+                {getCategoryIcon(category)}
+                <h4 className="font-medium">{category}</h4>
+                <Badge variant="outline" className="ml-auto">
+                  {categoryAlerts.length} {categoryAlerts.length === 1 ? 'alerta' : 'alertas'}
+                </Badge>
+              </div>
+              
+              <div className="space-y-2">
+                {categoryAlerts.map((alert) => (
+                  <div 
+                    key={alert.id} 
+                    className="border rounded-lg p-3 hover:bg-muted/50 transition-colors"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          {getSeverityIcon(alert.severity)}
+                          <h5 className="font-medium">{alert.itemName}</h5>
+                          {getSeverityBadge(alert.severity)}
+                        </div>
+                        <p className="text-sm text-muted-foreground mb-2">
+                          {alert.description}
+                        </p>
+                        <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                          <span>Estoque: {QuantityUtils.formatKg(QuantityUtils.kgToGrams(alert.currentStock))}kg</span>
+                          <span>Limite: {QuantityUtils.formatKg(QuantityUtils.kgToGrams(alert.threshold))}kg</span>
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-2 ml-4">
+                        {onItemClick && (
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => onItemClick(alert.id.replace('stock-alert-', ''))}
+                          >
+                            Ver Item
+                          </Button>
+                        )}
+                        <Button variant="outline" size="sm">
+                          <ShoppingCart className="w-3 h-3 mr-1" />
+                          Comprar
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}

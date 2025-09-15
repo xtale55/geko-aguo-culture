@@ -1,10 +1,10 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, Droplets, Fish, ClipboardList } from "lucide-react";
+import { AlertTriangle, Droplets, Fish, ClipboardList, Package } from "lucide-react";
 
 interface Alert {
   id: string;
-  type: 'water' | 'mortality' | 'task';
+  type: 'water' | 'mortality' | 'task' | 'stock';
   title: string;
   description: string;
   severity: 'high' | 'medium' | 'low';
@@ -25,6 +25,8 @@ export function AlertsModal({ isOpen, onClose, alerts }: AlertsModalProps) {
         return <Fish className="h-4 w-4" />;
       case 'task':
         return <ClipboardList className="h-4 w-4" />;
+      case 'stock':
+        return <Package className="h-4 w-4" />;
       default:
         return <AlertTriangle className="h-4 w-4" />;
     }
@@ -59,6 +61,8 @@ export function AlertsModal({ isOpen, onClose, alerts }: AlertsModalProps) {
         return 'Mortalidade';
       case 'task':
         return 'Tarefas Pendentes';
+      case 'stock':
+        return 'Estoque';
       default:
         return 'Outros';
     }

@@ -434,6 +434,54 @@ export type Database = {
           },
         ]
       }
+      inventory_movements: {
+        Row: {
+          created_at: string
+          created_by: string
+          farm_id: string
+          id: string
+          inventory_item_id: string
+          movement_type: string
+          new_quantity: number
+          notes: string | null
+          previous_quantity: number
+          quantity_change: number
+          reason: string | null
+          reference_id: string | null
+          reference_type: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          farm_id: string
+          id?: string
+          inventory_item_id: string
+          movement_type: string
+          new_quantity: number
+          notes?: string | null
+          previous_quantity: number
+          quantity_change: number
+          reason?: string | null
+          reference_id?: string | null
+          reference_type?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          farm_id?: string
+          id?: string
+          inventory_item_id?: string
+          movement_type?: string
+          new_quantity?: number
+          notes?: string | null
+          previous_quantity?: number
+          quantity_change?: number
+          reason?: string | null
+          reference_id?: string | null
+          reference_type?: string | null
+        }
+        Relationships: []
+      }
       mortality_records: {
         Row: {
           created_at: string | null

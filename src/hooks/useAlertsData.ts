@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { useStockAlerts } from './useStockAlerts';
 
 interface PondData {
   id: string;
@@ -41,11 +42,12 @@ interface InventoryData {
   name: string;
   quantity: number;
   category: string;
+  farm_id: string;
 }
 
 interface Alert {
   id: string;
-  type: 'water' | 'mortality' | 'task';
+  type: 'water' | 'mortality' | 'task' | 'stock';
   title: string;
   description: string;
   severity: 'high' | 'medium' | 'low';
@@ -56,8 +58,21 @@ export function useAlertsData(
   waterQualityData: WaterQualityData[] | undefined,
   inventoryData: InventoryData[] | undefined
 ): Alert[] {
+  const stockAlerts = useStockAlerts(inventoryData);
+  
   return useMemo(() => {
     const alerts: Alert[] = [];
+
+    // Add stock alerts from the new hook
+    stockAlerts.forEach(stockAlert => {
+      alerts.push({
+        id: stockAlert.id,
+        type: stockAlert.type,
+        title: stockAlert.title,
+        description: stockAlert.description,
+        severity: stockAlert.severity
+      });
+    });
     const today = new Date().toISOString().split('T')[0];
 
     // Water quality alerts - only use the latest measurement per pond
@@ -185,26 +200,11 @@ export function useAlertsData(
       });
     }
 
-    // Low stock alerts
-    if (inventoryData?.length) {
-      const lowStockItems = inventoryData.filter(item => 
-        item.category === 'Ração' && item.quantity < 100
-      );
-      
-      lowStockItems.forEach(item => {
-        alerts.push({
-          id: `low-stock-${item.id}`,
-          type: 'task',
-          title: 'Estoque baixo',
-          description: `${item.name}: apenas ${item.quantity}kg restantes`,
-          severity: 'medium'
-        });
-      });
-    }
+    // Note: Low stock alerts are now handled by the useStockAlerts hook above
 
     return alerts.sort((a, b) => {
       const severityOrder = { high: 3, medium: 2, low: 1 };
       return severityOrder[b.severity] - severityOrder[a.severity];
     });
-  }, [pondsData, waterQualityData, inventoryData]);
+  }, [pondsData, waterQualityData, inventoryData, stockAlerts]);
 }

@@ -14,6 +14,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { Layout } from "@/components/Layout";
 import { useNavigate } from "react-router-dom";
 import { LoadingScreen } from "@/components/LoadingScreen";
+import { StockAlerts } from "@/components/inventory/StockAlerts";
+import { ConsumptionForecast } from "@/components/inventory/ConsumptionForecast";
+import { MovementHistory } from "@/components/inventory/MovementHistory";
 
 interface InventoryItem {
   id: string;
@@ -48,6 +51,9 @@ export default function Inventory() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
   const [loading, setLoading] = useState(true);
+  const [feedingRecords, setFeedingRecords] = useState([]);
+  const [inputApplications, setInputApplications] = useState([]);
+  const [selectedItemForHistory, setSelectedItemForHistory] = useState<InventoryItem | null>(null);
   const { toast } = useToast();
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -67,6 +73,8 @@ export default function Inventory() {
     if (user) {
       fetchFarms();
       fetchInventoryItems();
+      fetchFeedingData();
+      fetchInputApplicationsData();
     }
   }, [user]);
 
@@ -109,6 +117,22 @@ export default function Inventory() {
       setItems(data || []);
     }
     setLoading(false);
+  };
+
+  const fetchFeedingData = async () => {
+    const { data } = await supabase
+      .from('feeding_records')
+      .select('*')
+      .gte('feeding_date', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
+    setFeedingRecords(data || []);
+  };
+
+  const fetchInputApplicationsData = async () => {
+    const { data } = await supabase
+      .from('input_applications')
+      .select('*')
+      .gte('application_date', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
+    setInputApplications(data || []);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -434,6 +458,32 @@ export default function Inventory() {
               </CardContent>
             </Card>
           </div>
+
+          {/* Stock Alerts */}
+          <StockAlerts 
+            inventoryData={items} 
+            onItemClick={(itemId) => {
+              const item = items.find(i => i.id === itemId);
+              if (item) setSelectedItemForHistory(item);
+            }}
+          />
+
+          {/* Consumption Forecast */}
+          <ConsumptionForecast 
+            inventoryData={items}
+            feedingRecords={feedingRecords}
+            inputApplications={inputApplications}
+          />
+
+          {/* Movement History Dialog */}
+          {selectedItemForHistory && (
+            <MovementHistory
+              itemId={selectedItemForHistory.id}
+              itemName={selectedItemForHistory.name}
+              itemCategory={selectedItemForHistory.category}
+              currentStock={QuantityUtils.gramsToKg(selectedItemForHistory.quantity)}
+            />
+          )}
 
           {/* Lista de Itens por Categoria */}
           <div className="space-y-6">

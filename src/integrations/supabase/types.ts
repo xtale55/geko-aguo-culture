@@ -386,7 +386,6 @@ export type Database = {
           entry_date: string
           farm_id: string
           id: string
-          minimum_stock_threshold: number | null
           name: string
           quantity: number
           quantity_backup: number | null
@@ -402,7 +401,6 @@ export type Database = {
           entry_date: string
           farm_id: string
           id?: string
-          minimum_stock_threshold?: number | null
           name: string
           quantity?: number
           quantity_backup?: number | null
@@ -418,7 +416,6 @@ export type Database = {
           entry_date?: string
           farm_id?: string
           id?: string
-          minimum_stock_threshold?: number | null
           name?: string
           quantity?: number
           quantity_backup?: number | null

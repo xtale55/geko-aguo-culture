@@ -7,7 +7,6 @@ interface InventoryItem {
   category: string;
   quantity: number;
   farm_id: string;
-  minimum_stock_threshold?: number;
 }
 
 interface StockAlert {
@@ -37,10 +36,7 @@ export function useStockAlerts(inventoryData: InventoryItem[] | undefined): Stoc
     const alerts: StockAlert[] = [];
 
     inventoryData.forEach(item => {
-      // Usar limite personalizado se definido, senão usar o padrão da categoria
-      const threshold = item.minimum_stock_threshold || 
-        CATEGORY_THRESHOLDS[item.category as keyof typeof CATEGORY_THRESHOLDS] || 
-        CATEGORY_THRESHOLDS['Outros'];
+      const threshold = CATEGORY_THRESHOLDS[item.category as keyof typeof CATEGORY_THRESHOLDS] || CATEGORY_THRESHOLDS['Outros'];
       
       if (item.quantity <= threshold) {
         const currentStockKg = QuantityUtils.gramsToKg(item.quantity);

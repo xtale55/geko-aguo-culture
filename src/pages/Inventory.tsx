@@ -1,44 +1,37 @@
 import { useState, useEffect } from "react";
-import { 
-  Plus, 
-  Search, 
-  Edit2, 
-  Trash2, 
-  MoreVertical,
-  Settings
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { LoadingScreen } from '@/components/LoadingScreen';
-import { MovementHistory } from '@/components/inventory/MovementHistory';
-import { NewPurchaseModal } from '@/components/inventory/NewPurchaseModal';
-import { AlertConfigModal } from '@/components/inventory/AlertConfigModal';
-import { StockAdjustmentModal } from '@/components/inventory/StockAdjustmentModal';
-import { QuantityUtils } from '@/lib/quantityUtils';
-import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
-import { Badge } from '@/components/ui/badge';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { Plus, Search, Package, Trash2, Edit, ArrowLeft, Calendar, Clock, TrendingDown } from "lucide-react";
+import { QuantityUtils } from "@/lib/quantityUtils";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { Layout } from "@/components/Layout";
+import { useNavigate } from "react-router-dom";
+import { LoadingScreen } from "@/components/LoadingScreen";
+import { StockAlerts } from "@/components/inventory/StockAlerts";
+import { MovementHistory } from "@/components/inventory/MovementHistory";
+import { useConsumptionForecast } from "@/hooks/useConsumptionForecast";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 interface InventoryItem {
   id: string;
   name: string;
   category: string;
+  brand: string | null;
+  supplier: string | null;
   quantity: number;
   unit_price: number;
   total_value: number;
   entry_date: string;
-  supplier?: string;
-  brand?: string;
   farm_id: string;
-  minimum_stock_threshold?: number;
 }
 
 interface Farm {
@@ -47,133 +40,115 @@ interface Farm {
 }
 
 const CATEGORIES = [
-  'Ração',
-  'Probióticos', 
-  'Fertilizantes',
-  'Outros'
+  "Ração",
+  "Probióticos",
+  "Fertilizantes",
+  "Outros"
 ];
 
 export default function Inventory() {
-  const [inventory, setInventory] = useState<InventoryItem[]>([]);
+  const [items, setItems] = useState<InventoryItem[]>([]);
   const [farms, setFarms] = useState<Farm[]>([]);
-  const [selectedFarm, setSelectedFarm] = useState<string>('');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("all");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [feedingRecords, setFeedingRecords] = useState([]);
+  const [inputApplications, setInputApplications] = useState([]);
   const [selectedItemForHistory, setSelectedItemForHistory] = useState<InventoryItem | null>(null);
-  const [newPurchaseItem, setNewPurchaseItem] = useState<InventoryItem | null>(null);
-  const [alertConfigItem, setAlertConfigItem] = useState<InventoryItem | null>(null);
-  const [stockAdjustmentItem, setStockAdjustmentItem] = useState<InventoryItem | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
   const [formData, setFormData] = useState({
-    name: '',
-    category: '',
-    brand: '',
-    supplier: '',
+    name: "",
+    category: "",
+    brand: "",
+    supplier: "",
     quantity: '',
     unit_price: '',
-    entry_date: new Date().toISOString().split('T')[0]
+    entry_date: new Date().toISOString().split('T')[0],
+    farm_id: ""
   });
-  const { toast } = useToast();
 
   useEffect(() => {
-    fetchFarms();
-  }, []);
-
-  useEffect(() => {
-    if (selectedFarm) {
-      fetchInventory();
+    if (user) {
+      fetchFarms();
+      fetchInventoryItems();
+      fetchFeedingData();
+      fetchInputApplicationsData();
     }
-  }, [selectedFarm]);
+  }, [user]);
 
   const fetchFarms = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('farms')
-        .select('id, name')
-        .order('name');
+    const { data, error } = await supabase
+      .from('farms')
+      .select('id, name')
+      .order('name');
 
-      if (error) throw error;
-
+    if (error) {
+      toast({
+        title: "Erro ao carregar fazendas",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
       setFarms(data || []);
       if (data && data.length > 0) {
-        setSelectedFarm(data[0].id);
+        setFormData(prev => ({ ...prev, farm_id: data[0].id }));
       }
-    } catch (error: any) {
-      console.error('Erro ao carregar fazendas:', error);
-      toast({
-        title: 'Erro',
-        description: 'Erro ao carregar fazendas.',
-        variant: 'destructive',
-      });
     }
   };
 
-  const fetchInventory = async () => {
-    if (!selectedFarm) return;
-    
-    setIsLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('inventory')
-        .select('*')
-        .eq('farm_id', selectedFarm)
-        .order('name');
+  const fetchInventoryItems = async () => {
+    const { data, error } = await supabase
+      .from('inventory')
+      .select(`
+        *,
+        farms!inner(name)
+      `)
+      .order('entry_date', { ascending: false });
 
-      if (error) throw error;
-
-      setInventory(data || []);
-    } catch (error: any) {
-      console.error('Erro ao carregar inventário:', error);
+    if (error) {
       toast({
-        title: 'Erro',
-        description: 'Erro ao carregar inventário.',
-        variant: 'destructive',
+        title: "Erro ao carregar inventário",
+        description: error.message,
+        variant: "destructive",
       });
-    } finally {
-      setIsLoading(false);
+    } else {
+      setItems(data || []);
     }
+    setLoading(false);
   };
 
+  const fetchFeedingData = async () => {
+    const { data } = await supabase
+      .from('feeding_records')
+      .select('*')
+      .gte('feeding_date', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
+    setFeedingRecords(data || []);
+  };
+
+  const fetchInputApplicationsData = async () => {
+    const { data } = await supabase
+      .from('input_applications')
+      .select('*')
+      .gte('application_date', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
+    setInputApplications(data || []);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!selectedFarm) {
-      toast({
-        title: 'Erro',
-        description: 'Selecione uma fazenda primeiro.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    const quantityGrams = QuantityUtils.parseInputToGrams(formData.quantity);
-    const unitPrice = parseFloat(formData.unit_price);
-
-    if (!QuantityUtils.isValidKg(formData.quantity) || unitPrice < 0) {
-      toast({
-        title: 'Erro',
-        description: 'Verifique os valores inseridos.',
-        variant: 'destructive',
-      });
-      return;
-    }
+    // Anti-Drift: usar QuantityUtils para conversão precisa
+    const quantity = QuantityUtils.parseInputToGrams(formData.quantity);
+    const quantityKg = QuantityUtils.gramsToKg(quantity);
+    const unit_price = parseFloat(formData.unit_price.toString()) || 0;
+    const total_value = quantityKg * unit_price;
+    const itemData = { ...formData, quantity, unit_price, total_value };
 
     try {
-      const itemData = {
-        name: formData.name,
-        category: formData.category,
-        brand: formData.brand || null,
-        supplier: formData.supplier || null,
-        quantity: quantityGrams,
-        unit_price: unitPrice,
-        total_value: QuantityUtils.gramsToKg(quantityGrams) * unitPrice,
-        entry_date: formData.entry_date,
-        farm_id: selectedFarm,
-      };
-
       if (editingItem) {
         const { error } = await supabase
           .from('inventory')
@@ -181,10 +156,10 @@ export default function Inventory() {
           .eq('id', editingItem.id);
 
         if (error) throw error;
-
+        
         toast({
-          title: 'Sucesso',
-          description: 'Item atualizado com sucesso!',
+          title: "Item atualizado",
+          description: "Item do inventário atualizado com sucesso.",
         });
       } else {
         const { error } = await supabase
@@ -192,455 +167,495 @@ export default function Inventory() {
           .insert([itemData]);
 
         if (error) throw error;
-
+        
         toast({
-          title: 'Sucesso',
-          description: 'Item adicionado com sucesso!',
+          title: "Item adicionado",
+          description: "Item adicionado ao inventário com sucesso.",
         });
       }
 
-      setIsDialogOpen(false);
-      setEditingItem(null);
+      fetchInventoryItems();
       resetForm();
-      fetchInventory();
     } catch (error: any) {
-      console.error('Erro ao salvar item:', error);
       toast({
-        title: 'Erro',
-        description: 'Erro ao salvar item.',
-        variant: 'destructive',
+        title: "Erro",
+        description: error.message,
+        variant: "destructive",
       });
     }
   };
 
-  const deleteItem = async (itemId: string) => {
-    try {
-      const { error } = await supabase
-        .from('inventory')
-        .delete()
-        .eq('id', itemId);
+  const handleDelete = async (id: string) => {
+    if (!confirm("Tem certeza que deseja excluir este item?")) return;
 
-      if (error) throw error;
+    const { error } = await supabase
+      .from('inventory')
+      .delete()
+      .eq('id', id);
 
+    if (error) {
       toast({
-        title: 'Sucesso',
-        description: 'Item excluído com sucesso!',
+        title: "Erro ao excluir",
+        description: error.message,
+        variant: "destructive",
       });
-
-      fetchInventory();
-    } catch (error: any) {
-      console.error('Erro ao excluir item:', error);
+    } else {
       toast({
-        title: 'Erro',
-        description: 'Erro ao excluir item.',
-        variant: 'destructive',
+        title: "Item excluído",
+        description: "Item removido do inventário.",
       });
+      fetchInventoryItems();
     }
   };
 
   const resetForm = () => {
     setFormData({
-      name: '',
-      category: '',
-      brand: '',
-      supplier: '',
+      name: "",
+      category: "",
+      brand: "",
+      supplier: "",
       quantity: '',
       unit_price: '',
-      entry_date: new Date().toISOString().split('T')[0]
+      entry_date: new Date().toISOString().split('T')[0],
+      farm_id: farms[0]?.id || ""
     });
+    setEditingItem(null);
+    setIsDialogOpen(false);
   };
 
-  const openEditDialog = (item: InventoryItem) => {
+  const startEdit = (item: InventoryItem) => {
     setEditingItem(item);
+    // Anti-Drift: converter gramas para kg na interface
+    const quantityKg = QuantityUtils.gramsToKg(item.quantity);
     setFormData({
       name: item.name,
       category: item.category,
-      brand: item.brand || '',
-      supplier: item.supplier || '',
-      quantity: QuantityUtils.gramsToKg(item.quantity).toString(),
+      brand: item.brand || "",
+      supplier: item.supplier || "",
+      quantity: quantityKg.toString(),
       unit_price: item.unit_price.toString(),
-      entry_date: item.entry_date
+      entry_date: item.entry_date,
+      farm_id: item.farm_id
     });
     setIsDialogOpen(true);
   };
 
-  const filteredInventory = inventory.filter(item => {
+  const filteredItems = items.filter(item => {
     const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          item.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          (item.brand && item.brand.toLowerCase().includes(searchTerm.toLowerCase())) ||
-                          (item.supplier && item.supplier.toLowerCase().includes(searchTerm.toLowerCase()));
-    const matchesCategory = categoryFilter === 'all' || item.category === categoryFilter;
+                         item.brand?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         item.supplier?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = selectedCategory === "all" || item.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
 
-  const groupedInventory = filteredInventory.reduce((acc, item) => {
-    if (!acc[item.category]) {
-      acc[item.category] = [];
-    }
-    acc[item.category].push(item);
-    return acc;
-  }, {} as Record<string, InventoryItem[]>);
+  const totalValue = filteredItems.reduce((sum, item) => {
+    // Anti-Drift: usar quantidades em kg para cálculo de valor total
+    const quantityKg = QuantityUtils.gramsToKg(item.quantity);
+    return sum + (quantityKg * item.unit_price);
+  }, 0);
 
-  const totalItems = inventory.length;
-  const totalValue = inventory.reduce((sum, item) => sum + item.total_value, 0);
+  // Get consumption forecasts
+  const forecasts = useConsumptionForecast(items, feedingRecords, inputApplications);
+  
+  // Helper functions for forecast display
+  const getForecastForItem = (itemId: string) => {
+    return forecasts.find(f => f.itemId === itemId);
+  };
 
+  const getProgressValue = (daysRemaining: number) => {
+    const maxDays = 30;
+    return Math.min(100, Math.max(0, (daysRemaining / maxDays) * 100));
+  };
 
-  if (isLoading) {
-    return <LoadingScreen />;
+  const getUrgencyColor = (daysRemaining: number) => {
+    if (daysRemaining <= 3) return 'text-red-600';
+    if (daysRemaining <= 7) return 'text-orange-600';
+    if (daysRemaining <= 14) return 'text-yellow-600';
+    return 'text-green-600';
+  };
+
+  if (loading) {
+    return <LoadingScreen message="Carregando estoque..." />;
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Inventário</h1>
-          <p className="text-muted-foreground">
-            Gerencie os itens do seu inventário
-          </p>
-        </div>
-        <Button onClick={() => setIsDialogOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Novo Item
-        </Button>
-      </div>
-
-      {/* Filtros */}
-      <div className="flex gap-4 flex-wrap">
-        <Select value={selectedFarm} onValueChange={setSelectedFarm}>
-          <SelectTrigger className="w-[200px]">
-            <SelectValue placeholder="Selecione a fazenda" />
-          </SelectTrigger>
-          <SelectContent>
-            {farms.map((farm) => (
-              <SelectItem key={farm.id} value={farm.id}>
-                {farm.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar itens..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-8"
-          />
-        </div>
-
-        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Todas as categorias" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todas as categorias</SelectItem>
-            {CATEGORIES.map((category) => (
-              <SelectItem key={category} value={category}>
-                {category}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Resumo */}
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total de Itens</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalItems}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Valor Total</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              R$ {totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Lista de Itens por Categoria */}
-      {Object.entries(groupedInventory).map(([category, items]) => (
-        <Card key={category}>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              {category}
-              <Badge variant="secondary">{items.length}</Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {items.map((item) => (
-              <div key={item.id} className="border rounded-lg p-4 space-y-3">
-                <div className="flex justify-between items-start">
-                  <div className="space-y-1">
-                    <h3 className="font-semibold">{item.name}</h3>
-                    {item.brand && (
-                      <p className="text-sm text-muted-foreground">Marca: {item.brand}</p>
-                    )}
-                    {item.supplier && (
-                      <p className="text-sm text-muted-foreground">Fornecedor: {item.supplier}</p>
-                    )}
-                  </div>
-                  <div className="text-right space-y-1">
-                    <p className="font-medium">
-                      {QuantityUtils.formatKg(item.quantity)}kg
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      R$ {item.unit_price.toFixed(2)}/kg
-                    </p>
-                    <p className="text-sm font-medium">
-                      Total: R$ {item.total_value.toFixed(2)}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between pt-2 border-t">
-                  <p className="text-xs text-muted-foreground">
-                    Adicionado em {format(new Date(item.entry_date), 'dd/MM/yyyy', { locale: ptBR })}
-                  </p>
-                  <div className="flex gap-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => setNewPurchaseItem(item)}
-                      className="bg-success/10 hover:bg-success/20 border-success/20"
-                    >
-                      <Plus className="h-4 w-4 mr-1" />
-                      Nova Compra
-                    </Button>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="outline" size="sm">
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => setAlertConfigItem(item)}>
-                          <Settings className="h-4 w-4 mr-2" />
-                          Configurar Alertas
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setStockAdjustmentItem(item)}>
-                          <Edit2 className="h-4 w-4 mr-2" />
-                          Ajustar Estoque
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem 
-                          onClick={() => deleteItem(item.id)}
-                          className="text-destructive"
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Excluir Item
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                  </div>
-                </div>
-              )
-            )}
-          </CardContent>
-        </Card>
-      ))}
-
-      {filteredInventory.length === 0 && (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-8">
-            <p className="text-muted-foreground">Nenhum item encontrado</p>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Dialog para Adicionar/Editar Item */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>
-              {editingItem ? 'Editar Item' : 'Adicionar Novo Item'}
-            </DialogTitle>
-            <DialogDescription>
-              {editingItem ? 'Edite as informações do item.' : 'Adicione um novo item ao inventário.'}
-            </DialogDescription>
-          </DialogHeader>
-          
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid gap-4">
-              <div>
-                <Label htmlFor="name">Nome do Item *</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="Ex: Ração comercial extrusada"
-                  required
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="category">Categoria *</Label>
-                <Select 
-                  value={formData.category} 
-                  onValueChange={(value) => setFormData({ ...formData, category: value })}
-                  required
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione a categoria" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {CATEGORIES.map((category) => (
-                      <SelectItem key={category} value={category}>
-                        {category}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="brand">Marca</Label>
-                  <Input
-                    id="brand"
-                    value={formData.brand}
-                    onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
-                    placeholder="Ex: Guabi"
-                  />
-                </div>
-                
-                <div>
-                  <Label htmlFor="supplier">Fornecedor</Label>
-                  <Input
-                    id="supplier"
-                    value={formData.supplier}
-                    onChange={(e) => setFormData({ ...formData, supplier: e.target.value })}
-                    placeholder="Ex: Agropecuária XYZ"
-                  />
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="quantity">Quantidade (kg) *</Label>
-                  <Input
-                    id="quantity"
-                    type="number"
-                    step="0.1"
-                    min="0"
-                    value={formData.quantity}
-                    onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
-                    placeholder="Ex: 25.5"
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <Label htmlFor="unit_price">Preço Unitário (R$/kg) *</Label>
-                  <Input
-                    id="unit_price"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={formData.unit_price}
-                    onChange={(e) => setFormData({ ...formData, unit_price: e.target.value })}
-                    placeholder="Ex: 12.50"
-                    required
-                  />
-                </div>
-              </div>
-              
-              <div>
-                <Label htmlFor="entry_date">Data de Entrada *</Label>
-                <Input
-                  id="entry_date"
-                  type="date"
-                  value={formData.entry_date}
-                  onChange={(e) => setFormData({ ...formData, entry_date: e.target.value })}
-                  required
-                />
-              </div>
-            </div>
-            
-            <DialogFooter>
+    <Layout>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-emerald-50/20">
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
               <Button 
-                type="button" 
-                variant="outline" 
-                onClick={() => {
-                  setIsDialogOpen(false);
-                  setEditingItem(null);
-                  resetForm();
-                }}
+                variant="ghost" 
+                size="sm" 
+                onClick={() => navigate('/dashboard')}
+                className="mb-2"
               >
-                Cancelar
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Voltar
               </Button>
-              <Button type="submit">
-                {editingItem ? 'Salvar Alterações' : 'Adicionar Item'}
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-primary to-emerald-600 bg-clip-text text-transparent mb-2">
+                Controle de Estoque
+              </h1>
+            </div>
+            <div className="flex gap-2">
+              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button onClick={() => setEditingItem(null)}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Adicionar Item
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl">
+                  <DialogHeader>
+                    <DialogTitle>{editingItem ? "Editar Item" : "Adicionar Item"}</DialogTitle>
+                  </DialogHeader>
+                  <form onSubmit={handleSubmit} className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="farm">Fazenda</Label>
+                        <Select value={formData.farm_id} onValueChange={(value) => setFormData({...formData, farm_id: value})}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {farms.map(farm => (
+                              <SelectItem key={farm.id} value={farm.id}>{farm.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label htmlFor="category">Categoria</Label>
+                        <Select value={formData.category} onValueChange={(value) => setFormData({...formData, category: value})}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione a categoria" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {CATEGORIES.map(category => (
+                              <SelectItem key={category} value={category}>{category}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="name">Nome do Item</Label>
+                        <Input
+                          id="name"
+                          value={formData.name}
+                          onChange={(e) => setFormData({...formData, name: e.target.value})}
+                          required
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="brand">Marca</Label>
+                        <Input
+                          id="brand"
+                          value={formData.brand}
+                          onChange={(e) => setFormData({...formData, brand: e.target.value})}
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="supplier">Fornecedor</Label>
+                      <Input
+                        id="supplier"
+                        value={formData.supplier}
+                        onChange={(e) => setFormData({...formData, supplier: e.target.value})}
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-4">
+                      <div>
+                        <Label htmlFor="quantity">Quantidade (kg)</Label>
+                        <Input
+                          id="quantity"
+                          type="number"
+                          step="0.01"
+                          value={formData.quantity}
+                          onChange={(e) => setFormData({...formData, quantity: e.target.value})}
+                          required
+                          placeholder="Ex: 30 (para 1 saca de 30kg)"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="unit_price">Preço Unitário (R$)</Label>
+                        <Input
+                          id="unit_price"
+                          type="number"
+                          step="0.01"
+                          value={formData.unit_price}
+                          onChange={(e) => setFormData({...formData, unit_price: e.target.value})}
+                          required
+                          placeholder="Ex: 80.00"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="entry_date">Data de Entrada</Label>
+                        <Input
+                          id="entry_date"
+                          type="date"
+                          value={formData.entry_date}
+                          onChange={(e) => setFormData({...formData, entry_date: e.target.value})}
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end space-x-2">
+                      <Button type="button" variant="outline" onClick={resetForm}>
+                        Cancelar
+                      </Button>
+                      <Button type="submit">
+                        {editingItem ? "Atualizar" : "Adicionar"}
+                      </Button>
+                    </div>
+                  </form>
+                </DialogContent>
+              </Dialog>
+              
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => {/* TODO: Implement mixture feature */}}
+              >
+                Mistura
               </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+            </div>
+          </div>
 
-      {/* Histórico de Movimentações */}
-      {selectedItemForHistory && (
-        <MovementHistory
-          itemId={selectedItemForHistory.id}
-          itemName={selectedItemForHistory.name}
-          itemCategory={selectedItemForHistory.category}
-          currentStock={selectedItemForHistory.quantity}
-        />
-      )}
+          {/* Filtros e Resumo */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <Card className="md:col-span-2">
+              <CardContent className="p-4">
+                <div className="flex gap-4">
+                  <div className="flex-1">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                      <Input
+                        placeholder="Buscar por nome, marca ou fornecedor..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-10"
+                      />
+                    </div>
+                  </div>
+                  <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                    <SelectTrigger className="w-48">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todas as categorias</SelectItem>
+                      {CATEGORIES.map(category => (
+                        <SelectItem key={category} value={category}>{category}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </CardContent>
+            </Card>
 
-      {/* Modal de Nova Compra */}
-      {newPurchaseItem && (
-        <NewPurchaseModal
-          isOpen={!!newPurchaseItem}
-          onClose={() => setNewPurchaseItem(null)}
-          item={{
-            id: newPurchaseItem.id,
-            name: newPurchaseItem.name,
-            category: newPurchaseItem.category,
-            currentStock: newPurchaseItem.quantity
-          }}
-          onSuccess={fetchInventory}
-        />
-      )}
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2">
+                  <Package className="h-4 w-4 text-primary" />
+                  <div>
+                    <p className="text-sm text-muted-foreground">Total de Itens</p>
+                    <p className="text-2xl font-bold">{filteredItems.length}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
-      {/* Modal de Configuração de Alertas */}
-      {alertConfigItem && (
-        <AlertConfigModal
-          isOpen={!!alertConfigItem}
-          onClose={() => setAlertConfigItem(null)}
-          item={{
-            id: alertConfigItem.id,
-            name: alertConfigItem.name,
-            category: alertConfigItem.category,
-            currentStock: alertConfigItem.quantity,
-            minimum_stock_threshold: alertConfigItem.minimum_stock_threshold
-          }}
-          onSuccess={fetchInventory}
-        />
-      )}
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Valor Total</p>
+                    <p className="text-2xl font-bold">R$ {totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
 
-      {/* Modal de Ajuste de Estoque */}
-      {stockAdjustmentItem && (
-        <StockAdjustmentModal
-          isOpen={!!stockAdjustmentItem}
-          onClose={() => setStockAdjustmentItem(null)}
-          item={{
-            id: stockAdjustmentItem.id,
-            name: stockAdjustmentItem.name,
-            category: stockAdjustmentItem.category,
-            currentStock: stockAdjustmentItem.quantity
-          }}
-          onSuccess={fetchInventory}
-        />
-      )}
-    </div>
+          {/* Stock Alerts */}
+          <StockAlerts 
+            inventoryData={items} 
+            onItemClick={(itemId) => {
+              const item = items.find(i => i.id === itemId);
+              if (item) setSelectedItemForHistory(item);
+            }}
+          />
+
+          {/* Lista de Itens por Categoria */}
+          <div className="space-y-6">
+            {(() => {
+              const groupedItems = filteredItems.reduce((groups, item) => {
+                const category = item.category;
+                if (!groups[category]) {
+                  groups[category] = [];
+                }
+                groups[category].push(item);
+                return groups;
+              }, {} as Record<string, typeof filteredItems>);
+
+              return Object.entries(groupedItems).map(([category, categoryItems]) => (
+                <div key={category} className="space-y-4">
+                  <div className="flex items-center gap-2 pb-2 border-b">
+                    <div className="h-2 w-2 rounded-full bg-primary"></div>
+                    <h3 className="text-lg font-semibold">{category}</h3>
+                    <Badge variant="outline" className="ml-auto">
+                      {categoryItems.length} {categoryItems.length === 1 ? 'item' : 'itens'}
+                    </Badge>
+                  </div>
+                  
+                   <div className="grid gap-4">
+                     {categoryItems.map((item) => {
+                       const forecast = getForecastForItem(item.id);
+                       
+                       return (
+                         <Card key={item.id}>
+                           <CardContent className="p-4">
+                             <div className="flex justify-between items-start">
+                               <div className="flex-1 grid grid-cols-1 md:grid-cols-5 gap-4">
+                                 <div>
+                                   <h3 className="font-semibold">{item.name}</h3>
+                                   <Badge variant="secondary" className="mt-1">
+                                     {item.category}
+                                   </Badge>
+                                 </div>
+                                 
+                                 <div>
+                                   <p className="text-sm text-muted-foreground">Marca</p>
+                                   <p className="font-medium">{item.brand || "N/A"}</p>
+                                 </div>
+                                 
+                                 <div>
+                                   <p className="text-sm text-muted-foreground">Quantidade</p>
+                                   <p className="font-medium">{QuantityUtils.formatKg(item.quantity)} kg</p>
+                                 </div>
+                                 
+                                 <div>
+                                   <p className="text-sm text-muted-foreground">Preço Unit.</p>
+                                   <p className="font-medium">R$ {item.unit_price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                                 </div>
+                                 
+                                 <div>
+                                   <p className="text-sm text-muted-foreground">Valor Total</p>
+                                   <p className="font-bold text-primary">R$ {(QuantityUtils.gramsToKg(item.quantity) * item.unit_price).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                                 </div>
+                               </div>
+                               
+                               <div className="flex gap-2">
+                                 <Button
+                                   variant="outline"
+                                   size="sm"
+                                   onClick={() => startEdit(item)}
+                                 >
+                                   <Edit className="w-4 h-4" />
+                                 </Button>
+                                 <Button
+                                   variant="outline"
+                                   size="sm"
+                                   onClick={() => handleDelete(item.id)}
+                                   className="text-destructive hover:text-destructive"
+                                 >
+                                   <Trash2 className="w-4 h-4" />
+                                 </Button>
+                               </div>
+                             </div>
+                             
+                             {/* Consumption Forecast Info */}
+                             {forecast && (
+                               <div className="mt-4 pt-4 border-t space-y-3">
+                                 <div className="flex items-center justify-between">
+                                   <div className="flex items-center gap-2">
+                                     <TrendingDown className="w-4 h-4 text-muted-foreground" />
+                                     <span className="text-sm font-medium">Previsão de Consumo</span>
+                                   </div>
+                                   <div className={`flex items-center gap-1 text-sm font-semibold ${getUrgencyColor(forecast.estimatedDaysRemaining)}`}>
+                                     {forecast.estimatedDaysRemaining <= 7 ? (
+                                       <Clock className="w-4 h-4" />
+                                     ) : (
+                                       <Calendar className="w-4 h-4" />
+                                     )}
+                                     {forecast.estimatedDaysRemaining > 999 ? '999+' : forecast.estimatedDaysRemaining} dias
+                                   </div>
+                                 </div>
+                                 
+                                 <div className="space-y-2">
+                                   <div className="flex justify-between text-xs text-muted-foreground">
+                                     <span>Duração estimada</span>
+                                     <span>{forecast.estimatedDaysRemaining > 999 ? 'Sem previsão' : `${forecast.estimatedDaysRemaining} dias restantes`}</span>
+                                   </div>
+                                   <Progress 
+                                     value={getProgressValue(forecast.estimatedDaysRemaining)} 
+                                     className="h-1.5"
+                                   />
+                                 </div>
+                                 
+                                 <div className="grid grid-cols-2 gap-4 text-xs">
+                                   <div>
+                                     <span className="text-muted-foreground">Consumo diário:</span>
+                                     <p className="font-medium">
+                                       {forecast.averageDailyConsumption > 0 
+                                         ? `${QuantityUtils.formatKg(QuantityUtils.kgToGrams(forecast.averageDailyConsumption))}kg/dia`
+                                         : 'Sem uso recente'
+                                       }
+                                     </p>
+                                   </div>
+                                   <div>
+                                     <span className="text-muted-foreground">Último uso:</span>
+                                     <p className="font-medium">
+                                       {forecast.lastUsageDate 
+                                         ? format(new Date(forecast.lastUsageDate), 'dd/MM/yy', { locale: ptBR })
+                                         : 'Nunca usado'
+                                       }
+                                     </p>
+                                   </div>
+                                 </div>
+                               </div>
+                             )}
+                           </CardContent>
+                         </Card>
+                       );
+                     })}
+                  </div>
+                </div>
+              ));
+            })()}
+          </div>
+
+          {filteredItems.length === 0 && (
+            <div className="text-center py-12">
+              <Package className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+              <h2 className="text-2xl font-semibold mb-2">
+                {searchTerm || selectedCategory !== "all" ? "Nenhum item encontrado" : "Estoque vazio"}
+              </h2>
+              <p className="text-muted-foreground mb-6">
+                {searchTerm || selectedCategory !== "all" 
+                  ? "Tente ajustar os filtros de busca." 
+                  : "Comece adicionando itens ao seu estoque."
+                }
+              </p>
+            </div>
+          )}
+
+          {/* Movement History - Last component */}
+          {selectedItemForHistory && (
+            <MovementHistory
+              itemId={selectedItemForHistory.id}
+              itemName={selectedItemForHistory.name}
+              itemCategory={selectedItemForHistory.category}
+              currentStock={QuantityUtils.gramsToKg(selectedItemForHistory.quantity)}
+            />
+          )}
+        </div>
+      </div>
+    </Layout>
   );
 }

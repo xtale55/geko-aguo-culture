@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Search, Package, Trash2, Edit, ArrowLeft, Calendar, Clock, TrendingDown } from "lucide-react";
+import { Plus, Search, Package, Trash2, Edit, ArrowLeft, Calendar, Clock, TrendingDown, MoreVertical, ShoppingCart, AlertTriangle } from "lucide-react";
 import { QuantityUtils } from "@/lib/quantityUtils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
@@ -302,7 +303,7 @@ export default function Inventory() {
                 <DialogTrigger asChild>
                   <Button onClick={() => setEditingItem(null)}>
                     <Plus className="w-4 h-4 mr-2" />
-                    Adicionar Item
+                    Adicionar Novo Item
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="max-w-2xl">
@@ -550,23 +551,67 @@ export default function Inventory() {
                                  </div>
                                </div>
                                
-                               <div className="flex gap-2">
-                                 <Button
-                                   variant="outline"
-                                   size="sm"
-                                   onClick={() => startEdit(item)}
-                                 >
-                                   <Edit className="w-4 h-4" />
-                                 </Button>
-                                 <Button
-                                   variant="outline"
-                                   size="sm"
-                                   onClick={() => handleDelete(item.id)}
-                                   className="text-destructive hover:text-destructive"
-                                 >
-                                   <Trash2 className="w-4 h-4" />
-                                 </Button>
-                               </div>
+                                <div className="flex gap-2">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                      // Para nova compra do mesmo item
+                                      setEditingItem(null);
+                                      setFormData({
+                                        name: item.name,
+                                        category: item.category,
+                                        brand: item.brand || "",
+                                        supplier: item.supplier || "",
+                                        quantity: '',
+                                        unit_price: '',
+                                        entry_date: new Date().toISOString().split('T')[0],
+                                        farm_id: item.farm_id
+                                      });
+                                      setIsDialogOpen(true);
+                                    }}
+                                    className="text-green-600 hover:text-green-700"
+                                  >
+                                    <ShoppingCart className="w-4 h-4 mr-1" />
+                                    Nova Compra
+                                  </Button>
+                                  
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                      >
+                                        <MoreVertical className="w-4 h-4" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                      <DropdownMenuItem 
+                                        onClick={() => {
+                                          // TODO: Implementar configuração de alertas
+                                          toast({
+                                            title: "Em desenvolvimento",
+                                            description: "Configuração de alertas será implementada em breve.",
+                                          });
+                                        }}
+                                      >
+                                        <AlertTriangle className="w-4 h-4 mr-2" />
+                                        Configurar Alertas
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => startEdit(item)}>
+                                        <Edit className="w-4 h-4 mr-2" />
+                                        Editar Item
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem 
+                                        onClick={() => handleDelete(item.id)}
+                                        className="text-destructive focus:text-destructive"
+                                      >
+                                        <Trash2 className="w-4 h-4 mr-2" />
+                                        Excluir Item
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                </div>
                              </div>
                              
                              {/* Consumption Forecast Info */}

@@ -20,9 +20,11 @@ import { StockAlerts } from "@/components/inventory/StockAlerts";
 import { MovementHistory } from "@/components/inventory/MovementHistory";
 import { NewPurchaseModal } from "@/components/inventory/NewPurchaseModal";
 import { AlertConfigModal } from "@/components/inventory/AlertConfigModal";
+import { PurchaseConfirmModal } from "@/components/inventory/PurchaseConfirmModal";
 import { useConsumptionForecast } from "@/hooks/useConsumptionForecast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { PURCHASE_UNITS, convertToGrams, calculatePricePerKg } from "@/lib/unitUtils";
 
 interface InventoryItem {
   id: string;
@@ -36,6 +38,9 @@ interface InventoryItem {
   entry_date: string;
   farm_id: string;
   minimum_stock_threshold: number | null;
+  purchase_unit?: string;
+  purchase_quantity?: number;
+  purchase_unit_price?: number;
 }
 
 interface Farm {
@@ -74,11 +79,15 @@ export default function Inventory() {
     category: "",
     brand: "",
     supplier: "",
-    quantity: '',
-    unit_price: '',
+    purchase_unit: "kg",
+    purchase_quantity: '',
+    purchase_unit_price: '',
     entry_date: new Date().toISOString().split('T')[0],
-    farm_id: ""
+    farm_id: "",
+    minimum_stock_threshold: ''
   });
+
+  const [confirmModalOpen, setConfirmModalOpen] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -158,17 +167,37 @@ export default function Inventory() {
     setInputApplications(data || []);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Anti-Drift: usar QuantityUtils para conversão precisa
-    const quantity = QuantityUtils.parseInputToGrams(formData.quantity);
-    const quantityKg = QuantityUtils.gramsToKg(quantity);
-    const unit_price = parseFloat(formData.unit_price.toString()) || 0;
-    const total_value = quantityKg * unit_price;
-    const itemData = { ...formData, quantity, unit_price, total_value };
+    setConfirmModalOpen(true);
+  };
 
+  const handleConfirmSubmit = async () => {
     try {
+      // Converte unidade de compra para gramas
+      const purchaseQuantity = parseFloat(formData.purchase_quantity) || 0;
+      const purchaseUnitPrice = parseFloat(formData.purchase_unit_price) || 0;
+      const quantity = convertToGrams(purchaseQuantity, formData.purchase_unit);
+      const unit_price = calculatePricePerKg(purchaseUnitPrice, formData.purchase_unit);
+      const total_value = (quantity / 1000) * unit_price;
+      const minimum_stock_threshold = formData.minimum_stock_threshold ? parseInt(formData.minimum_stock_threshold) : null;
+
+      const itemData = {
+        name: formData.name,
+        category: formData.category,
+        brand: formData.brand || null,
+        supplier: formData.supplier || null,
+        quantity,
+        unit_price,
+        total_value,
+        entry_date: formData.entry_date,
+        farm_id: formData.farm_id,
+        minimum_stock_threshold,
+        purchase_unit: formData.purchase_unit,
+        purchase_quantity: purchaseQuantity,
+        purchase_unit_price: purchaseUnitPrice
+      };
+
       if (editingItem) {
         const { error } = await supabase
           .from('inventory')
@@ -196,6 +225,7 @@ export default function Inventory() {
 
       fetchInventoryItems();
       resetForm();
+      setConfirmModalOpen(false);
     } catch (error: any) {
       toast({
         title: "Erro",
@@ -234,10 +264,12 @@ export default function Inventory() {
       category: "",
       brand: "",
       supplier: "",
-      quantity: '',
-      unit_price: '',
+      purchase_unit: "kg",
+      purchase_quantity: '',
+      purchase_unit_price: '',
       entry_date: new Date().toISOString().split('T')[0],
-      farm_id: farms[0]?.id || ""
+      farm_id: farms[0]?.id || "",
+      minimum_stock_threshold: ''
     });
     setEditingItem(null);
     setIsDialogOpen(false);
@@ -245,17 +277,17 @@ export default function Inventory() {
 
   const startEdit = (item: InventoryItem) => {
     setEditingItem(item);
-    // Anti-Drift: converter gramas para kg na interface
-    const quantityKg = QuantityUtils.gramsToKg(item.quantity);
     setFormData({
       name: item.name,
       category: item.category,
       brand: item.brand || "",
       supplier: item.supplier || "",
-      quantity: quantityKg.toString(),
-      unit_price: item.unit_price.toString(),
+      purchase_unit: item.purchase_unit || "kg",
+      purchase_quantity: item.purchase_quantity?.toString() || '',
+      purchase_unit_price: item.purchase_unit_price?.toString() || '',
       entry_date: item.entry_date,
-      farm_id: item.farm_id
+      farm_id: item.farm_id,
+      minimum_stock_threshold: item.minimum_stock_threshold?.toString() || ''
     });
     setIsDialogOpen(true);
   };
@@ -398,42 +430,72 @@ export default function Inventory() {
                       />
                     </div>
 
-                    <div className="grid grid-cols-3 gap-4">
-                      <div>
-                        <Label htmlFor="quantity">Quantidade (kg)</Label>
-                        <Input
-                          id="quantity"
-                          type="number"
-                          step="0.01"
-                          value={formData.quantity}
-                          onChange={(e) => setFormData({...formData, quantity: e.target.value})}
-                          required
-                          placeholder="Ex: 30 (para 1 saca de 30kg)"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="unit_price">Preço Unitário (R$)</Label>
-                        <Input
-                          id="unit_price"
-                          type="number"
-                          step="0.01"
-                          value={formData.unit_price}
-                          onChange={(e) => setFormData({...formData, unit_price: e.target.value})}
-                          required
-                          placeholder="Ex: 80.00"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="entry_date">Data de Entrada</Label>
-                        <Input
-                          id="entry_date"
-                          type="date"
-                          value={formData.entry_date}
-                          onChange={(e) => setFormData({...formData, entry_date: e.target.value})}
-                          required
-                        />
-                      </div>
-                    </div>
+                     <div className="grid grid-cols-2 gap-4">
+                       <div>
+                         <Label htmlFor="purchase_unit">Unidade de Compra</Label>
+                         <Select value={formData.purchase_unit} onValueChange={(value) => setFormData({...formData, purchase_unit: value})}>
+                           <SelectTrigger>
+                             <SelectValue />
+                           </SelectTrigger>
+                           <SelectContent>
+                             {Object.entries(PURCHASE_UNITS).map(([key, unit]) => (
+                               <SelectItem key={key} value={key}>{unit.name}</SelectItem>
+                             ))}
+                           </SelectContent>
+                         </Select>
+                       </div>
+                       <div>
+                         <Label htmlFor="entry_date">Data de Entrada</Label>
+                         <Input
+                           id="entry_date"
+                           type="date"
+                           value={formData.entry_date}
+                           onChange={(e) => setFormData({...formData, entry_date: e.target.value})}
+                           required
+                         />
+                       </div>
+                     </div>
+
+                     <div className="grid grid-cols-3 gap-4">
+                       <div>
+                         <Label htmlFor="purchase_quantity">
+                           Quantidade ({PURCHASE_UNITS[formData.purchase_unit]?.name || 'unidade'})
+                         </Label>
+                         <Input
+                           id="purchase_quantity"
+                           type="number"
+                           step="0.001"
+                           value={formData.purchase_quantity}
+                           onChange={(e) => setFormData({...formData, purchase_quantity: e.target.value})}
+                           required
+                           placeholder="Ex: 2 (para 2 sacas)"
+                         />
+                       </div>
+                       <div>
+                         <Label htmlFor="purchase_unit_price">
+                           Preço por {PURCHASE_UNITS[formData.purchase_unit]?.name || 'unidade'} (R$)
+                         </Label>
+                         <Input
+                           id="purchase_unit_price"
+                           type="number"
+                           step="0.01"
+                           value={formData.purchase_unit_price}
+                           onChange={(e) => setFormData({...formData, purchase_unit_price: e.target.value})}
+                           required
+                           placeholder="Ex: 80.00"
+                         />
+                       </div>
+                       <div>
+                         <Label htmlFor="minimum_stock_threshold">Limite Mínimo (kg)</Label>
+                         <Input
+                           id="minimum_stock_threshold"
+                           type="number"
+                           value={formData.minimum_stock_threshold}
+                           onChange={(e) => setFormData({...formData, minimum_stock_threshold: e.target.value})}
+                           placeholder="Ex: 50"
+                         />
+                       </div>
+                     </div>
 
                     <div className="flex justify-end space-x-2">
                       <Button type="button" variant="outline" onClick={resetForm}>
@@ -444,8 +506,19 @@ export default function Inventory() {
                       </Button>
                     </div>
                   </form>
-                </DialogContent>
-              </Dialog>
+                 </DialogContent>
+               </Dialog>
+
+               <PurchaseConfirmModal
+                 isOpen={confirmModalOpen}
+                 onClose={() => setConfirmModalOpen(false)}
+                 onConfirm={handleConfirmSubmit}
+                 itemName={formData.name}
+                 quantity={parseFloat(formData.purchase_quantity) || 0}
+                 unit={formData.purchase_unit}
+                 unitPrice={parseFloat(formData.purchase_unit_price) || 0}
+                 isNewItem={!editingItem}
+               />
               
               <Button 
                 variant="outline" 

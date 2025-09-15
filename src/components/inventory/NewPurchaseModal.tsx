@@ -6,6 +6,8 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { QuantityUtils } from "@/lib/quantityUtils";
+import { PurchaseConfirmModal } from "./PurchaseConfirmModal";
+import { convertToGrams, calculatePricePerKg, formatQuantityWithUnit } from "@/lib/unitUtils";
 
 interface InventoryItem {
   id: string;
@@ -18,6 +20,9 @@ interface InventoryItem {
   total_value: number;
   entry_date: string;
   farm_id: string;
+  purchase_unit?: string;
+  purchase_quantity?: number;
+  purchase_unit_price?: number;
 }
 
 interface NewPurchaseModalProps {
@@ -34,29 +39,40 @@ export function NewPurchaseModal({ isOpen, onClose, item, onSuccess }: NewPurcha
     entry_date: new Date().toISOString().split('T')[0]
   });
   const [loading, setLoading] = useState(false);
+  const [confirmModalOpen, setConfirmModalOpen] = useState(false);
   const { toast } = useToast();
 
   if (!item) return null;
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setConfirmModalOpen(true);
+  };
+
+  const handleConfirmSubmit = async () => {
     setLoading(true);
 
     try {
-      // Converter nova quantidade para gramas
-      const newQuantityGrams = QuantityUtils.parseInputToGrams(formData.quantity);
-      const newQuantityKg = QuantityUtils.gramsToKg(newQuantityGrams);
+      const purchaseUnit = item.purchase_unit || 'kg';
+      const newQuantity = parseFloat(formData.quantity);
       const newUnitPrice = parseFloat(formData.unit_price);
 
+      // Converter para gramas usando a unidade do item
+      const newQuantityGrams = convertToGrams(newQuantity, purchaseUnit);
+      
       // Quantidade atual em kg para cálculo
       const currentQuantityKg = QuantityUtils.gramsToKg(item.quantity);
+      const newQuantityKg = newQuantityGrams / 1000;
 
       // Cálculos de somatório e média ponderada
       const totalQuantityKg = currentQuantityKg + newQuantityKg;
       const totalQuantityGrams = QuantityUtils.kgToGrams(totalQuantityKg);
       
+      // Converter preço da unidade de compra para preço por kg
+      const pricePerKg = calculatePricePerKg(newUnitPrice, purchaseUnit);
+      
       // Média ponderada do preço
-      const weightedAveragePrice = ((currentQuantityKg * item.unit_price) + (newQuantityKg * newUnitPrice)) / totalQuantityKg;
+      const weightedAveragePrice = ((currentQuantityKg * item.unit_price) + (newQuantityKg * pricePerKg)) / totalQuantityKg;
       
       // Valor total atualizado
       const newTotalValue = totalQuantityKg * weightedAveragePrice;
@@ -86,16 +102,17 @@ export function NewPurchaseModal({ isOpen, onClose, item, onSuccess }: NewPurcha
           reason: 'Nova compra - Adição de estoque',
           created_by: (await supabase.auth.getUser()).data.user?.id,
           farm_id: item.farm_id,
-          notes: `Compra: ${newQuantityKg}kg a R$ ${newUnitPrice.toFixed(2)}/kg`
+          notes: `Compra: ${formatQuantityWithUnit(newQuantity, purchaseUnit)} a R$ ${newUnitPrice.toFixed(2)} por unidade`
         }]);
 
       toast({
         title: "Compra registrada",
-        description: `${newQuantityKg}kg adicionados ao estoque. Novo total: ${totalQuantityKg.toFixed(2)}kg`,
+        description: `${formatQuantityWithUnit(newQuantity, purchaseUnit)} adicionados ao estoque.`,
       });
 
       onSuccess();
       onClose();
+      setConfirmModalOpen(false);
       setFormData({
         quantity: '',
         unit_price: '',
@@ -142,20 +159,24 @@ export function NewPurchaseModal({ isOpen, onClose, item, onSuccess }: NewPurcha
 
           {/* Campos editáveis */}
           <div>
-            <Label htmlFor="quantity">Nova Quantidade (kg)</Label>
+            <Label htmlFor="quantity">
+              Nova Quantidade ({item.purchase_unit ? (item.purchase_unit === 'kg' ? 'kg' : item.purchase_unit.replace(/kg|balde|saca/, '').replace(/\d+/, '') || 'unidade') : 'kg'})
+            </Label>
             <Input
               id="quantity"
               type="number"
-              step="0.01"
+              step="0.001"
               value={formData.quantity}
               onChange={(e) => setFormData({...formData, quantity: e.target.value})}
               required
-              placeholder="Ex: 30"
+              placeholder={item.purchase_unit === 'kg' ? "Ex: 30" : "Ex: 2"}
             />
           </div>
 
           <div>
-            <Label htmlFor="unit_price">Preço desta Compra (R$/kg)</Label>
+            <Label htmlFor="unit_price">
+              Preço desta Compra (R$ por {item.purchase_unit === 'kg' ? 'kg' : 'unidade'})
+            </Label>
             <Input
               id="unit_price"
               type="number"
@@ -187,6 +208,17 @@ export function NewPurchaseModal({ isOpen, onClose, item, onSuccess }: NewPurcha
             </Button>
           </div>
         </form>
+
+        <PurchaseConfirmModal
+          isOpen={confirmModalOpen}
+          onClose={() => setConfirmModalOpen(false)}
+          onConfirm={handleConfirmSubmit}
+          itemName={item.name}
+          quantity={parseFloat(formData.quantity) || 0}
+          unit={item.purchase_unit || 'kg'}
+          unitPrice={parseFloat(formData.unit_price) || 0}
+          isNewItem={false}
+        />
       </DialogContent>
     </Dialog>
   );

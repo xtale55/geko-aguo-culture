@@ -388,6 +388,9 @@ export type Database = {
           id: string
           minimum_stock_threshold: number | null
           name: string
+          purchase_quantity: number | null
+          purchase_unit: string | null
+          purchase_unit_price: number | null
           quantity: number
           quantity_backup: number | null
           supplier: string | null
@@ -404,6 +407,9 @@ export type Database = {
           id?: string
           minimum_stock_threshold?: number | null
           name: string
+          purchase_quantity?: number | null
+          purchase_unit?: string | null
+          purchase_unit_price?: number | null
           quantity?: number
           quantity_backup?: number | null
           supplier?: string | null
@@ -420,6 +426,9 @@ export type Database = {
           id?: string
           minimum_stock_threshold?: number | null
           name?: string
+          purchase_quantity?: number | null
+          purchase_unit?: string | null
+          purchase_unit_price?: number | null
           quantity?: number
           quantity_backup?: number | null
           supplier?: string | null

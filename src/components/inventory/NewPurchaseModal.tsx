@@ -3,11 +3,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { QuantityUtils } from "@/lib/quantityUtils";
 import { PurchaseConfirmModal } from "./PurchaseConfirmModal";
-import { convertToGrams, calculatePricePerKg, formatQuantityWithUnit } from "@/lib/unitUtils";
+import { convertToGrams, calculatePricePerKg, formatQuantityWithUnit, PURCHASE_UNITS } from "@/lib/unitUtils";
 
 interface InventoryItem {
   id: string;
@@ -38,9 +39,15 @@ export function NewPurchaseModal({ isOpen, onClose, item, onSuccess }: NewPurcha
     unit_price: '',
     entry_date: new Date().toISOString().split('T')[0]
   });
+  const [selectedUnit, setSelectedUnit] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
   const { toast } = useToast();
+
+  // Inicializar unidade selecionada quando o item mudar
+  if (item && selectedUnit === '') {
+    setSelectedUnit(item.purchase_unit || 'kg');
+  }
 
   if (!item) return null;
 
@@ -53,11 +60,11 @@ export function NewPurchaseModal({ isOpen, onClose, item, onSuccess }: NewPurcha
     setLoading(true);
 
     try {
-      const purchaseUnit = item.purchase_unit || 'kg';
+      const purchaseUnit = selectedUnit;
       const newQuantity = parseFloat(formData.quantity);
       const newUnitPrice = parseFloat(formData.unit_price);
 
-      // Converter para gramas usando a unidade do item
+      // Converter para gramas usando a unidade selecionada
       const newQuantityGrams = convertToGrams(newQuantity, purchaseUnit);
       
       // Quantidade atual em kg para cálculo
@@ -136,7 +143,12 @@ export function NewPurchaseModal({ isOpen, onClose, item, onSuccess }: NewPurcha
       unit_price: '',
       entry_date: new Date().toISOString().split('T')[0]
     });
+    setSelectedUnit('');
   };
+
+  // Obter informações da unidade selecionada
+  const selectedUnitInfo = PURCHASE_UNITS[selectedUnit] || PURCHASE_UNITS['kg'];
+  const currentUnitInfo = PURCHASE_UNITS[item?.purchase_unit || 'kg'] || PURCHASE_UNITS['kg'];
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -154,13 +166,30 @@ export function NewPurchaseModal({ isOpen, onClose, item, onSuccess }: NewPurcha
               <p><strong>Fornecedor:</strong> {item.supplier || "N/A"}</p>
               <p><strong>Estoque atual:</strong> {QuantityUtils.formatKg(item.quantity)}kg</p>
               <p><strong>Preço atual:</strong> R$ {item.unit_price.toFixed(2)}/kg</p>
+              <p><strong>Unidade original:</strong> {currentUnitInfo.name}</p>
             </div>
           </div>
 
           {/* Campos editáveis */}
           <div>
+            <Label htmlFor="purchase_unit">Unidade de Compra</Label>
+            <Select value={selectedUnit} onValueChange={setSelectedUnit}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione a unidade" />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(PURCHASE_UNITS).map(([key, unit]) => (
+                  <SelectItem key={key} value={key}>
+                    {unit.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
             <Label htmlFor="quantity">
-              Nova Quantidade ({item.purchase_unit ? (item.purchase_unit === 'kg' ? 'kg' : item.purchase_unit.replace(/kg|balde|saca/, '').replace(/\d+/, '') || 'unidade') : 'kg'})
+              Quantidade ({selectedUnitInfo.name})
             </Label>
             <Input
               id="quantity"
@@ -169,13 +198,13 @@ export function NewPurchaseModal({ isOpen, onClose, item, onSuccess }: NewPurcha
               value={formData.quantity}
               onChange={(e) => setFormData({...formData, quantity: e.target.value})}
               required
-              placeholder={item.purchase_unit === 'kg' ? "Ex: 30" : "Ex: 2"}
+              placeholder={selectedUnit === 'kg' ? "Ex: 30" : selectedUnit.includes('saca') || selectedUnit.includes('balde') ? "Ex: 2" : "Ex: 1"}
             />
           </div>
 
           <div>
             <Label htmlFor="unit_price">
-              Preço desta Compra (R$ por {item.purchase_unit === 'kg' ? 'kg' : 'unidade'})
+              Preço por {selectedUnitInfo.name} (R$)
             </Label>
             <Input
               id="unit_price"
@@ -215,7 +244,7 @@ export function NewPurchaseModal({ isOpen, onClose, item, onSuccess }: NewPurcha
           onConfirm={handleConfirmSubmit}
           itemName={item.name}
           quantity={parseFloat(formData.quantity) || 0}
-          unit={item.purchase_unit || 'kg'}
+          unit={selectedUnit}
           unitPrice={parseFloat(formData.unit_price) || 0}
           isNewItem={false}
         />

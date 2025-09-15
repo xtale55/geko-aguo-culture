@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Settings, Edit2, Plus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
+import { getFeedItemsIncludingMixtures } from '@/lib/feedUtils';
 
 interface FeedingRate {
   id?: string;
@@ -54,16 +55,8 @@ export function FeedingRateConfig({ farmId, onRateUpdate }: FeedingRateConfigPro
 
   const loadAvailableFeeds = async () => {
     try {
-      const { data, error } = await supabase
-        .from('inventory')
-        .select('id, name, quantity, unit_price')
-        .eq('farm_id', farmId)
-        .eq('category', 'Ração')
-        .gt('quantity', 0)
-        .order('name');
-
-      if (error) throw error;
-      setAvailableFeeds(data || []);
+      const data = await getFeedItemsIncludingMixtures(farmId);
+      setAvailableFeeds(data);
     } catch (error: any) {
       console.error('Error loading available feeds:', error);
     }

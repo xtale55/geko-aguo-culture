@@ -52,9 +52,9 @@ export function useConsumptionForecast(
       let usageDays: string[] = [];
       let lastUsageDate: string | undefined;
 
-      // Analyze feeding records for feed items
-      if (item.category === 'Ração' && feedingRecords) {
-        const relevantFeedings = feedingRecords.filter(record => 
+      // Analyze feeding records for feed items (including mixtures with feed)
+      if ((item.category === 'Ração' || item.category === 'Mistura') && feedingRecords) {
+        const relevantFeedings = feedingRecords.filter(record =>
           record.feed_type_id === item.id &&
           new Date(record.feeding_date) >= analysisStartDate
         );

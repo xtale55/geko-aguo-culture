@@ -13,6 +13,7 @@ import { Edit2, Clock, Plus, History } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { FeedingHistoryDialog } from './FeedingHistoryDialog';
 import { QuantityUtils } from '@/lib/quantityUtils';
+import { getFeedItemsIncludingMixtures } from '@/lib/feedUtils';
 
 interface FeedingRecord {
   id: string;
@@ -96,16 +97,8 @@ export function FeedingSchedule({
 
   const loadAvailableFeeds = async () => {
     try {
-      const { data, error } = await supabase
-        .from('inventory')
-        .select('id, name, quantity, unit_price')
-        .eq('farm_id', farmId)
-        .eq('category', 'Ração')
-        .gt('quantity', 0)
-        .order('name');
-
-      if (error) throw error;
-      setAvailableFeeds(data || []);
+      const data = await getFeedItemsIncludingMixtures(farmId);
+      setAvailableFeeds(data);
     } catch (error: any) {
       console.error('Error loading available feeds:', error);
     }

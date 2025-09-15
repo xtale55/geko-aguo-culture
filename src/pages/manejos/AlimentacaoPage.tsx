@@ -18,6 +18,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { getCurrentDateForInput, formatDateForDisplay } from '@/lib/utils';
 import { QuantityUtils } from '@/lib/quantityUtils';
+import { getFeedItemsIncludingMixtures } from '@/lib/feedUtils';
 
 interface PondWithBatch {
   id: string;
@@ -325,17 +326,9 @@ export default function AlimentacaoPage() {
       if (farmsError) throw farmsError;
 
       if (farmsData && farmsData.length > 0) {
-        const { data: feedsData, error: feedsError } = await supabase
-          .from('inventory')
-          .select('id, name, quantity, unit_price')
-          .eq('farm_id', farmsData[0].id)
-          .eq('category', 'Ração')
-          .gt('quantity', 0)
-          .order('created_at', { ascending: false });
+        const feedsData = await getFeedItemsIncludingMixtures(farmsData[0].id);
 
-        if (feedsError) throw feedsError;
-
-        const feeds: FeedType[] = feedsData?.map(feed => ({
+        const feeds: FeedType[] = feedsData.map(feed => ({
           id: feed.id,
           name: feed.name,
           quantity: feed.quantity / 1000, // Convert to kg for display

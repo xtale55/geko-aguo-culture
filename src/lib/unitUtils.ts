@@ -11,7 +11,7 @@ export interface PurchaseUnit {
 
 export const PURCHASE_UNITS: Record<string, PurchaseUnit> = {
   'g': { name: 'Grama', multiplier: 1, category: 'weight' },
-  'kg': { name: 'Quilograma', multiplier: 1000, category: 'weight' },
+  'kg': { name: 'Quilograma (kg)', multiplier: 1000, category: 'weight' },
   'saca25kg': { name: 'Saca 25kg', multiplier: 25000, category: 'weight' },
   'saca30kg': { name: 'Saca 30kg', multiplier: 30000, category: 'weight' },
   'saca40kg': { name: 'Saca 40kg', multiplier: 40000, category: 'weight' },

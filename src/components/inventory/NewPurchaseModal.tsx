@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { QuantityUtils } from "@/lib/quantityUtils";
 import { PurchaseConfirmModal } from "./PurchaseConfirmModal";
+import { MixtureProductionModal } from "./MixtureProductionModal";
 import { convertToGrams, calculatePricePerKg, formatQuantityWithUnit, PURCHASE_UNITS } from "@/lib/unitUtils";
 
 interface InventoryItem {
@@ -47,6 +48,18 @@ export function NewPurchaseModal({ isOpen, onClose, item, onSuccess }: NewPurcha
   // Inicializar unidade selecionada quando o item mudar
   if (item && selectedUnit === '') {
     setSelectedUnit(item.purchase_unit || 'kg');
+  }
+
+  // Se for uma mistura, usar o modal específico
+  if (item.category === 'Mistura') {
+    return (
+      <MixtureProductionModal
+        isOpen={isOpen}
+        onClose={onClose}
+        item={item}
+        onSuccess={onSuccess}
+      />
+    );
   }
 
   if (!item) return null;

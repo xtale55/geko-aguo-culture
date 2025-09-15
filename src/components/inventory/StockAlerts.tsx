@@ -109,14 +109,15 @@ export function StockAlerts({ inventoryData, onItemClick }: StockAlertsProps) {
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
+                        <div className="flex items-center gap-2">
                           {getSeverityIcon(alert.severity)}
-                          <h5 className="font-medium text-sm truncate">{alert.itemName}</h5>
+                          <h5 className="font-medium text-sm truncate flex-1">{alert.itemName}</h5>
                           {getSeverityBadge(alert.severity)}
-                        </div>
-                        <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                          <span>Estoque: {QuantityUtils.formatKg(QuantityUtils.kgToGrams(alert.currentStock))}kg</span>
-                          <span>Limite: {QuantityUtils.formatKg(QuantityUtils.kgToGrams(alert.threshold))}kg</span>
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground ml-2">
+                            <span>Estoque: {QuantityUtils.formatKg(QuantityUtils.kgToGrams(alert.currentStock))}kg</span>
+                            <span>•</span>
+                            <span>Limite: {QuantityUtils.formatKg(QuantityUtils.kgToGrams(alert.threshold))}kg</span>
+                          </div>
                         </div>
                       </div>
                     </div>

@@ -10,7 +10,7 @@ export interface PurchaseUnit {
 }
 
 export const PURCHASE_UNITS: Record<string, PurchaseUnit> = {
-  'g': { name: 'Grama', multiplier: 1, category: 'weight' },
+  'g': { name: 'Grama (g)', multiplier: 1, category: 'weight' },
   'kg': { name: 'Quilograma (kg)', multiplier: 1000, category: 'weight' },
   'saca25kg': { name: 'Saca 25kg', multiplier: 25000, category: 'weight' },
   'saca30kg': { name: 'Saca 30kg', multiplier: 30000, category: 'weight' },
@@ -20,8 +20,8 @@ export const PURCHASE_UNITS: Record<string, PurchaseUnit> = {
   'balde15kg': { name: 'Balde 15kg', multiplier: 15000, category: 'weight' },
   'balde20kg': { name: 'Balde 20kg', multiplier: 20000, category: 'weight' },
   'balde25kg': { name: 'Balde 25kg', multiplier: 25000, category: 'weight' },
-  'litro': { name: 'Litro', multiplier: 1000, category: 'volume' }, // Aproximação: 1L = 1kg
-  'unidade': { name: 'Unidade', multiplier: 1, category: 'unit' }
+  'litro': { name: 'Litro (L)', multiplier: 1000, category: 'volume' }, // Aproximação: 1L = 1kg
+  'unidade': { name: 'Unidade (un)', multiplier: 1, category: 'unit' }
 };
 
 /**

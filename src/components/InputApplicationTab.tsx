@@ -160,7 +160,7 @@ export function InputApplicationTab() {
         brand,
         farm:farms!inner(user_id)
       `)
-      .in('category', ['Fertilizantes', 'Probióticos'])
+      .in('category', ['Fertilizantes', 'Probióticos', 'Mistura'])
       .eq('farm.user_id', user?.id)
       .gt('quantity', 0);
 

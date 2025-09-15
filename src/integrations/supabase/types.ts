@@ -494,6 +494,69 @@ export type Database = {
         }
         Relationships: []
       }
+      mixture_ingredients: {
+        Row: {
+          created_at: string
+          id: string
+          inventory_item_id: string
+          inventory_item_name: string
+          quantity_ratio: number
+          recipe_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          inventory_item_id: string
+          inventory_item_name: string
+          quantity_ratio: number
+          recipe_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          inventory_item_id?: string
+          inventory_item_name?: string
+          quantity_ratio?: number
+          recipe_id?: string
+        }
+        Relationships: []
+      }
+      mixture_recipes: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          farm_id: string
+          id: string
+          name: string
+          total_yield_grams: number
+          unit_cost: number
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          farm_id: string
+          id?: string
+          name: string
+          total_yield_grams?: number
+          unit_cost?: number
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          farm_id?: string
+          id?: string
+          name?: string
+          total_yield_grams?: number
+          unit_cost?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       mortality_records: {
         Row: {
           created_at: string | null

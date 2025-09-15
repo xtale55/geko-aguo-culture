@@ -21,6 +21,7 @@ import { MovementHistory } from "@/components/inventory/MovementHistory";
 import { NewPurchaseModal } from "@/components/inventory/NewPurchaseModal";
 import { AlertConfigModal } from "@/components/inventory/AlertConfigModal";
 import { PurchaseConfirmModal } from "@/components/inventory/PurchaseConfirmModal";
+import { MixtureModal } from "@/components/inventory/MixtureModal";
 import { useConsumptionForecast } from "@/hooks/useConsumptionForecast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -70,6 +71,7 @@ export default function Inventory() {
   const [alertConfigModalOpen, setAlertConfigModalOpen] = useState(false);
   const [selectedItemForPurchase, setSelectedItemForPurchase] = useState<InventoryItem | null>(null);
   const [selectedItemForAlert, setSelectedItemForAlert] = useState<InventoryItem | null>(null);
+  const [mixtureModalOpen, setMixtureModalOpen] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -523,7 +525,7 @@ export default function Inventory() {
               <Button 
                 variant="outline" 
                 size="sm"
-                onClick={() => {/* TODO: Implement mixture feature */}}
+                onClick={() => setMixtureModalOpen(true)}
               >
                 Mistura
               </Button>
@@ -796,6 +798,13 @@ export default function Inventory() {
         isOpen={alertConfigModalOpen}
         onClose={() => setAlertConfigModalOpen(false)}
         item={selectedItemForAlert}
+        onSuccess={fetchInventoryItems}
+      />
+
+      <MixtureModal
+        isOpen={mixtureModalOpen}
+        onClose={() => setMixtureModalOpen(false)}
+        farmId={farms[0]?.id || ''}
         onSuccess={fetchInventoryItems}
       />
     </Layout>

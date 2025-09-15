@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
-import { Plus, Search, Package, Trash2, Edit, ArrowLeft } from "lucide-react";
+import { Plus, Search, Package, Trash2, Edit, ArrowLeft, Calendar, Clock, TrendingDown } from "lucide-react";
 import { QuantityUtils } from "@/lib/quantityUtils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -15,8 +16,10 @@ import { Layout } from "@/components/Layout";
 import { useNavigate } from "react-router-dom";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { StockAlerts } from "@/components/inventory/StockAlerts";
-import { ConsumptionForecast } from "@/components/inventory/ConsumptionForecast";
 import { MovementHistory } from "@/components/inventory/MovementHistory";
+import { useConsumptionForecast } from "@/hooks/useConsumptionForecast";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 interface InventoryItem {
   id: string;
@@ -251,6 +254,26 @@ export default function Inventory() {
     return sum + (quantityKg * item.unit_price);
   }, 0);
 
+  // Get consumption forecasts
+  const forecasts = useConsumptionForecast(items, feedingRecords, inputApplications);
+  
+  // Helper functions for forecast display
+  const getForecastForItem = (itemId: string) => {
+    return forecasts.find(f => f.itemId === itemId);
+  };
+
+  const getProgressValue = (daysRemaining: number) => {
+    const maxDays = 30;
+    return Math.min(100, Math.max(0, (daysRemaining / maxDays) * 100));
+  };
+
+  const getUrgencyColor = (daysRemaining: number) => {
+    if (daysRemaining <= 3) return 'text-red-600';
+    if (daysRemaining <= 7) return 'text-orange-600';
+    if (daysRemaining <= 14) return 'text-yellow-600';
+    return 'text-green-600';
+  };
+
   if (loading) {
     return <LoadingScreen message="Carregando estoque..." />;
   }
@@ -468,23 +491,6 @@ export default function Inventory() {
             }}
           />
 
-          {/* Consumption Forecast */}
-          <ConsumptionForecast 
-            inventoryData={items}
-            feedingRecords={feedingRecords}
-            inputApplications={inputApplications}
-          />
-
-          {/* Movement History Dialog */}
-          {selectedItemForHistory && (
-            <MovementHistory
-              itemId={selectedItemForHistory.id}
-              itemName={selectedItemForHistory.name}
-              itemCategory={selectedItemForHistory.category}
-              currentStock={QuantityUtils.gramsToKg(selectedItemForHistory.quantity)}
-            />
-          )}
-
           {/* Lista de Itens por Categoria */}
           <div className="space-y-6">
             {(() => {
@@ -507,61 +513,117 @@ export default function Inventory() {
                     </Badge>
                   </div>
                   
-                  <div className="grid gap-4">
-                    {categoryItems.map((item) => (
-                      <Card key={item.id}>
-                        <CardContent className="p-4">
-                          <div className="flex justify-between items-start">
-                            <div className="flex-1 grid grid-cols-1 md:grid-cols-5 gap-4">
-                              <div>
-                                <h3 className="font-semibold">{item.name}</h3>
-                                <Badge variant="secondary" className="mt-1">
-                                  {item.category}
-                                </Badge>
-                              </div>
-                              
-                              <div>
-                                <p className="text-sm text-muted-foreground">Marca</p>
-                                <p className="font-medium">{item.brand || "N/A"}</p>
-                              </div>
-                              
-                              <div>
-                                <p className="text-sm text-muted-foreground">Quantidade</p>
-                                <p className="font-medium">{QuantityUtils.formatKg(item.quantity)} kg</p>
-                              </div>
-                              
-                              <div>
-                                <p className="text-sm text-muted-foreground">Preço Unit.</p>
-                                <p className="font-medium">R$ {item.unit_price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
-                              </div>
-                              
-                              <div>
-                                <p className="text-sm text-muted-foreground">Valor Total</p>
-                                <p className="font-bold text-primary">R$ {(QuantityUtils.gramsToKg(item.quantity) * item.unit_price).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
-                              </div>
-                            </div>
-                            
-                            <div className="flex gap-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => startEdit(item)}
-                              >
-                                <Edit className="w-4 h-4" />
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleDelete(item.id)}
-                                className="text-destructive hover:text-destructive"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
+                   <div className="grid gap-4">
+                     {categoryItems.map((item) => {
+                       const forecast = getForecastForItem(item.id);
+                       
+                       return (
+                         <Card key={item.id}>
+                           <CardContent className="p-4">
+                             <div className="flex justify-between items-start">
+                               <div className="flex-1 grid grid-cols-1 md:grid-cols-5 gap-4">
+                                 <div>
+                                   <h3 className="font-semibold">{item.name}</h3>
+                                   <Badge variant="secondary" className="mt-1">
+                                     {item.category}
+                                   </Badge>
+                                 </div>
+                                 
+                                 <div>
+                                   <p className="text-sm text-muted-foreground">Marca</p>
+                                   <p className="font-medium">{item.brand || "N/A"}</p>
+                                 </div>
+                                 
+                                 <div>
+                                   <p className="text-sm text-muted-foreground">Quantidade</p>
+                                   <p className="font-medium">{QuantityUtils.formatKg(item.quantity)} kg</p>
+                                 </div>
+                                 
+                                 <div>
+                                   <p className="text-sm text-muted-foreground">Preço Unit.</p>
+                                   <p className="font-medium">R$ {item.unit_price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                                 </div>
+                                 
+                                 <div>
+                                   <p className="text-sm text-muted-foreground">Valor Total</p>
+                                   <p className="font-bold text-primary">R$ {(QuantityUtils.gramsToKg(item.quantity) * item.unit_price).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                                 </div>
+                               </div>
+                               
+                               <div className="flex gap-2">
+                                 <Button
+                                   variant="outline"
+                                   size="sm"
+                                   onClick={() => startEdit(item)}
+                                 >
+                                   <Edit className="w-4 h-4" />
+                                 </Button>
+                                 <Button
+                                   variant="outline"
+                                   size="sm"
+                                   onClick={() => handleDelete(item.id)}
+                                   className="text-destructive hover:text-destructive"
+                                 >
+                                   <Trash2 className="w-4 h-4" />
+                                 </Button>
+                               </div>
+                             </div>
+                             
+                             {/* Consumption Forecast Info */}
+                             {forecast && (
+                               <div className="mt-4 pt-4 border-t space-y-3">
+                                 <div className="flex items-center justify-between">
+                                   <div className="flex items-center gap-2">
+                                     <TrendingDown className="w-4 h-4 text-muted-foreground" />
+                                     <span className="text-sm font-medium">Previsão de Consumo</span>
+                                   </div>
+                                   <div className={`flex items-center gap-1 text-sm font-semibold ${getUrgencyColor(forecast.estimatedDaysRemaining)}`}>
+                                     {forecast.estimatedDaysRemaining <= 7 ? (
+                                       <Clock className="w-4 h-4" />
+                                     ) : (
+                                       <Calendar className="w-4 h-4" />
+                                     )}
+                                     {forecast.estimatedDaysRemaining > 999 ? '999+' : forecast.estimatedDaysRemaining} dias
+                                   </div>
+                                 </div>
+                                 
+                                 <div className="space-y-2">
+                                   <div className="flex justify-between text-xs text-muted-foreground">
+                                     <span>Duração estimada</span>
+                                     <span>{forecast.estimatedDaysRemaining > 999 ? 'Sem previsão' : `${forecast.estimatedDaysRemaining} dias restantes`}</span>
+                                   </div>
+                                   <Progress 
+                                     value={getProgressValue(forecast.estimatedDaysRemaining)} 
+                                     className="h-1.5"
+                                   />
+                                 </div>
+                                 
+                                 <div className="grid grid-cols-2 gap-4 text-xs">
+                                   <div>
+                                     <span className="text-muted-foreground">Consumo diário:</span>
+                                     <p className="font-medium">
+                                       {forecast.averageDailyConsumption > 0 
+                                         ? `${QuantityUtils.formatKg(QuantityUtils.kgToGrams(forecast.averageDailyConsumption))}kg/dia`
+                                         : 'Sem uso recente'
+                                       }
+                                     </p>
+                                   </div>
+                                   <div>
+                                     <span className="text-muted-foreground">Último uso:</span>
+                                     <p className="font-medium">
+                                       {forecast.lastUsageDate 
+                                         ? format(new Date(forecast.lastUsageDate), 'dd/MM/yy', { locale: ptBR })
+                                         : 'Nunca usado'
+                                       }
+                                     </p>
+                                   </div>
+                                 </div>
+                               </div>
+                             )}
+                           </CardContent>
+                         </Card>
+                       );
+                     })}
                   </div>
                 </div>
               ));
@@ -581,6 +643,16 @@ export default function Inventory() {
                 }
               </p>
             </div>
+          )}
+
+          {/* Movement History - Last component */}
+          {selectedItemForHistory && (
+            <MovementHistory
+              itemId={selectedItemForHistory.id}
+              itemName={selectedItemForHistory.name}
+              itemCategory={selectedItemForHistory.category}
+              currentStock={QuantityUtils.gramsToKg(selectedItemForHistory.quantity)}
+            />
           )}
         </div>
       </div>

@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { CheckCircle, AlertTriangle } from "lucide-react";
-import { calculatePurchaseTotals } from "@/lib/unitUtils";
+import { calculatePurchaseTotals, PURCHASE_UNITS, formatCurrency } from "@/lib/unitUtils";
 
 interface PurchaseConfirmModalProps {
   isOpen: boolean;
@@ -27,6 +27,7 @@ export function PurchaseConfirmModal({
   isNewItem = false
 }: PurchaseConfirmModalProps) {
   const totals = calculatePurchaseTotals(quantity, unit, unitPrice);
+  const unitInfo = PURCHASE_UNITS[unit] || PURCHASE_UNITS['kg'];
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -55,7 +56,7 @@ export function PurchaseConfirmModal({
 
               <div className="flex justify-between">
                 <span className="text-sm text-muted-foreground">Preço unitário:</span>
-                <span className="font-medium">{totals.formattedTotalValue.replace(totals.totalValue.toString(), unitPrice.toFixed(2))} por unidade</span>
+                <span className="font-medium">{formatCurrency(unitPrice)} por {unitInfo.name}</span>
               </div>
 
               <Separator />

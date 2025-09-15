@@ -4,10 +4,6 @@ import {
   Search, 
   Edit2, 
   Trash2, 
-  TrendingDown,
-  TrendingUp,
-  Clock,
-  Calendar,
   MoreVertical,
   Settings
 } from 'lucide-react';
@@ -24,12 +20,10 @@ import { MovementHistory } from '@/components/inventory/MovementHistory';
 import { NewPurchaseModal } from '@/components/inventory/NewPurchaseModal';
 import { AlertConfigModal } from '@/components/inventory/AlertConfigModal';
 import { StockAdjustmentModal } from '@/components/inventory/StockAdjustmentModal';
-import { useConsumptionForecast } from '@/hooks/useConsumptionForecast';
 import { QuantityUtils } from '@/lib/quantityUtils';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -83,20 +77,8 @@ export default function Inventory() {
   });
   const { toast } = useToast();
 
-  // Fetch consumption forecast data
-  const [feedingRecords, setFeedingRecords] = useState([]);
-  const [inputApplications, setInputApplications] = useState([]);
-  
-  const consumptionForecasts = useConsumptionForecast(
-    inventory, 
-    feedingRecords, 
-    inputApplications
-  );
-
   useEffect(() => {
     fetchFarms();
-    fetchFeedingRecords();
-    fetchInputApplications();
   }, []);
 
   useEffect(() => {
@@ -154,33 +136,6 @@ export default function Inventory() {
     }
   };
 
-  const fetchFeedingRecords = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('feeding_records')
-        .select('*')
-        .gte('feeding_date', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
-
-      if (error) throw error;
-      setFeedingRecords(data || []);
-    } catch (error) {
-      console.error('Erro ao carregar registros de alimentação:', error);
-    }
-  };
-
-  const fetchInputApplications = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('input_applications')
-        .select('*')
-        .gte('application_date', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
-
-      if (error) throw error;
-      setInputApplications(data || []);
-    } catch (error) {
-      console.error('Erro ao carregar aplicações de insumos:', error);
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -329,16 +284,6 @@ export default function Inventory() {
   const totalItems = inventory.length;
   const totalValue = inventory.reduce((sum, item) => sum + item.total_value, 0);
 
-  const getDaysRemainingColor = (daysRemaining: number) => {
-    if (daysRemaining <= 3) return 'text-destructive';
-    if (daysRemaining <= 7) return 'text-orange-500';
-    if (daysRemaining <= 14) return 'text-yellow-500';
-    return 'text-success';
-  };
-
-  const getDaysRemainingProgress = (daysRemaining: number) => {
-    return Math.min((daysRemaining / 30) * 100, 100);
-  };
 
   if (isLoading) {
     return <LoadingScreen />;
@@ -431,115 +376,75 @@ export default function Inventory() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {items.map((item) => {
-              const forecast = consumptionForecasts.find(f => f.itemId === item.id);
-              const daysRemaining = forecast?.estimatedDaysRemaining || 999;
-              
-              return (
-                <div key={item.id} className="border rounded-lg p-4 space-y-3">
-                  <div className="flex justify-between items-start">
-                    <div className="space-y-1">
-                      <h3 className="font-semibold">{item.name}</h3>
-                      {item.brand && (
-                        <p className="text-sm text-muted-foreground">Marca: {item.brand}</p>
-                      )}
-                      {item.supplier && (
-                        <p className="text-sm text-muted-foreground">Fornecedor: {item.supplier}</p>
-                      )}
-                    </div>
-                    <div className="text-right space-y-1">
-                      <p className="font-medium">
-                        {QuantityUtils.formatKg(item.quantity)}kg
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        R$ {item.unit_price.toFixed(2)}/kg
-                      </p>
-                      <p className="text-sm font-medium">
-                        Total: R$ {item.total_value.toFixed(2)}
-                      </p>
-                    </div>
+            {items.map((item) => (
+              <div key={item.id} className="border rounded-lg p-4 space-y-3">
+                <div className="flex justify-between items-start">
+                  <div className="space-y-1">
+                    <h3 className="font-semibold">{item.name}</h3>
+                    {item.brand && (
+                      <p className="text-sm text-muted-foreground">Marca: {item.brand}</p>
+                    )}
+                    {item.supplier && (
+                      <p className="text-sm text-muted-foreground">Fornecedor: {item.supplier}</p>
+                    )}
                   </div>
-
-                  {/* Previsão de Consumo */}
-                  {forecast && forecast.estimatedDaysRemaining < 999 && (
-                    <div className="space-y-2">
-                      <div className="flex justify-between items-center text-sm">
-                        <span className="flex items-center gap-1">
-                          <Clock className="h-4 w-4" />
-                          Dias restantes
-                        </span>
-                        <span className={`font-medium ${getDaysRemainingColor(daysRemaining)}`}>
-                          {daysRemaining === 999 ? 'Sem dados' : `${Math.round(daysRemaining)} dias`}
-                        </span>
-                      </div>
-                      
-                      {daysRemaining < 999 && (
-                        <Progress 
-                          value={getDaysRemainingProgress(daysRemaining)}
-                          className="h-2"
-                        />
-                      )}
-                      
-                      <div className="grid grid-cols-2 gap-4 text-xs text-muted-foreground">
-                        <div className="flex items-center gap-1">
-                          <TrendingDown className="h-3 w-3" />
-                          Consumo diário: {forecast.averageDailyConsumption.toFixed(1)}kg
-                        </div>
-                        {forecast.lastUsageDate && (
-                          <div className="flex items-center gap-1">
-                            <Calendar className="h-3 w-3" />
-                            Último uso: {format(new Date(forecast.lastUsageDate), 'dd/MM', { locale: ptBR })}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="flex items-center justify-between pt-2 border-t">
-                    <p className="text-xs text-muted-foreground">
-                      Adicionado em {format(new Date(item.entry_date), 'dd/MM/yyyy', { locale: ptBR })}
+                  <div className="text-right space-y-1">
+                    <p className="font-medium">
+                      {QuantityUtils.formatKg(item.quantity)}kg
                     </p>
-                    
-                    <div className="flex gap-2">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => setNewPurchaseItem(item)}
-                        className="bg-success/10 hover:bg-success/20 border-success/20"
-                      >
-                        <Plus className="h-4 w-4 mr-1" />
-                        Nova Compra
-                      </Button>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="outline" size="sm">
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => setAlertConfigItem(item)}>
-                            <Settings className="h-4 w-4 mr-2" />
-                            Configurar Alertas
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => setStockAdjustmentItem(item)}>
-                            <Edit2 className="h-4 w-4 mr-2" />
-                            Ajustar Estoque
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem 
-                            onClick={() => deleteItem(item.id)}
-                            className="text-destructive"
-                          >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Excluir Item
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      R$ {item.unit_price.toFixed(2)}/kg
+                    </p>
+                    <p className="text-sm font-medium">
+                      Total: R$ {item.total_value.toFixed(2)}
+                    </p>
                   </div>
                 </div>
-              );
-            })}
+
+                <div className="flex items-center justify-between pt-2 border-t">
+                  <p className="text-xs text-muted-foreground">
+                    Adicionado em {format(new Date(item.entry_date), 'dd/MM/yyyy', { locale: ptBR })}
+                  </p>
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => setNewPurchaseItem(item)}
+                      className="bg-success/10 hover:bg-success/20 border-success/20"
+                    >
+                      <Plus className="h-4 w-4 mr-1" />
+                      Nova Compra
+                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" size="sm">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => setAlertConfigItem(item)}>
+                          <Settings className="h-4 w-4 mr-2" />
+                          Configurar Alertas
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setStockAdjustmentItem(item)}>
+                          <Edit2 className="h-4 w-4 mr-2" />
+                          Ajustar Estoque
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem 
+                          onClick={() => deleteItem(item.id)}
+                          className="text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Excluir Item
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                  </div>
+                </div>
+              )
+            )}
           </CardContent>
         </Card>
       ))}

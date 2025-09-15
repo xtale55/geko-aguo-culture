@@ -50,6 +50,8 @@ export function NewPurchaseModal({ isOpen, onClose, item, onSuccess }: NewPurcha
     setSelectedUnit(item.purchase_unit || 'kg');
   }
 
+  if (!item) return null;
+
   // Se for uma mistura, usar o modal específico
   if (item.category === 'Mistura') {
     return (
@@ -61,8 +63,6 @@ export function NewPurchaseModal({ isOpen, onClose, item, onSuccess }: NewPurcha
       />
     );
   }
-
-  if (!item) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

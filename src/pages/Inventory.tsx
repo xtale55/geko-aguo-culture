@@ -18,6 +18,8 @@ import { useNavigate } from "react-router-dom";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { StockAlerts } from "@/components/inventory/StockAlerts";
 import { MovementHistory } from "@/components/inventory/MovementHistory";
+import { NewPurchaseModal } from "@/components/inventory/NewPurchaseModal";
+import { AlertConfigModal } from "@/components/inventory/AlertConfigModal";
 import { useConsumptionForecast } from "@/hooks/useConsumptionForecast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -33,6 +35,7 @@ interface InventoryItem {
   total_value: number;
   entry_date: string;
   farm_id: string;
+  minimum_stock_threshold: number | null;
 }
 
 interface Farm {
@@ -58,6 +61,10 @@ export default function Inventory() {
   const [feedingRecords, setFeedingRecords] = useState([]);
   const [inputApplications, setInputApplications] = useState([]);
   const [selectedItemForHistory, setSelectedItemForHistory] = useState<InventoryItem | null>(null);
+  const [newPurchaseModalOpen, setNewPurchaseModalOpen] = useState(false);
+  const [alertConfigModalOpen, setAlertConfigModalOpen] = useState(false);
+  const [selectedItemForPurchase, setSelectedItemForPurchase] = useState<InventoryItem | null>(null);
+  const [selectedItemForAlert, setSelectedItemForAlert] = useState<InventoryItem | null>(null);
   const { toast } = useToast();
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -106,17 +113,29 @@ export default function Inventory() {
     const { data, error } = await supabase
       .from('inventory')
       .select(`
-        *,
+        id,
+        name,
+        category,
+        brand,
+        supplier,
+        quantity,
+        unit_price,
+        total_value,
+        entry_date,
+        farm_id,
+        minimum_stock_threshold,
         farms!inner(name)
       `)
       .order('entry_date', { ascending: false });
 
     if (error) {
+      console.error('Error fetching inventory:', error);
       toast({
         title: "Erro ao carregar inventário",
         description: error.message,
         variant: "destructive",
       });
+      setItems([]);
     } else {
       setItems(data || []);
     }
@@ -239,6 +258,16 @@ export default function Inventory() {
       farm_id: item.farm_id
     });
     setIsDialogOpen(true);
+  };
+
+  const handleNewPurchase = (item: InventoryItem) => {
+    setSelectedItemForPurchase(item);
+    setNewPurchaseModalOpen(true);
+  };
+
+  const handleConfigureAlerts = (item: InventoryItem) => {
+    setSelectedItemForAlert(item);
+    setAlertConfigModalOpen(true);
   };
 
   const filteredItems = items.filter(item => {
@@ -552,29 +581,15 @@ export default function Inventory() {
                                </div>
                                
                                 <div className="flex gap-2">
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => {
-                                      // Para nova compra do mesmo item
-                                      setEditingItem(null);
-                                      setFormData({
-                                        name: item.name,
-                                        category: item.category,
-                                        brand: item.brand || "",
-                                        supplier: item.supplier || "",
-                                        quantity: '',
-                                        unit_price: '',
-                                        entry_date: new Date().toISOString().split('T')[0],
-                                        farm_id: item.farm_id
-                                      });
-                                      setIsDialogOpen(true);
-                                    }}
-                                    className="text-green-600 hover:text-green-700"
-                                  >
-                                    <ShoppingCart className="w-4 h-4 mr-1" />
-                                    Nova Compra
-                                  </Button>
+                                   <Button
+                                     variant="outline"
+                                     size="sm"
+                                     onClick={() => handleNewPurchase(item)}
+                                     className="text-green-600 hover:text-green-700"
+                                   >
+                                     <ShoppingCart className="w-4 h-4 mr-1" />
+                                     Nova Compra
+                                   </Button>
                                   
                                   <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
@@ -586,18 +601,12 @@ export default function Inventory() {
                                       </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end">
-                                      <DropdownMenuItem 
-                                        onClick={() => {
-                                          // TODO: Implementar configuração de alertas
-                                          toast({
-                                            title: "Em desenvolvimento",
-                                            description: "Configuração de alertas será implementada em breve.",
-                                          });
-                                        }}
-                                      >
-                                        <AlertTriangle className="w-4 h-4 mr-2" />
-                                        Configurar Alertas
-                                      </DropdownMenuItem>
+                                       <DropdownMenuItem 
+                                         onClick={() => handleConfigureAlerts(item)}
+                                       >
+                                         <AlertTriangle className="w-4 h-4 mr-2" />
+                                         Configurar Alertas
+                                       </DropdownMenuItem>
                                       <DropdownMenuItem onClick={() => startEdit(item)}>
                                         <Edit className="w-4 h-4 mr-2" />
                                         Editar Item
@@ -701,6 +710,21 @@ export default function Inventory() {
           )}
         </div>
       </div>
+
+      {/* Modals */}
+      <NewPurchaseModal
+        isOpen={newPurchaseModalOpen}
+        onClose={() => setNewPurchaseModalOpen(false)}
+        item={selectedItemForPurchase}
+        onSuccess={fetchInventoryItems}
+      />
+
+      <AlertConfigModal
+        isOpen={alertConfigModalOpen}
+        onClose={() => setAlertConfigModalOpen(false)}
+        item={selectedItemForAlert}
+        onSuccess={fetchInventoryItems}
+      />
     </Layout>
   );
 }

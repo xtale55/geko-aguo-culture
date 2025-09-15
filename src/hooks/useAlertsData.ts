@@ -43,6 +43,7 @@ interface InventoryData {
   quantity: number;
   category: string;
   farm_id: string;
+  minimum_stock_threshold: number | null;
 }
 
 interface Alert {

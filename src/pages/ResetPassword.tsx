@@ -22,7 +22,7 @@ export default function ResetPassword() {
   const [searchParams] = useSearchParams();
 
   useEffect(() => {
-    const verifyRecoveryToken = async () => {
+    const checkTokens = () => {
       // Verificar se há tokens na URL
       const tokenHash = searchParams.get('token_hash');
       const type = searchParams.get('type');
@@ -30,31 +30,46 @@ export default function ResetPassword() {
       if (!tokenHash || type !== 'recovery') {
         toast({
           variant: "destructive",
-          title: "Link inválido",
-          description: "Este link de redefinição de senha é inválido ou expirou."
+          title: "Acesso inválido",
+          description: "Esta página só pode ser acessada através do link de redefinição de senha."
         });
         navigate('/auth');
         return;
       }
+      
+      // Verificar e autenticar com o token de recovery
+      const verifyAndSetPassword = async () => {
+        try {
+          const { data, error } = await supabase.auth.verifyOtp({
+            token_hash: tokenHash,
+            type: 'recovery'
+          });
 
-      // Verificar o token de recovery sem logar o usuário automaticamente
-      const { error } = await supabase.auth.verifyOtp({
-        token_hash: tokenHash,
-        type: 'recovery'
-      });
+          if (error) {
+            throw error;
+          }
 
-      if (error) {
-        toast({
-          variant: "destructive",
-          title: "Link expirado",
-          description: "Este link de redefinição de senha expirou. Solicite um novo link."
-        });
-        navigate('/auth');
-      }
-      // Token válido - usuário deve redefinir a senha obrigatoriamente
+          if (data?.user) {
+            toast({
+              title: "Token verificado",
+              description: "Agora você pode definir sua nova senha.",
+            });
+          }
+        } catch (error: any) {
+          console.error('Erro na verificação do token:', error);
+          toast({
+            variant: "destructive",
+            title: "Token inválido",
+            description: "Este link de redefinição expirou ou é inválido."
+          });
+          navigate('/auth');
+        }
+      };
+
+      verifyAndSetPassword();
     };
 
-    verifyRecoveryToken();
+    checkTokens();
   }, [searchParams, navigate, toast]);
 
   const handleSubmit = async (e: React.FormEvent) => {

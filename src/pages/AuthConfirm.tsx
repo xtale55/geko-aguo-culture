@@ -25,6 +25,24 @@ const AuthConfirm = () => {
           return;
         }
 
+        // Para recovery tokens, apenas redirecionar sem verificar (evita login automático)
+        if (type === 'recovery') {
+          setStatus('success');
+          setMessage('Redirecionando para redefinir senha...');
+          
+          toast({
+            title: "Link válido!",
+            description: "Redirecionando para redefinição de senha.",
+          });
+
+          // Redirecionar para reset de senha após 1 segundo
+          setTimeout(() => {
+            navigate(`/reset-password?token_hash=${token_hash}&type=${type}`);
+          }, 1000);
+          return;
+        }
+
+        // Para outros tipos (email confirmation), verificar normalmente
         const { data, error } = await supabase.auth.verifyOtp({
           token_hash,
           type: type as any,
@@ -36,32 +54,17 @@ const AuthConfirm = () => {
 
         if (data?.user) {
           setStatus('success');
+          setMessage('Conta confirmada com sucesso! Redirecionando...');
           
-          if (type === 'recovery') {
-            setMessage('Token verificado! Redirecionando para redefinir senha...');
-            
-            toast({
-              title: "Token verificado!",
-              description: "Agora você pode redefinir sua senha.",
-            });
+          toast({
+            title: "Conta confirmada!",
+            description: "Sua conta foi confirmada com sucesso. Bem-vindo ao AquaHub!",
+          });
 
-            // Redirecionar para reset de senha após 2 segundos
-            setTimeout(() => {
-              navigate('/reset-password');
-            }, 2000);
-          } else {
-            setMessage('Conta confirmada com sucesso! Redirecionando...');
-            
-            toast({
-              title: "Conta confirmada!",
-              description: "Sua conta foi confirmada com sucesso. Bem-vindo ao AquaHub!",
-            });
-
-            // Redirecionar para o dashboard após 2 segundos
-            setTimeout(() => {
-              navigate('/');
-            }, 2000);
-          }
+          // Redirecionar para o dashboard após 2 segundos
+          setTimeout(() => {
+            navigate('/');
+          }, 2000);
         }
       } catch (error: any) {
         console.error('Erro na confirmação:', error);

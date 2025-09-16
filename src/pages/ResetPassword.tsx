@@ -37,7 +37,7 @@ export default function ResetPassword() {
         return;
       }
 
-      // Verificar o token de recovery
+      // Verificar o token de recovery sem logar o usuário automaticamente
       const { error } = await supabase.auth.verifyOtp({
         token_hash: tokenHash,
         type: 'recovery'
@@ -51,6 +51,7 @@ export default function ResetPassword() {
         });
         navigate('/auth');
       }
+      // Token válido - usuário deve redefinir a senha obrigatoriamente
     };
 
     verifyRecoveryToken();
@@ -97,7 +98,7 @@ export default function ResetPassword() {
       
       // Redirecionar após 3 segundos
       setTimeout(() => {
-        navigate('/');
+        navigate('/auth');
       }, 3000);
     }
 
@@ -120,10 +121,10 @@ export default function ResetPassword() {
                 </p>
               </div>
               <Button 
-                onClick={() => navigate('/')}
+                onClick={() => navigate('/auth')}
                 className="w-full bg-gradient-to-r from-primary to-primary-hover"
               >
-                Ir para Dashboard
+                Voltar ao Login
               </Button>
             </div>
           </CardContent>

@@ -129,7 +129,7 @@ function getSignupEmailTemplate(email: string, emailData: any): string {
 }
 
 function getRecoveryEmailTemplate(email: string, emailData: any): string {
-  const resetLink = `${Deno.env.get('SUPABASE_URL')}/auth/v1/verify?token=${emailData.token_hash}&type=${emailData.email_action_type}&redirect_to=${encodeURIComponent(emailData.redirect_to || `${Deno.env.get('SITE_URL')}/auth/reset`)}`;
+  const resetLink = `${Deno.env.get('SUPABASE_URL')}/auth/v1/verify?token=${emailData.token_hash}&type=${emailData.email_action_type}&redirect_to=${encodeURIComponent(emailData.redirect_to || `${Deno.env.get('SITE_URL')}/reset-password`)}`;
   
   return `
     <!DOCTYPE html>

@@ -8,6 +8,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { PasswordStrengthIndicator } from '@/components/auth/PasswordStrengthIndicator';
 import { Fish, Eye, EyeOff, CheckCircle } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function ResetPassword() {
   const [password, setPassword] = useState('');
@@ -21,18 +22,38 @@ export default function ResetPassword() {
   const [searchParams] = useSearchParams();
 
   useEffect(() => {
-    // Verificar se há tokens na URL
-    const accessToken = searchParams.get('access_token');
-    const refreshToken = searchParams.get('refresh_token');
-    
-    if (!accessToken || !refreshToken) {
-      toast({
-        variant: "destructive",
-        title: "Link inválido",
-        description: "Este link de redefinição de senha é inválido ou expirou."
+    const verifyRecoveryToken = async () => {
+      // Verificar se há tokens na URL
+      const tokenHash = searchParams.get('token_hash');
+      const type = searchParams.get('type');
+      
+      if (!tokenHash || type !== 'recovery') {
+        toast({
+          variant: "destructive",
+          title: "Link inválido",
+          description: "Este link de redefinição de senha é inválido ou expirou."
+        });
+        navigate('/auth');
+        return;
+      }
+
+      // Verificar o token de recovery
+      const { error } = await supabase.auth.verifyOtp({
+        token_hash: tokenHash,
+        type: 'recovery'
       });
-      navigate('/auth');
-    }
+
+      if (error) {
+        toast({
+          variant: "destructive",
+          title: "Link expirado",
+          description: "Este link de redefinição de senha expirou. Solicite um novo link."
+        });
+        navigate('/auth');
+      }
+    };
+
+    verifyRecoveryToken();
   }, [searchParams, navigate, toast]);
 
   const handleSubmit = async (e: React.FormEvent) => {

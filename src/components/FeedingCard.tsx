@@ -2,12 +2,10 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { History, Plus, Edit2 } from 'lucide-react';
-import { useFeedingProgress } from '@/hooks/useFeedingProgress';
+import { History, Edit2, Clock } from 'lucide-react';
 import { FeedingHistoryDialog } from '@/components/FeedingHistoryDialog';
 import { FeedingSchedule } from '@/components/FeedingSchedule';
 import { supabase } from '@/integrations/supabase/client';
@@ -54,20 +52,11 @@ export function FeedingCard({
   isWeightEstimated = false
 }: FeedingCardProps) {
   const [isHistoryDialogOpen, setIsHistoryDialogOpen] = useState(false);
-  const [isFeedingDialogOpen, setIsFeedingDialogOpen] = useState(false);
   const [isEditRateDialogOpen, setIsEditRateDialogOpen] = useState(false);
   const [newFeedingRate, setNewFeedingRate] = useState<string>("");
   const [newMealsPerDay, setNewMealsPerDay] = useState<string>("");
   const { user } = useAuth();
   const { toast } = useToast();
-  const { data: feedingRecords } = useFeedingProgress(undefined);
-  
-  // Calculate progress for this specific pond
-  const todayRecords = feedingRecords?.filter(record => record.pond_batch_id === pondBatchId) || [];
-  const totalPlanned = dailyFeed;
-  const totalActual = todayRecords.reduce((sum, record) => sum + (record.actual_amount / 1000), 0);
-  const percentage = totalPlanned > 0 ? Math.round((totalActual / totalPlanned) * 100) : 0;
-  const progressPercentage = Math.min(percentage, 100);
 
   const handleEditFeedingRate = () => {
     setNewFeedingRate(feedingRate.toString());
@@ -201,9 +190,9 @@ export function FeedingCard({
           </div>
         </div>
 
-        {/* Feeding Info */}
-        <div className="bg-white/60 rounded-lg p-3 space-y-2">
-          <div className="grid grid-cols-3 gap-3">
+        {/* Feeding Configuration */}
+        <div className="bg-white/60 rounded-lg p-3 space-y-3">
+          <div className="grid grid-cols-2 gap-4">
             <div className="text-center">
               <p className="text-xs text-slate-500 mb-1">Ração Diária</p>
               <p className="text-lg font-bold text-blue-700">{dailyFeed.toFixed(1)} kg</p>
@@ -212,8 +201,11 @@ export function FeedingCard({
               <p className="text-xs text-slate-500 mb-1">Por Refeição</p>
               <p className="text-lg font-bold text-emerald-700">{feedPerMeal.toFixed(1)} kg</p>
             </div>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4">
             <div className="text-center">
-              <p className="text-xs text-slate-500 mb-1">Taxa</p>
+              <p className="text-xs text-slate-500 mb-1">Taxa de Alimentação</p>
               <p className="text-lg font-bold text-purple-700">{feedingRate.toFixed(1)}%</p>
               <Button
                 variant="ghost"
@@ -225,39 +217,17 @@ export function FeedingCard({
                 Editar
               </Button>
             </div>
+            <div className="text-center">
+              <p className="text-xs text-slate-500 mb-1">Arraçoamentos/Dia</p>
+              <div className="flex items-center justify-center gap-1">
+                <Clock className="w-4 h-4 text-orange-600" />
+                <p className="text-lg font-bold text-orange-700">{mealsPerDay}x</p>
+              </div>
+              <p className="text-xs text-slate-500 mt-1">refeições por dia</p>
+            </div>
           </div>
         </div>
 
-        {/* Progress */}
-        <div className="space-y-2">
-          <div className="flex justify-between items-center">
-            <span className="text-sm font-medium text-slate-600">Realizado Hoje</span>
-            <span className="text-sm font-bold text-slate-800">{totalActual.toFixed(1)} kg</span>
-          </div>
-          <Progress 
-            value={progressPercentage} 
-            className="h-2"
-          />
-          <div className="flex justify-between items-center">
-            <span className="text-xs text-slate-500">Progresso</span>
-            <span className={`text-xs font-semibold ${
-              progressPercentage >= 100 ? 'text-green-600' : 
-              progressPercentage >= 75 ? 'text-emerald-600' :
-              progressPercentage >= 50 ? 'text-amber-600' : 'text-red-600'
-            }`}>
-              {progressPercentage}%
-            </span>
-          </div>
-        </div>
-
-        {/* Action Button */}
-        <Button 
-          onClick={() => setIsFeedingDialogOpen(true)}
-          className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-medium"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Registrar Alimentação
-        </Button>
 
         {/* Feeding History Dialog */}
         <FeedingHistoryDialog
@@ -268,35 +238,6 @@ export function FeedingCard({
           batchName={batchName}
         />
 
-        {/* Feeding Registration Dialog */}
-        <Dialog open={isFeedingDialogOpen} onOpenChange={setIsFeedingDialogOpen}>
-          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Registrar Alimentação - {pondName}</DialogTitle>
-            </DialogHeader>
-            <FeedingSchedule
-              pondId={pondId}
-              pondName={pondName}
-              batchName={batchName}
-              pondBatchId={pondBatchId}
-              biomass={biomass}
-              feedingRate={feedingRate}
-              mealsPerDay={mealsPerDay}
-              dailyFeed={dailyFeed}
-              doc={doc}
-              selectedDate={selectedDate}
-              currentPopulation={population}
-              averageWeight={averageWeight}
-              farmId={farmId}
-              onFeedingUpdate={() => {
-                onFeedingUpdate();
-                setIsFeedingDialogOpen(false);
-              }}
-              onRateUpdate={onRateUpdate}
-              isWeightEstimated={isWeightEstimated}
-            />
-          </DialogContent>
-        </Dialog>
 
         {/* Edit Rate Dialog */}
         <Dialog open={isEditRateDialogOpen} onOpenChange={setIsEditRateDialogOpen}>

@@ -161,15 +161,6 @@ export function FeedingCard({
               )}
             </div>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setIsHistoryDialogOpen(true)}
-            className="h-8 px-2 text-xs"
-          >
-            <History className="w-3 h-3 mr-1" />
-            Histórico
-          </Button>
         </div>
       </CardHeader>
 
@@ -228,6 +219,16 @@ export function FeedingCard({
           </div>
         </div>
 
+        {/* History Button */}
+        <Button
+          variant="outline"
+          size="default"
+          onClick={() => setIsHistoryDialogOpen(true)}
+          className="w-full mt-4"
+        >
+          <History className="w-4 h-4 mr-2" />
+          Histórico de Alimentação
+        </Button>
 
         {/* Feeding History Dialog */}
         <FeedingHistoryDialog

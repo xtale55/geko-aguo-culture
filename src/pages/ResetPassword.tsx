@@ -80,6 +80,62 @@ export default function ResetPassword() {
     checkTokens();
   }, [searchParams, navigate, toast]);
 
+  // Função para mapear erros específicos do Supabase para mensagens amigáveis
+  const getErrorMessage = (error: any) => {
+    console.log('ResetPassword: Error details:', { message: error.message, code: error.code, status: error.status });
+    
+    const errorMessage = error.message?.toLowerCase() || '';
+    
+    // Mapear erros específicos para mensagens em português
+    if (errorMessage.includes('same as the old password')) {
+      return {
+        title: "Senha já utilizada",
+        description: "Você não pode usar a mesma senha anterior. Escolha uma senha diferente para sua segurança."
+      };
+    }
+    
+    if (errorMessage.includes('password is too weak') || errorMessage.includes('weak password')) {
+      return {
+        title: "Senha muito fraca",
+        description: "Sua senha precisa ser mais forte. Use uma combinação de letras maiúsculas, minúsculas, números e símbolos."
+      };
+    }
+    
+    if (errorMessage.includes('password is too common') || errorMessage.includes('common password')) {
+      return {
+        title: "Senha muito comum",
+        description: "Esta senha é muito comum e insegura. Escolha uma senha mais única e difícil de adivinhar."
+      };
+    }
+    
+    if (errorMessage.includes('password must be at least')) {
+      return {
+        title: "Senha muito curta",
+        description: "A senha deve ter pelo menos 6 caracteres. Use uma senha mais longa para maior segurança."
+      };
+    }
+    
+    if (errorMessage.includes('rate limit') || errorMessage.includes('too many requests')) {
+      return {
+        title: "Muitas tentativas",
+        description: "Você fez muitas tentativas recentemente. Aguarde alguns minutos antes de tentar novamente."
+      };
+    }
+    
+    if (errorMessage.includes('invalid') || errorMessage.includes('expired')) {
+      return {
+        title: "Sessão expirada",
+        description: "Sua sessão de redefinição expirou. Solicite um novo link de redefinição de senha."
+      };
+    }
+    
+    // Mensagem padrão para outros erros
+    return {
+      title: "Erro ao redefinir senha",
+      description: error.message || "Ocorreu um erro inesperado. Tente novamente ou solicite um novo link de redefinição."
+    };
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -97,32 +153,46 @@ export default function ResetPassword() {
     if (password.length < 6) {
       toast({
         variant: "destructive",
-        title: "Senha muito fraca",
-        description: "A senha deve ter pelo menos 6 caracteres."
+        title: "Senha muito curta",
+        description: "A senha deve ter pelo menos 6 caracteres para sua segurança."
       });
       setIsLoading(false);
       return;
     }
 
-    const { error } = await updatePassword(password);
+    try {
+      console.log('ResetPassword: Attempting to update password');
+      const { error } = await updatePassword(password);
 
-    if (error) {
+      if (error) {
+        console.log('ResetPassword: Password update failed:', error);
+        const errorDetails = getErrorMessage(error);
+        toast({
+          variant: "destructive",
+          title: errorDetails.title,
+          description: errorDetails.description
+        });
+      } else {
+        console.log('ResetPassword: Password updated successfully');
+        setIsSuccess(true);
+        toast({
+          title: "Senha redefinida!",
+          description: "Sua senha foi atualizada com sucesso."
+        });
+        
+        // Redirecionar após 3 segundos
+        setTimeout(() => {
+          navigate('/auth');
+        }, 3000);
+      }
+    } catch (error: any) {
+      console.error('ResetPassword: Unexpected error:', error);
+      const errorDetails = getErrorMessage(error);
       toast({
         variant: "destructive",
-        title: "Erro ao redefinir senha",
-        description: error.message
+        title: errorDetails.title,
+        description: errorDetails.description
       });
-    } else {
-      setIsSuccess(true);
-      toast({
-        title: "Senha redefinida!",
-        description: "Sua senha foi atualizada com sucesso."
-      });
-      
-      // Redirecionar após 3 segundos
-      setTimeout(() => {
-        navigate('/auth');
-      }, 3000);
     }
 
     setIsLoading(false);

@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { User, Session } from '@supabase/supabase-js';
+import { User, Session, AuthError } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [resetLoading, setResetLoading] = useState(false);
 
   useEffect(() => {
     // Set up auth state listener
@@ -56,12 +57,47 @@ export function useAuth() {
     return { error };
   };
 
+  const signInWithGoogle = async () => {
+    const redirectUrl = `${window.location.origin}/`;
+    
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: redirectUrl
+      }
+    });
+    return { error };
+  };
+
+  const resetPassword = async (email: string) => {
+    setResetLoading(true);
+    const redirectUrl = `${window.location.origin}/reset-password`;
+    
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: redirectUrl
+    });
+    
+    setResetLoading(false);
+    return { error };
+  };
+
+  const updatePassword = async (password: string) => {
+    const { error } = await supabase.auth.updateUser({
+      password: password
+    });
+    return { error };
+  };
+
   return {
     user,
     session,
     loading,
+    resetLoading,
     signUp,
     signIn,
-    signOut
+    signOut,
+    signInWithGoogle,
+    resetPassword,
+    updatePassword
   };
 }

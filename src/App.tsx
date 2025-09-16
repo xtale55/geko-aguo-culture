@@ -7,6 +7,7 @@ import Index from "./pages/Index";
 import Home from "./pages/Home";
 import Auth from "./pages/Auth";
 import AuthConfirm from "./pages/AuthConfirm";
+import ResetPassword from "./pages/ResetPassword";
 import Dashboard from "./pages/Dashboard";
 import Farm from "./pages/Farm";
 import Stocking from "./pages/Stocking";
@@ -38,6 +39,7 @@ const App = () => (
           <Route path="/home" element={<Home />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/auth/confirm" element={<AuthConfirm />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/farm" element={<Farm />} />
           <Route path="/stocking" element={<Stocking />} />

@@ -25,24 +25,27 @@ const AuthConfirm = () => {
           return;
         }
 
-        // Para recovery tokens, apenas redirecionar sem verificar (evita login automático)
+        // Para recovery tokens, NÃO verificar aqui para evitar login automático
+        // Apenas redirecionar com os parâmetros para a página de reset
         if (type === 'recovery') {
+          console.log('AuthConfirm: Detected recovery token, redirecting to reset-password');
           setStatus('success');
           setMessage('Redirecionando para redefinir senha...');
           
           toast({
-            title: "Link válido!",
-            description: "Redirecionando para redefinição de senha.",
+            title: "Redirecionando",
+            description: "Você será direcionado para redefinir sua senha.",
           });
 
-          // Redirecionar para reset de senha após 1 segundo
+          // Redirecionar IMEDIATAMENTE sem verificar o token
           setTimeout(() => {
+            console.log('AuthConfirm: Navigating to reset-password with params');
             navigate(`/reset-password?token_hash=${token_hash}&type=${type}`);
-          }, 1000);
+          }, 500);
           return;
         }
 
-        // Para outros tipos (email confirmation), verificar normalmente
+        // Para confirmação de email, verificar normalmente
         const { data, error } = await supabase.auth.verifyOtp({
           token_hash,
           type: type as any,

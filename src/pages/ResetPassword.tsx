@@ -23,11 +23,16 @@ export default function ResetPassword() {
 
   useEffect(() => {
     const checkTokens = () => {
+      console.log('ResetPassword: Starting token check');
+      
       // Verificar se há tokens na URL
       const tokenHash = searchParams.get('token_hash');
       const type = searchParams.get('type');
       
+      console.log('ResetPassword: Tokens found:', { tokenHash: !!tokenHash, type });
+      
       if (!tokenHash || type !== 'recovery') {
+        console.log('ResetPassword: Invalid tokens, redirecting to auth');
         toast({
           variant: "destructive",
           title: "Acesso inválido",
@@ -36,6 +41,8 @@ export default function ResetPassword() {
         navigate('/auth');
         return;
       }
+      
+      console.log('ResetPassword: Valid tokens found, verifying...');
       
       // Verificar e autenticar com o token de recovery
       const verifyAndSetPassword = async () => {
@@ -50,13 +57,14 @@ export default function ResetPassword() {
           }
 
           if (data?.user) {
+            console.log('ResetPassword: Token verified successfully, user authenticated');
             toast({
               title: "Token verificado",
               description: "Agora você pode definir sua nova senha.",
             });
           }
         } catch (error: any) {
-          console.error('Erro na verificação do token:', error);
+          console.error('ResetPassword: Token verification error:', error);
           toast({
             variant: "destructive",
             title: "Token inválido",

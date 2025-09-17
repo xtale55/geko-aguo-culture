@@ -22,7 +22,7 @@ export function AlertsModal({ isOpen, onClose, alerts }: AlertsModalProps) {
       case 'water':
         return <Droplets className="h-4 w-4" />;
       case 'mortality':
-        return <Fish className="h-4 w-4" />;
+        return <Shrimp className="h-4 w-4" />;
       case 'task':
         return <ClipboardList className="h-4 w-4" />;
       case 'stock':

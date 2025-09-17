@@ -1,6 +1,6 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, Droplets, Fish, ClipboardList, Package } from "lucide-react";
+import { AlertTriangle, Droplets, Shrimp, ClipboardList, Package } from "lucide-react";
 
 interface Alert {
   id: string;

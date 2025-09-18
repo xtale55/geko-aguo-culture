@@ -85,7 +85,8 @@ serve(async (req: Request) => {
 });
 
 function getSignupEmailTemplate(email: string, emailData: any): string {
-  const confirmLink = `${Deno.env.get('SUPABASE_URL')}/auth/v1/verify?token=${emailData.token_hash}&type=${emailData.email_action_type}&redirect_to=${encodeURIComponent(emailData.redirect_to || `${Deno.env.get('SITE_URL')}/auth/confirm`)}`;
+  const siteUrl = emailData.redirect_to ? emailData.redirect_to.split('/auth')[0] : 'https://aquahub.app';
+  const confirmLink = `${Deno.env.get('SUPABASE_URL')}/auth/v1/verify?token=${emailData.token_hash}&type=${emailData.email_action_type}&redirect_to=${encodeURIComponent(emailData.redirect_to || `${siteUrl}/auth/confirm`)}`;
   
   return `
     <!DOCTYPE html>
@@ -129,7 +130,8 @@ function getSignupEmailTemplate(email: string, emailData: any): string {
 }
 
 function getRecoveryEmailTemplate(email: string, emailData: any): string {
-  const resetLink = `${Deno.env.get('SUPABASE_URL')}/auth/v1/verify?token=${emailData.token_hash}&type=${emailData.email_action_type}&redirect_to=${encodeURIComponent(emailData.redirect_to || `${Deno.env.get('SITE_URL')}/reset-password`)}`;
+  const siteUrl = emailData.redirect_to ? emailData.redirect_to.split('/reset')[0] : 'https://aquahub.app';
+  const resetLink = `${Deno.env.get('SUPABASE_URL')}/auth/v1/verify?token=${emailData.token_hash}&type=${emailData.email_action_type}&redirect_to=${encodeURIComponent(emailData.redirect_to || `${siteUrl}/reset-password`)}`;
   
   return `
     <!DOCTYPE html>
@@ -173,8 +175,8 @@ function getRecoveryEmailTemplate(email: string, emailData: any): string {
 }
 
 function getMagicLinkEmailTemplate(email: string, emailData: any): string {
-  const magicLink = `${Deno.env.get('SUPABASE_URL')}/auth/v1/verify?token=${emailData.token_hash}&type=${emailData.email_action_type}&redirect_to=${encodeURIComponent(emailData.redirect_to || `${Deno.env.get('SITE_URL')}`)}`;
-  
+  const siteUrl = emailData.redirect_to ? emailData.redirect_to.split('/auth')[0] : 'https://aquahub.app';
+  const magicLink = `${Deno.env.get('SUPABASE_URL')}/auth/v1/verify?token=${emailData.token_hash}&type=${emailData.email_action_type}&redirect_to=${encodeURIComponent(emailData.redirect_to || siteUrl)}`;
   return `
     <!DOCTYPE html>
     <html>

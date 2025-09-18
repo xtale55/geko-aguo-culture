@@ -65,7 +65,7 @@ export default function Auth() {
     } else {
       toast({
         title: "Cadastro realizado!",
-        description: "Verifique seu email para confirmar a conta."
+        description: "Sua conta foi criada com sucesso!"
       });
     }
 

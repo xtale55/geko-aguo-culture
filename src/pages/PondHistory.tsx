@@ -295,8 +295,13 @@ export default function PondHistory() {
         }
 
         if (latestBiometry) {
+          // Calculate harvested population first
+          const harvestedPopulation = harvestRecords
+            ?.filter(hr => hr.pond_batch_id === cycle.id)
+            ?.reduce((sum, hr) => sum + (hr.population_harvested || 0), 0) || 0;
+          
           const survivalRate = cycle.pl_quantity > 0 
-            ? (cycle.current_population / cycle.pl_quantity) * 100 
+            ? ((cycle.current_population + harvestedPopulation) / cycle.pl_quantity) * 100 
             : 0;
 
           const pondArea = cycle.ponds?.area || 0;

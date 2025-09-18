@@ -22,7 +22,7 @@ export default function ResetPassword() {
   const [searchParams] = useSearchParams();
 
   useEffect(() => {
-    const checkTokens = () => {
+    const checkTokens = async () => {
       console.log('ResetPassword: Starting token check');
       
       // Verificar se há tokens na URL
@@ -44,37 +44,32 @@ export default function ResetPassword() {
       
       console.log('ResetPassword: Valid tokens found, verifying...');
       
-      // Verificar e autenticar com o token de recovery
-      const verifyAndSetPassword = async () => {
-        try {
-          const { data, error } = await supabase.auth.verifyOtp({
-            token_hash: tokenHash,
-            type: 'recovery'
-          });
+      try {
+        const { data, error } = await supabase.auth.verifyOtp({
+          token_hash: tokenHash,
+          type: 'recovery'
+        });
 
-          if (error) {
-            throw error;
-          }
-
-          if (data?.user) {
-            console.log('ResetPassword: Token verified successfully, user authenticated');
-            toast({
-              title: "Token verificado",
-              description: "Agora você pode definir sua nova senha.",
-            });
-          }
-        } catch (error: any) {
-          console.error('ResetPassword: Token verification error:', error);
-          toast({
-            variant: "destructive",
-            title: "Token inválido",
-            description: "Este link de redefinição expirou ou é inválido."
-          });
-          navigate('/auth');
+        if (error) {
+          throw error;
         }
-      };
 
-      verifyAndSetPassword();
+        if (data?.user) {
+          console.log('ResetPassword: Token verified successfully, user authenticated');
+          toast({
+            title: "Token verificado",
+            description: "Agora você pode definir sua nova senha.",
+          });
+        }
+      } catch (error: any) {
+        console.error('ResetPassword: Token verification error:', error);
+        toast({
+          variant: "destructive",
+          title: "Token inválido",
+          description: "Este link de redefinição expirou ou é inválido."
+        });
+        navigate('/auth');
+      }
     };
 
     checkTokens();

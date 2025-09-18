@@ -972,10 +972,29 @@ export default function PondHistory() {
               <ScrollArea className="h-80">
                 <div className="space-y-4">
                   {biometryRecords.slice(0, 8).map((record, index) => {
-                // Encontrar o ciclo ativo para calcular FCA
+                // Encontrar o ciclo ativo para calcular FCA e crescimento
                 const activeCycle = cycles.find(c => c.status === 'active');
                 let fcaReal = 0;
                 let fcaSemanal = 0;
+                let crescimentoSemanal = 0;
+                
+                // Encontrar biometria anterior para calcular crescimento
+                const previousBiometry = biometryRecords
+                  .filter(b => new Date(b.measurement_date) < new Date(record.measurement_date))
+                  .sort((a, b) => new Date(b.measurement_date).getTime() - new Date(a.measurement_date).getTime())[0];
+                
+                if (previousBiometry) {
+                  const periodStart = new Date(previousBiometry.measurement_date);
+                  const periodEnd = new Date(record.measurement_date);
+                  const daysBetween = Math.ceil((periodEnd.getTime() - periodStart.getTime()) / (1000 * 60 * 60 * 24));
+                  
+                  // Calcular crescimento semanal usando QuantityUtils
+                  crescimentoSemanal = QuantityUtils.calculateWeeklyGrowth(
+                    previousBiometry.average_weight,
+                    record.average_weight,
+                    daysBetween
+                  );
+                }
                 
                 if (activeCycle) {
                   // FCA Real: total de ração / biomassa total atual no viveiro
@@ -988,10 +1007,6 @@ export default function PondHistory() {
                   fcaReal = currentTotalBiomass > 0 ? totalFeedKg / currentTotalBiomass : 0;
                   
                   // FCA Semanal: ração entre biometrias / ((ganho de biomassa / dias) x 7)
-                  const previousBiometry = biometryRecords
-                    .filter(b => new Date(b.measurement_date) < new Date(record.measurement_date))
-                    .sort((a, b) => new Date(b.measurement_date).getTime() - new Date(a.measurement_date).getTime())[0];
-                  
                   if (previousBiometry) {
                     const periodStart = new Date(previousBiometry.measurement_date);
                     const periodEnd = new Date(record.measurement_date);
@@ -1026,20 +1041,28 @@ export default function PondHistory() {
                         <Badge variant="outline" className="text-xs">{record.uniformity}% unif.</Badge>
                       )}
                     </div>
-                    {activeCycle && (
-                      <div className="grid grid-cols-2 gap-2 mt-3">
-                        <div className="text-center bg-muted/50 rounded-lg p-2">
-                          <p className="text-xs text-muted-foreground">FCA Real</p>
-                          <p className="font-semibold text-sm">{fcaReal > 0 ? fcaReal.toFixed(2) : '-'}</p>
-                        </div>
-                        {fcaSemanal > 0 && (
+                    <div className="grid grid-cols-2 gap-2 mt-3">
+                      {activeCycle && (
+                        <>
                           <div className="text-center bg-muted/50 rounded-lg p-2">
-                            <p className="text-xs text-muted-foreground">FCA Semanal</p>
-                            <p className="font-semibold text-sm">{fcaSemanal.toFixed(2)}</p>
+                            <p className="text-xs text-muted-foreground">FCA Real</p>
+                            <p className="font-semibold text-sm">{fcaReal > 0 ? fcaReal.toFixed(2) : '-'}</p>
                           </div>
-                        )}
-                      </div>
-                    )}
+                          {fcaSemanal > 0 && (
+                            <div className="text-center bg-muted/50 rounded-lg p-2">
+                              <p className="text-xs text-muted-foreground">FCA Semanal</p>
+                              <p className="font-semibold text-sm">{fcaSemanal.toFixed(2)}</p>
+                            </div>
+                          )}
+                        </>
+                      )}
+                      {crescimentoSemanal > 0 && (
+                        <div className="text-center bg-muted/50 rounded-lg p-2 col-span-2">
+                          <p className="text-xs text-muted-foreground">Crescimento Semanal</p>
+                          <p className="font-semibold text-sm text-emerald-600">+{crescimentoSemanal.toFixed(1)}g/semana</p>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 );
                   })}

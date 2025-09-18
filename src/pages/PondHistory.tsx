@@ -96,6 +96,15 @@ interface OperationalCostRecord {
   amount: number;
 }
 
+interface HarvestRecord {
+  harvest_date: string;
+  population_harvested: number;
+  biomass_harvested: number;
+  average_weight_at_harvest: number;
+  total_value: number;
+  harvest_type: string;
+}
+
 interface WeeklyFeedingRecord {
   week_number: number;
   week_start: string;
@@ -115,6 +124,7 @@ export default function PondHistory() {
   const [inputRecords, setInputRecords] = useState<InputRecord[]>([]);
   const [operationalCostRecords, setOperationalCostRecords] = useState<OperationalCostRecord[]>([]);
   const [waterQualityRecords, setWaterQualityRecords] = useState<WaterQualityRecord[]>([]);
+  const [harvestRecords, setHarvestRecords] = useState<HarvestRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [priceTable, setPriceTable] = useState<number>(19);
   const [editingCost, setEditingCost] = useState<{ cycleId: string, costType: string } | null>(null);
@@ -239,6 +249,12 @@ export default function PondHistory() {
               .eq('pond_id', actualPondId)
               .then(({ data }) => data?.map(pb => pb.id) || [])
           );
+
+        // Filter harvest records for active cycle only
+        const activeCycleHarvests = harvestRecords?.filter(hr => {
+          const activeCycle = cyclesData?.find(c => c.current_population > 0);
+          return activeCycle && hr.pond_batch_id === activeCycle.id;
+        }) || [];
 
       // Process cycles
       const processedCycles: PondCycleHistory[] = [];
@@ -1025,39 +1041,41 @@ export default function PondHistory() {
                 
                 return (
                   <div key={index} className="border-b border-border pb-4 last:border-b-0">
-                    <div className="flex justify-between items-start mb-2">
-                      <div>
-                        <p className="font-semibold text-primary">{record.average_weight.toFixed(1)}g</p>
-                        <p className="text-muted-foreground text-sm">
-                          {new Date(record.measurement_date).toLocaleDateString('pt-BR')}
-                        </p>
-                      </div>
-                      {record.uniformity > 0 && (
-                        <Badge variant="outline" className="text-xs">{record.uniformity}% unif.</Badge>
-                      )}
-                    </div>
-                    <div className="grid grid-cols-2 gap-2 mt-3">
-                      {activeCycle && (
-                        <>
-                          <div className="text-center bg-muted/50 rounded-lg p-2">
-                            <p className="text-xs text-muted-foreground">FCA Real</p>
-                            <p className="font-semibold text-sm">{fcaReal > 0 ? fcaReal.toFixed(2) : '-'}</p>
-                          </div>
-                          {fcaSemanal > 0 && (
-                            <div className="text-center bg-muted/50 rounded-lg p-2">
-                              <p className="text-xs text-muted-foreground">FCA Semanal</p>
-                              <p className="font-semibold text-sm">{fcaSemanal.toFixed(2)}</p>
-                            </div>
-                          )}
-                        </>
-                      )}
-                      {crescimentoSemanal > 0 && (
-                        <div className="text-center bg-muted/50 rounded-lg p-2 col-span-2">
-                          <p className="text-xs text-muted-foreground">Crescimento Semanal</p>
-                          <p className="font-semibold text-sm text-emerald-600">+{crescimentoSemanal.toFixed(1)}g/semana</p>
-                        </div>
-                      )}
-                    </div>
+                     <div className="flex items-center justify-between">
+                       <div className="flex-1">
+                         <div className="flex items-center gap-3 mb-1">
+                           <p className="font-semibold text-primary text-lg">{record.average_weight.toFixed(1)}g</p>
+                           <p className="text-muted-foreground text-sm">
+                             {new Date(record.measurement_date).toLocaleDateString('pt-BR')}
+                           </p>
+                           {record.uniformity > 0 && (
+                             <Badge variant="outline" className="text-xs">{record.uniformity}% unif.</Badge>
+                           )}
+                         </div>
+                         <div className="flex gap-4">
+                           {activeCycle && (
+                             <>
+                               <div className="text-center">
+                                 <p className="text-xs text-muted-foreground">FCA Real</p>
+                                 <p className="font-semibold text-sm">{fcaReal > 0 ? fcaReal.toFixed(2) : '-'}</p>
+                               </div>
+                               {fcaSemanal > 0 && (
+                                 <div className="text-center">
+                                   <p className="text-xs text-muted-foreground">FCA Semanal</p>
+                                   <p className="font-semibold text-sm">{fcaSemanal.toFixed(2)}</p>
+                                 </div>
+                               )}
+                               {crescimentoSemanal > 0 && (
+                                 <div className="text-center">
+                                   <p className="text-xs text-muted-foreground">Crescimento</p>
+                                   <p className="font-semibold text-sm text-emerald-600">+{crescimentoSemanal.toFixed(1)}g/sem</p>
+                                 </div>
+                               )}
+                             </>
+                           )}
+                         </div>
+                       </div>
+                     </div>
                   </div>
                 );
                   })}
@@ -1106,6 +1124,73 @@ export default function PondHistory() {
               </ScrollArea>
             </CardContent>
           </Card>
+
+          {/* Harvest Records - Active Cycle Only */}
+          {harvestRecords.length > 0 && (
+            <Card className="col-span-1">
+              <CardHeader className="pb-4">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Scale className="w-4 h-4" />
+                  Despescas do Lote
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {/* Summary totals */}
+                <div className="bg-gradient-to-r from-emerald-500/10 to-emerald-500/5 border border-emerald-500/20 rounded-lg p-4 mb-4">
+                  <div className="text-center">
+                    <p className="text-sm text-muted-foreground mb-1">Total Despescado</p>
+                    <div className="flex justify-center gap-4">
+                      <div>
+                        <p className="text-lg font-bold text-emerald-600">
+                          {harvestRecords.reduce((sum, h) => sum + h.population_harvested, 0).toLocaleString()} animals
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-lg font-bold text-emerald-600">
+                          {harvestRecords.reduce((sum, h) => sum + h.biomass_harvested, 0).toFixed(1)} kg
+                        </p>
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      R$ {harvestRecords.reduce((sum, h) => sum + (h.total_value || 0), 0).toFixed(2)}
+                    </p>
+                  </div>
+                </div>
+                <ScrollArea className="h-80">
+                  <div className="space-y-3">
+                    {harvestRecords.map((record, index) => (
+                      <div key={index} className="bg-muted/30 rounded-lg p-3 border border-border/50 hover:bg-muted/50 transition-colors">
+                        <div className="flex justify-between items-start mb-2">
+                          <div>
+                            <p className="font-semibold text-sm text-emerald-600">
+                              {record.population_harvested.toLocaleString()} animals
+                            </p>
+                            <p className="text-muted-foreground text-xs">
+                              {new Date(record.harvest_date).toLocaleDateString('pt-BR')}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-bold text-lg text-primary">{record.biomass_harvested.toFixed(1)} kg</p>
+                            <p className="text-muted-foreground text-sm">
+                              {record.average_weight_at_harvest.toFixed(1)}g médio
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex justify-between items-center mt-2 pt-2 border-t border-border/30">
+                          <Badge variant={record.harvest_type === 'total' ? 'default' : 'secondary'} className="text-xs">
+                            {record.harvest_type === 'total' ? 'Total' : 'Parcial'}
+                          </Badge>
+                          <p className="text-emerald-600 text-sm font-medium">
+                            R$ {(record.total_value || 0).toFixed(2)}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Weekly Feeding Records */}
           <Card className="col-span-1">

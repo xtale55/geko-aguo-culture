@@ -13,8 +13,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate, useParams } from "react-router-dom";
 import { 
   ArrowLeft, Calendar, DollarSign, Scale, TrendingUp, 
-  Package, Droplets, Skull, Fish, Edit2, Trash2 
+  Package, Droplets, Skull, Fish, Edit2, Trash2, History 
 } from "lucide-react";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useToast } from "@/hooks/use-toast";
 import { QuantityUtils } from "@/lib/quantityUtils";
 import { LoadingScreen } from "@/components/LoadingScreen";
@@ -699,264 +700,238 @@ export default function PondHistory() {
           </Card>
         </div>
 
-        {/* Cycles History */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Histórico de Ciclos</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {cycles.map((cycle) => (
-              <div key={cycle.cycle_id} className="border rounded-lg p-4 space-y-4">
-                 <div className="flex items-center justify-between">
-                   <div>
-                     <h3 className="font-semibold text-lg">{cycle.batch_name}</h3>
-                     <p className="text-sm text-muted-foreground">
-                       Povoamento: {new Date(cycle.stocking_date).toLocaleDateString('pt-BR')} 
-                       • DOC: {cycle.doc} dias
-                     </p>
+        {/* Active Cycles */}
+        {cycles.filter(c => c.status === 'active').length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Ciclo Ativo</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {cycles.filter(c => c.status === 'active').map((cycle) => (
+                <div key={cycle.cycle_id} className="border rounded-lg p-4 space-y-4">
+                   <div className="flex items-center justify-between">
+                     <div>
+                       <h3 className="font-semibold text-lg">{cycle.batch_name}</h3>
+                       <p className="text-sm text-muted-foreground">
+                         Povoamento: {new Date(cycle.stocking_date).toLocaleDateString('pt-BR')} 
+                         • DOC: {cycle.doc} dias
+                       </p>
+                     </div>
+                     <div className="flex items-center gap-2">
+                       <Badge variant="default">Ativo</Badge>
+                     </div>
                    </div>
-                   <div className="flex items-center gap-2">
-                     <Badge variant={cycle.status === 'active' ? 'default' : 'secondary'}>
-                       {cycle.status === 'active' ? 'Ativo' : 'Finalizado'}
-                     </Badge>
-                     {cycle.status === 'harvested' && (
-                       <AlertDialog>
-                         <AlertDialogTrigger asChild>
-                           <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive hover:bg-destructive/10">
-                             <Trash2 className="w-3 h-3" />
-                           </Button>
-                         </AlertDialogTrigger>
-                         <AlertDialogContent>
-                           <AlertDialogHeader>
-                             <AlertDialogTitle>Excluir Ciclo</AlertDialogTitle>
-                             <AlertDialogDescription>
-                               Tem certeza que deseja excluir o ciclo "{cycle.batch_name}"? Esta ação não pode ser desfeita e todos os dados relacionados serão removidos.
-                             </AlertDialogDescription>
-                           </AlertDialogHeader>
-                           <AlertDialogFooter>
-                             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                             <AlertDialogAction 
-                               onClick={() => handleDeleteCycle(cycle.cycle_id)}
-                               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                             >
-                               Excluir
-                             </AlertDialogAction>
-                           </AlertDialogFooter>
-                         </AlertDialogContent>
-                       </AlertDialog>
-                     )}
-                   </div>
-                 </div>
 
-                {/* Main Performance Metrics */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                  <div>
-                    <p className="text-muted-foreground">Biomassa</p>
-                    <p className="font-medium">{cycle.biomass.toFixed(1)} kg</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Peso Atual</p>
-                    <p className="font-medium">{cycle.average_weight.toFixed(1)}g</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Crescimento Total</p>
-                    <p className="font-medium">{cycle.weekly_growth.toFixed(1)}g/sem</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">FCA Real</p>
-                    <p className="font-medium">{cycle.real_fca.toFixed(2)}</p>
-                  </div>
-                </div>
-
-                {/* Secondary Metrics */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                  <div>
-                    <p className="text-muted-foreground">Densidade</p>
-                    <p className="font-medium">{cycle.density.toFixed(1)} Un/m²</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Custo/kg</p>
-                    <p className="font-medium">R$ {cycle.cost_per_kg.toFixed(2)}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">População</p>
-                    <p className="font-medium">{cycle.current_population.toLocaleString('pt-BR')}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Sobrevivência</p>
-                    <p className="font-medium">{cycle.survival_rate.toFixed(1)}%</p>
-                  </div>
-                </div>
-
-                {/* Financial Summary */}
-                <div className="bg-muted/50 rounded-lg p-3">
+                  {/* Main Performance Metrics */}
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                     <div>
-                      <p className="text-muted-foreground">Receita Estimada</p>
-                      <p className="font-medium text-green-600">
-                        R$ {cycle.estimated_revenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                      </p>
+                      <p className="text-muted-foreground">Biomassa</p>
+                      <p className="font-medium">{cycle.biomass.toFixed(1)} kg</p>
                     </div>
                     <div>
-                      <p className="text-muted-foreground">Custo Total</p>
-                      <p className="font-medium text-red-600">
-                        R$ {cycle.costs.total_cost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                      </p>
+                      <p className="text-muted-foreground">Peso Atual</p>
+                      <p className="font-medium">{cycle.average_weight.toFixed(1)}g</p>
                     </div>
                     <div>
-                      <p className="text-muted-foreground">Resultado do Viveiro</p>
-                      <p className={`font-medium ${cycle.pond_result > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        R$ {cycle.pond_result.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                      </p>
+                      <p className="text-muted-foreground">Crescimento Total</p>
+                      <p className="font-medium">{cycle.weekly_growth.toFixed(1)}g/sem</p>
                     </div>
                     <div>
-                      <p className="text-muted-foreground">Produtividade</p>
-                      <p className="font-medium">{cycle.productivity_per_ha.toFixed(1)} kg/ha</p>
+                      <p className="text-muted-foreground">FCA Real</p>
+                      <p className="font-medium">{cycle.real_fca.toFixed(2)}</p>
                     </div>
                   </div>
-                </div>
 
-                {/* Cost Breakdown */}
-                <div className="border-t pt-3">
-                  <h4 className="font-medium mb-2">Detalhamento de Custos</h4>
-                  <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-sm">
-                    {/* Pós-Larvas */}
+                  {/* Secondary Metrics */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                     <div>
-                      <div className="flex items-center justify-between">
-                        <p className="text-muted-foreground">Pós-Larvas</p>
-                        <Dialog>
-                          <DialogTrigger asChild>
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              onClick={() => handleEditCost(cycle.cycle_id, 'pl_cost', cycle.costs.pl_cost, {
-                                batch_id: cycles.find(c => c.cycle_id === cycle.cycle_id)?.cycle_id,
-                                pl_quantity: cycle.initial_population
-                              })}
-                            >
-                              <Edit2 className="w-3 h-3" />
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent>
-                            <DialogHeader>
-                              <DialogTitle>Editar Custo de Pós-Larvas</DialogTitle>
-                            </DialogHeader>
-                            <div className="space-y-4">
-                              <div>
-                                <label className="text-sm font-medium">Valor por mil pós-larvas (R$)</label>
-                                <Input
-                                  type="number"
-                                  step="0.01"
-                                  value={newCostValue}
-                                  onChange={(e) => setNewCostValue(e.target.value)}
-                                  placeholder="Ex: 0.50"
-                                />
-                              </div>
-                              <div className="flex gap-2">
-                                <Button onClick={handleSaveCost} disabled={!newCostValue}>
-                                  Salvar
-                                </Button>
-                                <Button 
-                                  variant="outline" 
-                                  onClick={() => {
-                                    setEditingCost(null);
-                                    setNewCostValue("");
-                                    setEditingCycleData(null);
-                                  }}
-                                >
-                                  Cancelar
-                                </Button>
-                              </div>
-                            </div>
-                          </DialogContent>
-                        </Dialog>
-                      </div>
-                      <p className="font-medium">R$ {cycle.costs.pl_cost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                      <p className="text-muted-foreground">Densidade</p>
+                      <p className="font-medium">{cycle.density.toFixed(1)} Un/m²</p>
                     </div>
-                    
-                    {/* Preparação */}
                     <div>
-                      <div className="flex items-center justify-between">
-                        <p className="text-muted-foreground">Preparação</p>
-                        <Dialog>
-                          <DialogTrigger asChild>
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              onClick={() => handleEditCost(cycle.cycle_id, 'preparation_cost', cycle.costs.preparation_cost, {})}
-                            >
-                              <Edit2 className="w-3 h-3" />
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent>
-                            <DialogHeader>
-                              <DialogTitle>Editar Custo de Preparação</DialogTitle>
-                            </DialogHeader>
-                            <div className="space-y-4">
-                              <div>
-                                <label className="text-sm font-medium">Custo de preparação (R$)</label>
-                                <Input
-                                  type="number"
-                                  step="0.01"
-                                  value={newCostValue}
-                                  onChange={(e) => setNewCostValue(e.target.value)}
-                                  placeholder="Ex: 500.00"
-                                />
+                      <p className="text-muted-foreground">Custo/kg</p>
+                      <p className="font-medium">R$ {cycle.cost_per_kg.toFixed(2)}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">População</p>
+                      <p className="font-medium">{cycle.current_population.toLocaleString('pt-BR')}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Sobrevivência</p>
+                      <p className="font-medium">{cycle.survival_rate.toFixed(1)}%</p>
+                    </div>
+                  </div>
+
+                  {/* Financial Summary */}
+                  <div className="bg-muted/50 rounded-lg p-3">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                      <div>
+                        <p className="text-muted-foreground">Receita Estimada</p>
+                        <p className="font-medium text-green-600">
+                          R$ {cycle.estimated_revenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Custo Total</p>
+                        <p className="font-medium text-red-600">
+                          R$ {cycle.costs.total_cost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Resultado do Viveiro</p>
+                        <p className={`font-medium ${cycle.pond_result > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          R$ {cycle.pond_result.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Produtividade</p>
+                        <p className="font-medium">{cycle.productivity_per_ha.toFixed(1)} kg/ha</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Cost Breakdown */}
+                  <div className="border-t pt-3">
+                    <h4 className="font-medium mb-2">Detalhamento de Custos</h4>
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-sm">
+                      {/* Pós-Larvas */}
+                      <div>
+                        <div className="flex items-center justify-between">
+                          <p className="text-muted-foreground">Pós-Larvas</p>
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                onClick={() => handleEditCost(cycle.cycle_id, 'pl_cost', cycle.costs.pl_cost, {
+                                  batch_id: cycles.find(c => c.cycle_id === cycle.cycle_id)?.cycle_id,
+                                  pl_quantity: cycle.initial_population
+                                })}
+                              >
+                                <Edit2 className="w-3 h-3" />
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                              <DialogHeader>
+                                <DialogTitle>Editar Custo de Pós-Larvas</DialogTitle>
+                              </DialogHeader>
+                              <div className="space-y-4">
+                                <div>
+                                  <label className="text-sm font-medium">Valor por mil pós-larvas (R$)</label>
+                                  <Input
+                                    type="number"
+                                    step="0.01"
+                                    value={newCostValue}
+                                    onChange={(e) => setNewCostValue(e.target.value)}
+                                    placeholder="Ex: 500.00"
+                                  />
+                                </div>
+                                <div className="flex gap-2">
+                                  <Button onClick={handleSaveCost} disabled={!newCostValue}>
+                                    Salvar
+                                  </Button>
+                                  <Button 
+                                    variant="outline" 
+                                    onClick={() => {
+                                      setEditingCost(null);
+                                      setNewCostValue("");
+                                      setEditingCycleData(null);
+                                    }}
+                                  >
+                                    Cancelar
+                                  </Button>
+                                </div>
                               </div>
-                              <div className="flex gap-2">
-                                <Button onClick={handleSaveCost} disabled={!newCostValue}>
-                                  Salvar
-                                </Button>
-                                <Button 
-                                  variant="outline" 
-                                  onClick={() => {
-                                    setEditingCost(null);
-                                    setNewCostValue("");
-                                    setEditingCycleData(null);
-                                  }}
-                                >
-                                  Cancelar
-                                </Button>
+                            </DialogContent>
+                          </Dialog>
+                        </div>
+                        <p className="font-medium">R$ {cycle.costs.pl_cost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                      </div>
+                      
+                      {/* Preparação */}
+                      <div>
+                        <div className="flex items-center justify-between">
+                          <p className="text-muted-foreground">Preparação</p>
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                onClick={() => handleEditCost(cycle.cycle_id, 'preparation_cost', cycle.costs.preparation_cost, { pond_batch_id: cycle.cycle_id })}
+                              >
+                                <Edit2 className="w-3 h-3" />
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                              <DialogHeader>
+                                <DialogTitle>Editar Custo de Preparação</DialogTitle>
+                              </DialogHeader>
+                              <div className="space-y-4">
+                                <div>
+                                  <label className="text-sm font-medium">Valor (R$)</label>
+                                  <Input
+                                    type="number"
+                                    step="0.01"
+                                    value={newCostValue}
+                                    onChange={(e) => setNewCostValue(e.target.value)}
+                                    placeholder="Ex: 500.00"
+                                  />
+                                </div>
+                                <div className="flex gap-2">
+                                  <Button onClick={handleSaveCost} disabled={!newCostValue}>
+                                    Salvar
+                                  </Button>
+                                  <Button 
+                                    variant="outline" 
+                                    onClick={() => {
+                                      setEditingCost(null);
+                                      setNewCostValue("");
+                                      setEditingCycleData(null);
+                                    }}
+                                  >
+                                    Cancelar
+                                  </Button>
+                                </div>
                               </div>
-                            </div>
-                          </DialogContent>
-                        </Dialog>
+                            </DialogContent>
+                          </Dialog>
+                        </div>
+                        <p className="font-medium">R$ {cycle.costs.preparation_cost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
                       </div>
-                      <p className="font-medium">R$ {cycle.costs.preparation_cost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
-                    </div>
-                    
-                    {/* Ração (Estimada) */}
-                    <div>
-                      <div className="flex items-center justify-between">
-                        <p className="text-muted-foreground">Ração (Est.)</p>
-                        <span className="text-xs text-muted-foreground">(Calculado)</span>
+                      
+                      {/* Ração (Estimada) */}
+                      <div>
+                        <div className="flex items-center justify-between">
+                          <p className="text-muted-foreground">Ração (Est.)</p>
+                          <span className="text-xs text-muted-foreground">(Calculado)</span>
+                        </div>
+                        <p className="font-medium">R$ {cycle.costs.feed_cost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
                       </div>
-                      <p className="font-medium">R$ {cycle.costs.feed_cost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
-                    </div>
-                    
-                    {/* Insumos */}
-                    <div>
-                      <div className="flex items-center justify-between">
-                        <p className="text-muted-foreground">Insumos</p>
-                        <span className="text-xs text-muted-foreground">(Aplicados)</span>
+                      
+                      {/* Insumos */}
+                      <div>
+                        <div className="flex items-center justify-between">
+                          <p className="text-muted-foreground">Insumos</p>
+                          <span className="text-xs text-muted-foreground">(Aplicados)</span>
+                        </div>
+                        <p className="font-medium">R$ {cycle.costs.inputs_cost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
                       </div>
-                      <p className="font-medium">R$ {cycle.costs.inputs_cost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
-                    </div>
-                    
-                    {/* Custos Operacionais */}
-                    <div>
-                      <div className="flex items-center justify-between">
-                        <p className="text-muted-foreground">Custos Operacionais</p>
-                        <span className="text-xs text-muted-foreground">(Registrados)</span>
+                      
+                      {/* Custos Operacionais */}
+                      <div>
+                        <div className="flex items-center justify-between">
+                          <p className="text-muted-foreground">Custos Operacionais</p>
+                          <span className="text-xs text-muted-foreground">(Registrados)</span>
+                        </div>
+                        <p className="font-medium">R$ {cycle.costs.operational_cost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
                       </div>
-                      <p className="font-medium">R$ {cycle.costs.operational_cost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
+              ))}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Performance Records */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -1306,6 +1281,134 @@ export default function PondHistory() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Completed Cycles */}
+        {cycles.filter(c => c.status !== 'active').length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <History className="w-5 h-5" />
+                Ciclos Finalizados
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Accordion type="single" collapsible className="w-full">
+                {cycles.filter(c => c.status !== 'active').map((cycle) => (
+                  <AccordionItem key={cycle.cycle_id} value={cycle.cycle_id}>
+                    <AccordionTrigger className="hover:no-underline">
+                      <div className="flex items-center justify-between w-full mr-4">
+                        <div className="flex items-center gap-3">
+                          <h4 className="font-semibold">{cycle.batch_name}</h4>
+                          <Badge variant="secondary">Finalizado</Badge>
+                        </div>
+                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                          <span>{cycle.biomass.toFixed(1)} kg</span>
+                          <span>R$ {cycle.pond_result.toFixed(0)}</span>
+                          {cycle.status === 'harvested' && (
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Excluir Ciclo</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Tem certeza que deseja excluir o ciclo "{cycle.batch_name}"? Esta ação não pode ser desfeita e todos os dados relacionados serão removidos.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                  <AlertDialogAction 
+                                    onClick={() => handleDeleteCycle(cycle.cycle_id)}
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  >
+                                    Excluir
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          )}
+                        </div>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      <div className="space-y-4 pt-4">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                          <div>
+                            <p className="text-muted-foreground">Biomassa</p>
+                            <p className="font-medium">{cycle.biomass.toFixed(1)} kg</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">Peso Final</p>
+                            <p className="font-medium">{cycle.average_weight.toFixed(1)}g</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">Crescimento</p>
+                            <p className="font-medium">{cycle.weekly_growth.toFixed(1)}g/sem</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">FCA Final</p>
+                            <p className="font-medium">{cycle.real_fca.toFixed(2)}</p>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                          <div>
+                            <p className="text-muted-foreground">População Final</p>
+                            <p className="font-medium">{cycle.current_population.toLocaleString('pt-BR')}</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">Sobrevivência</p>
+                            <p className="font-medium">{cycle.survival_rate.toFixed(1)}%</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">Custo/kg</p>
+                            <p className="font-medium">R$ {cycle.cost_per_kg.toFixed(2)}</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">Resultado</p>
+                            <p className={`font-medium ${cycle.pond_result > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                              R$ {cycle.pond_result.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="bg-muted/50 rounded-lg p-3">
+                          <h5 className="font-medium mb-2 text-sm">Resumo Financeiro</h5>
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                            <div>
+                              <p className="text-muted-foreground">Receita</p>
+                              <p className="font-medium text-green-600">
+                                R$ {cycle.estimated_revenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-muted-foreground">Custo Total</p>
+                              <p className="font-medium text-red-600">
+                                R$ {cycle.costs.total_cost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-muted-foreground">Produtividade</p>
+                              <p className="font-medium">{cycle.productivity_per_ha.toFixed(1)} kg/ha</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </Layout>
   );

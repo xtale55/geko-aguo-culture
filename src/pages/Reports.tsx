@@ -274,12 +274,12 @@ export default function Reports() {
           ?.some(hr => hr.harvest_type === 'total') || false;
         
         // Calculate survival rate for active cycles
-        // For active cycles: current population / initial PLs
+        // For active cycles: (current population + harvested population) / initial PLs
         // For completed cycles: (all harvested + current remaining) / initial PLs
         const survivalRate = cycle.pl_quantity > 0 
           ? hasTotal 
             ? ((cycle.current_population + harvestedPopulation) / cycle.pl_quantity) * 100
-            : (cycle.current_population / cycle.pl_quantity) * 100
+            : ((cycle.current_population + harvestedPopulation) / cycle.pl_quantity) * 100
           : 0;
 
         if (latestBiometry && cycle.current_population > 0) {

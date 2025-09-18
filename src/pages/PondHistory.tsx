@@ -299,7 +299,6 @@ export default function PondHistory() {
             ? (cycle.current_population / cycle.pl_quantity) * 100 
             : 0;
 
-          const biomass = (cycle.current_population * latestBiometry.average_weight) / 1000;
           const pondArea = cycle.ponds?.area || 0;
           
           // Calculate detailed costs, considerando custos já alocados em despescas parciais
@@ -333,13 +332,26 @@ export default function PondHistory() {
             ?.filter(hr => hr.pond_batch_id === cycle.id)
             ?.reduce((sum, hr) => sum + (hr.allocated_input_cost || 0), 0) || 0;
           
+          // Calculate harvest-related data first
+          const harvestedBiomass = harvestRecords
+            ?.filter(hr => hr.pond_batch_id === cycle.id)
+            ?.reduce((sum, hr) => sum + hr.biomass_harvested, 0) || 0;
+          
+          const realHarvestRevenue = harvestRecords
+            ?.filter(hr => hr.pond_batch_id === cycle.id)
+            ?.reduce((sum, hr) => sum + (hr.total_value || 0), 0) || 0;
+          
+          const currentWeight = latestBiometry.average_weight;
+          const currentTotalBiomass = (cycle.current_population * currentWeight) / 1000; // kg
+          const totalBiomassProduced = currentTotalBiomass + harvestedBiomass;
+          
           // For active cycles, use remaining costs (total - allocated)
-          // For completed cycles, use allocated costs if available, otherwise total
+          // For completed cycles, use total costs (allocated + remaining)
           const isActiveCase = cycle.current_population > 0;
-          const realFeedCost = isActiveCase ? Math.max(0, totalRealFeedCost - allocatedFeedCost) : (allocatedFeedCost > 0 ? allocatedFeedCost : totalRealFeedCost);
-          const effectivePlCost = isActiveCase ? Math.max(0, plCostTotal - allocatedPlCost) : (allocatedPlCost > 0 ? allocatedPlCost : plCostTotal);
-          const effectivePrepCost = isActiveCase ? Math.max(0, preparationCost - allocatedPrepCost) : (allocatedPrepCost > 0 ? allocatedPrepCost : preparationCost);
-          const effectiveInputCost = isActiveCase ? Math.max(0, totalInputCost - allocatedInputCost) : (allocatedInputCost > 0 ? allocatedInputCost : totalInputCost);
+          const realFeedCost = isActiveCase ? Math.max(0, totalRealFeedCost - allocatedFeedCost) : totalRealFeedCost;
+          const effectivePlCost = isActiveCase ? Math.max(0, plCostTotal - allocatedPlCost) : plCostTotal;
+          const effectivePrepCost = isActiveCase ? Math.max(0, preparationCost - allocatedPrepCost) : preparationCost;
+          const effectiveInputCost = isActiveCase ? Math.max(0, totalInputCost - allocatedInputCost) : totalInputCost;
           
           // Calculate operational costs for this specific cycle
           const operationalCost = operationalCostsData
@@ -348,13 +360,25 @@ export default function PondHistory() {
           
           const totalCost = effectivePlCost + effectivePrepCost + realFeedCost + effectiveInputCost + operationalCost;
           
-          // Calculate estimated revenue using dynamic price table
-          const pricePerKg = calculatePriceByWeight(latestBiometry.average_weight, priceTable);
-          const estimatedRevenue = biomass * pricePerKg;
+          // Calculate biomass and revenue correctly for completed cycles
+          let biomass, estimatedRevenue, finalPopulation;
+          
+          if (isActiveCase) {
+            // Active cycle: use current data
+            biomass = currentTotalBiomass;
+            const pricePerKg = calculatePriceByWeight(latestBiometry.average_weight, priceTable);
+            estimatedRevenue = biomass * pricePerKg;
+            finalPopulation = cycle.current_population;
+          } else {
+            // Completed cycle: use total production data
+            biomass = totalBiomassProduced;
+            estimatedRevenue = realHarvestRevenue || (biomass * calculatePriceByWeight(latestBiometry.average_weight, priceTable));
+            finalPopulation = cycle.pl_quantity - (cycle.actual_mortality_total || 0);
+          }
           const profitMargin = estimatedRevenue > 0 ? ((estimatedRevenue - totalCost) / estimatedRevenue) * 100 : 0;
           
           // Calculate additional metrics
-          const density = pondArea > 0 ? cycle.current_population / pondArea : 0;
+          const density = pondArea > 0 ? finalPopulation / pondArea : 0;
           const costPerKg = biomass > 0 ? totalCost / biomass : 0;
           const productivityPerHa = pondArea > 0 ? biomass / (pondArea / 10000) : 0; // kg/ha
           const pondResult = estimatedRevenue - totalCost;
@@ -363,15 +387,6 @@ export default function PondHistory() {
           const totalFeedUsedKg = feedingData
             ?.filter(feed => feed.pond_batch_id === cycle.id)
             ?.reduce((sum, feed) => sum + QuantityUtils.gramsToKg(feed.actual_amount), 0) || 0;
-          
-          // Calculate total biomass produced (current + harvested) para FCA correto
-          const harvestedBiomass = harvestRecords
-            ?.filter(hr => hr.pond_batch_id === cycle.id)
-            ?.reduce((sum, hr) => sum + hr.biomass_harvested, 0) || 0;
-          
-          const currentWeight = latestBiometry.average_weight;
-          const currentTotalBiomass = (cycle.current_population * currentWeight) / 1000; // kg
-          const totalBiomassProduced = currentTotalBiomass + harvestedBiomass;
           
           // Calculate real FCA = total feed / total biomass produced (not just current)
           const realFca = totalBiomassProduced > 0 ? totalFeedUsedKg / totalBiomassProduced : 0;
@@ -401,8 +416,8 @@ export default function PondHistory() {
             stocking_date: cycle.stocking_date,
             doc,
             initial_population: cycle.pl_quantity,
-            current_population: cycle.current_population,
-            survival_rate: survivalRate,
+            current_population: finalPopulation,
+            survival_rate: isActiveCase ? survivalRate : ((finalPopulation / cycle.pl_quantity) * 100),
             average_weight: latestBiometry.average_weight,
             biomass,
             pond_area: pondArea,

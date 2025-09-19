@@ -10,7 +10,7 @@ import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { PasswordStrengthIndicator } from '@/components/auth/PasswordStrengthIndicator';
 import { ForgotPasswordModal } from '@/components/auth/ForgotPasswordModal';
-import { Waves, Bug, Eye, EyeOff } from 'lucide-react';
+import { Waves, Fish, Eye, EyeOff } from 'lucide-react';
 
 export default function Auth() {
   const [isLoading, setIsLoading] = useState(false);
@@ -80,7 +80,7 @@ export default function Auth() {
       <Card className="w-full max-w-lg relative backdrop-blur-sm bg-card/95 shadow-[var(--shadow-ocean)]">
         <CardHeader className="text-center space-y-4">
           <div className="mx-auto w-16 h-16 bg-gradient-to-br from-accent to-accent-hover rounded-full flex items-center justify-center">
-            <Bug className="w-8 h-8 text-accent-foreground" />
+            <Fish className="w-8 h-8 text-accent-foreground" />
           </div>
           <div>
             <CardTitle className="text-2xl font-bold text-primary">

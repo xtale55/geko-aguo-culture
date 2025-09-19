@@ -19,10 +19,10 @@
     --popover: 200 20% 99%;
     --popover-foreground: 205 45% 12%;
 
-    /* Primary - Deep Ocean Blue */
-    --primary: 205 85% 30%;
+    /* Primary - Deep Navy Blue */
+    --primary: 226 30% 22%; /* Deep Navy Blue #282D4F */
     --primary-foreground: 200 40% 98%;
-    --primary-hover: 205 85% 25%;
+    --primary-hover: 226 30% 18%;
 
     /* Secondary - Aqua Green */
     --secondary: 165 75% 80%;

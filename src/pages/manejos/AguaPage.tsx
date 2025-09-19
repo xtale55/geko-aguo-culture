@@ -27,7 +27,7 @@ export default function AguaPage() {
                 <div className="p-2 bg-gradient-to-r from-cyan-600 to-cyan-700 rounded-lg">
                   <Droplets className="w-6 h-6 text-white" />
                 </div>
-                <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-primary to-emerald-600 bg-clip-text text-transparent">
+                <h1 className="text-4xl font-bold text-primary">
                   Qualidade da Água
                 </h1>
               </div>

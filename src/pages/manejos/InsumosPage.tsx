@@ -27,7 +27,7 @@ export default function InsumosPage() {
                 <div className="p-2 bg-gradient-to-r from-emerald-600 to-emerald-700 rounded-lg">
                   <Beaker className="w-6 h-6 text-white" />
                 </div>
-                <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-primary to-emerald-600 bg-clip-text text-transparent">
+                <h1 className="text-4xl font-bold text-primary">
                   Aplicação de Insumos
                 </h1>
               </div>

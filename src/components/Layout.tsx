@@ -56,7 +56,7 @@ export const Layout = memo(function Layout({ children }: LayoutProps) {
                 <Fish className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                <h1 className="text-xl font-bold text-primary">
                   AquaHub
                 </h1>
                 <p className="text-xs text-muted-foreground -mt-1">

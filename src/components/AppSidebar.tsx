@@ -46,7 +46,7 @@ export function AppSidebar() {
             <Fish className="w-4 h-4 text-white" />
           </div>
           <div className="text-center">
-            <h1 className="text-sm font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+            <h1 className="text-sm font-bold text-primary">
               AquaHub
             </h1>
           </div>

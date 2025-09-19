@@ -231,7 +231,7 @@ export default function ResetPassword() {
             <Fish className="w-8 h-8 text-accent-foreground" />
           </div>
           <div>
-            <CardTitle className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+            <CardTitle className="text-2xl font-bold text-primary">
               Nova Senha
             </CardTitle>
             <CardDescription className="text-muted-foreground">

@@ -380,7 +380,7 @@ export default function Feeding() {
               <ArrowLeft className="w-4 h-4 mr-2" />
               Voltar
             </Button>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-primary to-emerald-600 bg-clip-text text-transparent mb-2">
+            <h1 className="text-4xl font-bold text-primary mb-2">
               Arraçoamento Inteligente
             </h1>
             <p className="text-slate-600">

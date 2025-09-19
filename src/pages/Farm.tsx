@@ -294,7 +294,7 @@ export default function Farm() {
         {/* Farm Header */}
         <div className="flex justify-between items-start">
           <div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-primary to-emerald-600 bg-clip-text text-transparent mb-2">
+            <h1 className="text-4xl font-bold text-primary mb-2">
               {currentFarm.name}
             </h1>
             <div className="flex items-center text-slate-600 mt-1">

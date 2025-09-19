@@ -535,7 +535,7 @@ export default function AlimentacaoPage() {
                 <div className="p-2 bg-gradient-to-r from-green-600 to-green-700 rounded-lg">
                   <Utensils className="w-6 h-6 text-white" />
                 </div>
-                <h1 className="text-4xl font-bold bg-gradient-to-r from-green-600 via-primary to-emerald-600 bg-clip-text text-transparent">
+                <h1 className="text-4xl font-bold text-primary">
                   Alimentação
                 </h1>
               </div>

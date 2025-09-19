@@ -97,7 +97,7 @@ export default function Manejos() {
               <ArrowLeft className="w-4 h-4 mr-2" />
               Voltar
             </Button>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-primary to-emerald-600 bg-clip-text text-transparent mb-2">
+            <h1 className="text-4xl font-bold text-primary mb-2">
               Manejos
             </h1>
             <p className="text-slate-600">
@@ -173,7 +173,7 @@ export default function Manejos() {
                     </div>
                     
                     <div className="space-y-1">
-                      <h3 className="text-sm font-semibold text-foreground group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:from-primary group-hover:to-accent group-hover:bg-clip-text transition-all duration-300">
+                      <h3 className="text-sm font-semibold text-foreground group-hover:text-primary transition-all duration-300">
                         {card.title}
                       </h3>
                       <p className="text-xs text-muted-foreground leading-relaxed group-hover:text-foreground/70 transition-colors duration-300">

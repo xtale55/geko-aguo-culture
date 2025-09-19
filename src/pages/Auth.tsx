@@ -74,7 +74,7 @@ export default function Auth() {
 
 
   return (
-    <div className="min-h-screen bg-auth-background flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-primary via-primary/90 to-accent/20 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PHBhdGggZD0iTTM2IDM0djEyaDEyVjM0SDM2em0wLTEyaDEyVjEwSDM2djEyeiIvPjwvZz48L2c+PC9zdmc+')] opacity-30" />
       
       <Card className="w-full max-w-lg relative backdrop-blur-sm bg-card/95 shadow-[var(--shadow-ocean)]">

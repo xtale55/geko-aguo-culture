@@ -79,8 +79,8 @@ export default function Auth() {
       
       <Card className="w-full max-w-lg relative backdrop-blur-sm bg-card/95 shadow-[var(--shadow-ocean)]">
         <CardHeader className="text-center space-y-4">
-          <div className="mx-auto w-16 h-16 bg-gradient-to-br from-accent to-accent-hover rounded-full flex items-center justify-center">
-            <img src="/logo.png" alt="Culture AquaHub Logo" className="w-14 h-14 object-cover rounded-full" />
+          <div className="mx-auto w-16 h-16 rounded-full overflow-hidden">
+            <img src="/logo.png" alt="Culture AquaHub Logo" className="w-16 h-16 object-cover rounded-full" />
           </div>
           <div>
             <CardTitle className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">

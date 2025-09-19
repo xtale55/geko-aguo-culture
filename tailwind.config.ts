@@ -19,6 +19,7 @@ export default {
 		},
 		extend: {
 			colors: {
+				'auth-bg-primary': 'hsl(var(--auth-bg-primary))',
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
 				ring: 'hsl(var(--ring))',

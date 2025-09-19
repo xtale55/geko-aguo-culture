@@ -6,6 +6,9 @@
 
 @layer base {
   :root {
+    /* Auth background - Deep Navy Blue */
+    --auth-bg-primary: 226 30% 22%; /* #282D4F */
+    
     /* Base colors - Ocean Blue & Aqua Green palette */
     --background: 200 30% 97%;
     --foreground: 205 45% 12%;
@@ -85,6 +88,7 @@
   }
 
   .dark {
+    --auth-bg-primary: 226 30% 18%; /* darker version for dark mode */
     --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
 

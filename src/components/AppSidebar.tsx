@@ -42,8 +42,8 @@ export function AppSidebar() {
     <Sidebar collapsible="none" className="w-auto min-w-44">
       <SidebarHeader className="border-b border-border p-2">
         <div className="flex flex-col items-center space-y-1">
-          <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-emerald-500 rounded-full flex items-center justify-center">
-            <Fish className="w-4 h-4 text-white" />
+          <div className="w-6 h-6 rounded-full overflow-hidden">
+            <img src="/logo.png" alt="AquaHub Logo" className="w-6 h-6 object-cover rounded-full" />
           </div>
           <div className="text-center">
             <h1 className="text-sm font-bold text-primary">

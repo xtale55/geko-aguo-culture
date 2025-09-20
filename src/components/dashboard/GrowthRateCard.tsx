@@ -1,5 +1,5 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { TrendUp, TrendDown, Minus } from "phosphor-react";
 import { useGrowthRate } from "@/hooks/useGrowthRate";
 
 interface GrowthRateCardProps {
@@ -28,8 +28,8 @@ export function GrowthRateCard({ farmId }: GrowthRateCardProps) {
 
   const getTrendIcon = () => {
     switch (trend) {
-      case 'up': return TrendingUp;
-      case 'down': return TrendingDown;
+      case 'up': return TrendUp;
+      case 'down': return TrendDown;
       default: return Minus;
     }
   };

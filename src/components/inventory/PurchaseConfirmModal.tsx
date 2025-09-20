@@ -2,7 +2,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { CheckCircle, AlertTriangle } from "lucide-react";
+import { CheckCircle, Warning } from "phosphor-react";
 import { calculatePurchaseTotals, PURCHASE_UNITS, formatCurrency } from "@/lib/unitUtils";
 
 interface PurchaseConfirmModalProps {

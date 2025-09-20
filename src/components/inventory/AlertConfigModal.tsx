@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { QuantityUtils } from "@/lib/quantityUtils";
-import { AlertTriangle } from "lucide-react";
+import { Warning } from "phosphor-react";
 
 interface InventoryItem {
   id: string;

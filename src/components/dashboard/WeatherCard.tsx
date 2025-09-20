@@ -1,5 +1,5 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { Cloud, CloudRain, Sun, CloudSnow } from "lucide-react";
+import { Cloud, CloudRain, Sun, CloudSnow } from "phosphor-react";
 import { useWeatherData } from "@/hooks/useWeatherData";
 import { Skeleton } from "@/components/ui/skeleton";
 

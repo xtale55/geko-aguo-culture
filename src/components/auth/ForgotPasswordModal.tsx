@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Mail, ArrowLeft } from 'lucide-react';
+import { Envelope, ArrowLeft } from 'phosphor-react';
 
 interface ForgotPasswordModalProps {
   open: boolean;
@@ -58,7 +58,7 @@ export function ForgotPasswordModal({ open, onOpenChange }: ForgotPasswordModalP
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Mail className="w-5 h-5 text-primary" />
+            <Envelope className="w-5 h-5 text-primary" />
             Redefinir Senha
           </DialogTitle>
           <DialogDescription>
@@ -72,7 +72,7 @@ export function ForgotPasswordModal({ open, onOpenChange }: ForgotPasswordModalP
         {isSubmitted ? (
           <div className="space-y-4">
             <div className="text-center p-6 bg-success/10 rounded-lg border border-success/20">
-              <Mail className="w-12 h-12 text-success mx-auto mb-3" />
+              <Envelope className="w-12 h-12 text-success mx-auto mb-3" />
               <p className="text-success font-medium">Email enviado com sucesso!</p>
               <p className="text-sm text-muted-foreground mt-2">
                 Verifique sua caixa de entrada e spam. O link expira em 1 hora.

@@ -1,4 +1,4 @@
-import { Hourglass } from "lucide-react";
+import { Hourglass } from "phosphor-react";
 
 interface LoadingScreenProps {
   message?: string;

@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Fish, LogOut, Home, Waves, Utensils, Package, BarChart3, DollarSign } from 'lucide-react';
+import { Fish, SignOut, House, Waves, ForkKnife, Package, ChartBar, CurrencyDollar } from 'phosphor-react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import {
@@ -17,13 +17,13 @@ import {
 import { cn } from '@/lib/utils';
 
 const navigationItems = [
-  { path: '/dashboard', icon: Home, label: 'Dashboard' },
+  { path: '/dashboard', icon: House, label: 'Dashboard' },
   { path: '/farm', icon: Waves, label: 'Fazenda' },
   { path: '/manejos', icon: Fish, label: 'Manejos' },
-  { path: '/feeding', icon: Utensils, label: 'Ração' },
+  { path: '/feeding', icon: ForkKnife, label: 'Ração' },
   { path: '/inventory', icon: Package, label: 'Estoque' },
-  { path: '/reports', icon: BarChart3, label: 'Relatórios' },
-  { path: '/financial', icon: DollarSign, label: 'Financeiro' }
+  { path: '/reports', icon: ChartBar, label: 'Relatórios' },
+  { path: '/financial', icon: CurrencyDollar, label: 'Financeiro' }
 ];
 
 export function AppSidebar() {
@@ -85,7 +85,7 @@ export function AppSidebar() {
 
       <SidebarFooter className="border-t border-border p-2">
         <Button variant="ghost" size="sm" onClick={handleSignOut} className="w-full">
-          <LogOut className="w-4 h-4" />
+          <SignOut className="w-4 h-4" />
         </Button>
       </SidebarFooter>
     </Sidebar>

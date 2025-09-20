@@ -1,5 +1,5 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { Utensils } from "lucide-react";
+import { ForkKnife } from "phosphor-react";
 import { useFeedingDashboardStats } from "@/hooks/useFeedingDashboardData";
 import { Progress } from "@/components/ui/progress";
 
@@ -16,7 +16,7 @@ export function FeedingProgressCard({ farmId }: FeedingProgressCardProps) {
         <CardContent className="p-4">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">Ração Diária</h3>
-            <Utensils className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+            <ForkKnife className="h-5 w-5 text-gray-600 dark:text-gray-400" />
           </div>
           <div className="space-y-3">
             <span className="text-2xl font-bold text-gray-600 dark:text-gray-400">-</span>
@@ -52,7 +52,7 @@ export function FeedingProgressCard({ farmId }: FeedingProgressCardProps) {
           <h3 className={`text-sm font-medium ${getProgressColor(progress.percentage)}`}>
             Ração Diária
           </h3>
-          <Utensils className={`h-5 w-5 ${getProgressColor(progress.percentage)}`} />
+          <ForkKnife className={`h-5 w-5 ${getProgressColor(progress.percentage)}`} />
         </div>
         
         <div className="space-y-3">

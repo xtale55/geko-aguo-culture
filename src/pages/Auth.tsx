@@ -10,7 +10,7 @@ import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { PasswordStrengthIndicator } from '@/components/auth/PasswordStrengthIndicator';
 import { ForgotPasswordModal } from '@/components/auth/ForgotPasswordModal';
-import { Waves, Fish, Eye, EyeOff } from 'lucide-react';
+import { Waves, Fish, Eye, EyeSlash } from 'phosphor-react';
 export default function Auth() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -103,7 +103,7 @@ export default function Auth() {
                   <div className="relative">
                     <Input id="password" name="password" type={showPassword ? 'text' : 'password'} placeholder="••••••••" required />
                     <Button type="button" variant="ghost" size="sm" className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent" onClick={() => setShowPassword(!showPassword)}>
-                      {showPassword ? <EyeOff className="h-4 w-4 text-muted-foreground" /> : <Eye className="h-4 w-4 text-muted-foreground" />}
+                      {showPassword ? <EyeSlash className="h-4 w-4 text-muted-foreground" /> : <Eye className="h-4 w-4 text-muted-foreground" />}
                     </Button>
                   </div>
                 </div>
@@ -136,7 +136,7 @@ export default function Auth() {
                   <div className="relative">
                     <Input id="signup-password" name="password" type={showSignupPassword ? 'text' : 'password'} placeholder="••••••••" value={signupPassword} onChange={e => setSignupPassword(e.target.value)} minLength={6} required />
                     <Button type="button" variant="ghost" size="sm" className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent" onClick={() => setShowSignupPassword(!showSignupPassword)}>
-                      {showSignupPassword ? <EyeOff className="h-4 w-4 text-muted-foreground" /> : <Eye className="h-4 w-4 text-muted-foreground" />}
+                      {showSignupPassword ? <EyeSlash className="h-4 w-4 text-muted-foreground" /> : <Eye className="h-4 w-4 text-muted-foreground" />}
                     </Button>
                   </div>
                   <PasswordStrengthIndicator password={signupPassword} />

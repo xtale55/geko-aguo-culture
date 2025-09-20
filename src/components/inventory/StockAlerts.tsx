@@ -2,7 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { useStockAlerts } from '@/hooks/useStockAlerts';
 import { QuantityUtils } from '@/lib/quantityUtils';
-import { AlertTriangle, Package } from 'lucide-react';
+import { Warning, Package } from 'phosphor-react';
 
 interface StockAlertsProps {
   inventoryData: any[];

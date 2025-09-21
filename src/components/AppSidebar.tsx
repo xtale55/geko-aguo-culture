@@ -41,15 +41,10 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="none" className="w-auto min-w-44">
       <SidebarHeader className="border-b border-border p-2">
-        <div className="flex flex-col items-center space-y-1">
-          <div className="w-6 h-6 rounded-full overflow-hidden">
-            <img src="/logo.png" alt="AquaHub Logo" className="w-6 h-6 object-cover rounded-full" />
-          </div>
-          <div className="text-center">
-            <h1 className="text-sm font-bold text-primary">
-              AquaHub
-            </h1>
-          </div>
+        <div className="flex items-center justify-center">
+          <h1 className="text-lg font-bold bg-gradient-to-r from-blue-900 via-blue-800 to-slate-700 bg-clip-text text-transparent">
+            AquaHub
+          </h1>
         </div>
       </SidebarHeader>
 

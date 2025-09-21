@@ -34,7 +34,7 @@ export function PurchaseConfirmModal({
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5 text-amber-500" />
+            <Warning className="h-5 w-5 text-amber-500" />
             Confirmar {isNewItem ? 'Novo Item' : 'Compra'}
           </DialogTitle>
         </DialogHeader>
@@ -79,7 +79,7 @@ export function PurchaseConfirmModal({
           </Card>
 
           <div className="flex items-start gap-2 p-3 bg-amber-50 dark:bg-amber-950/20 rounded-lg border border-amber-200 dark:border-amber-800">
-            <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5 flex-shrink-0" />
+            <Warning className="h-4 w-4 text-amber-500 mt-0.5 flex-shrink-0" />
             <p className="text-sm text-amber-700 dark:text-amber-300">
               Verifique se os valores estão corretos antes de confirmar. 
               Esta ação atualizará o estoque automaticamente.

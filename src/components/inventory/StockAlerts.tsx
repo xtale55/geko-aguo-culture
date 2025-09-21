@@ -2,7 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { useStockAlerts } from '@/hooks/useStockAlerts';
 import { QuantityUtils } from '@/lib/quantityUtils';
-import { AlertTriangle, Package } from 'lucide-react';
+import { Warning, Package } from 'phosphor-react';
 
 interface StockAlertsProps {
   inventoryData: any[];
@@ -15,9 +15,9 @@ export function StockAlerts({ inventoryData, onItemClick }: StockAlertsProps) {
   const getSeverityIcon = (severity: string) => {
     switch (severity) {
       case 'high':
-        return <AlertTriangle className="w-4 h-4 text-red-600" />;
+        return <Warning className="w-4 h-4 text-red-600" />;
       case 'medium':
-        return <AlertTriangle className="w-4 h-4 text-orange-600" />;
+        return <Warning className="w-4 h-4 text-orange-600" />;
       default:
         return <Package className="w-4 h-4 text-yellow-600" />;
     }
@@ -82,7 +82,7 @@ export function StockAlerts({ inventoryData, onItemClick }: StockAlertsProps) {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <AlertTriangle className="w-5 h-5 text-orange-600" />
+          <Warning className="w-5 h-5 text-orange-600" />
           Alertas de Estoque
         </CardTitle>
         <CardDescription>

@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Calendar, Trash2, Edit } from "lucide-react";
+import { Plus, Calendar, Trash, PencilSimple } from "phosphor-react";
 import { useUserTasks, createTask, updateTask, deleteTask, type UserTask } from "@/hooks/useUserTasks";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
@@ -221,7 +221,7 @@ export function TaskManager({ farmId }: TaskManagerProps) {
                       onClick={() => handleEdit(task)}
                       className="h-8 w-8 p-0"
                     >
-                      <Edit className="h-3 w-3" />
+                      <PencilSimple className="h-3 w-3" />
                     </Button>
                     <Button
                       size="sm"
@@ -229,7 +229,7 @@ export function TaskManager({ farmId }: TaskManagerProps) {
                       onClick={() => handleDelete(task.id)}
                       className="h-8 w-8 p-0 text-destructive hover:text-destructive"
                     >
-                      <Trash2 className="h-3 w-3" />
+                      <Trash className="h-3 w-3" />
                     </Button>
                   </div>
                 </div>

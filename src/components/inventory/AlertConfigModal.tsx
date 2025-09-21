@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { QuantityUtils } from "@/lib/quantityUtils";
-import { AlertTriangle } from "lucide-react";
+import { Warning } from "phosphor-react";
 
 interface InventoryItem {
   id: string;
@@ -94,7 +94,7 @@ export function AlertConfigModal({ isOpen, onClose, item, onSuccess }: AlertConf
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <AlertTriangle className="w-5 h-5 text-orange-500" />
+            <Warning className="w-5 h-5 text-orange-500" />
             Configurar Alertas - {item.name}
           </DialogTitle>
         </DialogHeader>
@@ -134,7 +134,7 @@ export function AlertConfigModal({ isOpen, onClose, item, onSuccess }: AlertConf
           {threshold && (
             <div className={`p-3 rounded-lg ${isCurrentlyLow ? 'bg-red-50 border border-red-200' : 'bg-green-50 border border-green-200'}`}>
               <div className="flex items-center gap-2">
-                <AlertTriangle className={`w-4 h-4 ${isCurrentlyLow ? 'text-red-500' : 'text-green-500'}`} />
+                <Warning className={`w-4 h-4 ${isCurrentlyLow ? 'text-red-500' : 'text-green-500'}`} />
                 <span className={`text-sm font-medium ${isCurrentlyLow ? 'text-red-700' : 'text-green-700'}`}>
                   {isCurrentlyLow 
                     ? `⚠️ Estoque atual está abaixo do limite definido`

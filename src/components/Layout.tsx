@@ -1,7 +1,7 @@
 import { memo, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { Fish, LogOut, Settings, Home, Waves, Scale, Skull, Utensils, Droplets, Package, BarChart3, DollarSign, MoreHorizontal } from 'lucide-react';
+import { Fish, SignOut, Gear, House, Waves, Scales, Skull, ForkKnife, Drop, Package, ChartBar, CurrencyDollar, DotsThree } from 'phosphor-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
@@ -65,7 +65,7 @@ export const Layout = memo(function Layout({ children }: LayoutProps) {
               </div>
             </div>
             <Button variant="ghost" size="sm" onClick={handleSignOut}>
-              <LogOut className="w-4 h-4" />
+              <SignOut className="w-4 h-4" />
             </Button>
           </div>
         </header>
@@ -80,10 +80,10 @@ export const Layout = memo(function Layout({ children }: LayoutProps) {
           <div className="flex items-center justify-around py-1 px-2">
             {/* Main navigation items */}
             {[
-              { path: '/dashboard', icon: Home, label: 'Dashboard' },
+              { path: '/dashboard', icon: House, label: 'Dashboard' },
               { path: '/manejos', icon: Fish, label: 'Manejos' },
               { path: '/inventory', icon: Package, label: 'Estoque' },
-              { path: '/reports', icon: BarChart3, label: 'Relatórios' }
+              { path: '/reports', icon: ChartBar, label: 'Relatórios' }
             ].map(({ path, icon: Icon, label }) => (
               <Button
                 key={path}
@@ -110,7 +110,7 @@ export const Layout = memo(function Layout({ children }: LayoutProps) {
                   size="sm"
                   className="flex-1 flex-col h-12 px-1 min-w-0 transition-all duration-200 hover:bg-muted/50"
                 >
-                  <MoreHorizontal className="w-4 h-4 mb-1" />
+                  <DotsThree className="w-4 h-4 mb-1" />
                   <span className="text-xs leading-none truncate">Mais</span>
                 </Button>
               </SheetTrigger>
@@ -122,8 +122,8 @@ export const Layout = memo(function Layout({ children }: LayoutProps) {
                 <div className="grid grid-cols-2 gap-3 pb-4">
                   {[
                     { path: '/farm', icon: Waves, label: 'Fazenda', color: 'from-blue-500 to-cyan-500' },
-                    { path: '/feeding', icon: Utensils, label: 'Ração', color: 'from-orange-500 to-red-500' },
-                    { path: '/financial', icon: DollarSign, label: 'Financeiro', color: 'from-green-500 to-emerald-500' }
+                    { path: '/feeding', icon: ForkKnife, label: 'Ração', color: 'from-orange-500 to-red-500' },
+                    { path: '/financial', icon: CurrencyDollar, label: 'Financeiro', color: 'from-green-500 to-emerald-500' }
                   ].map(({ path, icon: Icon, label, color }) => (
                     <Button
                       key={path}
@@ -174,7 +174,7 @@ export const Layout = memo(function Layout({ children }: LayoutProps) {
                 {user?.email}
               </div>
               <Button variant="ghost" size="sm" onClick={handleSignOut}>
-                <LogOut className="w-4 h-4" />
+                <SignOut className="w-4 h-4" />
               </Button>
             </div>
           </header>

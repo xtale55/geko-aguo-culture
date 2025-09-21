@@ -1,6 +1,6 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, Droplets, Fish, ClipboardList, Package } from "lucide-react";
+import { Warning, Drop, Fish, ClipboardText, Package } from "phosphor-react";
 
 interface Alert {
   id: string;
@@ -20,15 +20,15 @@ export function AlertsModal({ isOpen, onClose, alerts }: AlertsModalProps) {
   const getAlertIcon = (type: string) => {
     switch (type) {
       case 'water':
-        return <Droplets className="h-4 w-4" />;
+        return <Drop className="h-4 w-4" />;
       case 'mortality':
         return <Fish className="h-4 w-4" />;
       case 'task':
-        return <ClipboardList className="h-4 w-4" />;
+        return <ClipboardText className="h-4 w-4" />;
       case 'stock':
         return <Package className="h-4 w-4" />;
       default:
-        return <AlertTriangle className="h-4 w-4" />;
+        return <Warning className="h-4 w-4" />;
     }
   };
 
@@ -73,7 +73,7 @@ export function AlertsModal({ isOpen, onClose, alerts }: AlertsModalProps) {
       <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400" />
+            <Warning className="h-5 w-5 text-red-600 dark:text-red-400" />
             Alertas Críticos ({alerts.length})
           </DialogTitle>
         </DialogHeader>
@@ -81,7 +81,7 @@ export function AlertsModal({ isOpen, onClose, alerts }: AlertsModalProps) {
         <div className="space-y-6">
           {alerts.length === 0 ? (
             <div className="text-center py-8">
-              <AlertTriangle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <Warning className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <p className="text-gray-600 dark:text-gray-400">Nenhum alerta crítico no momento</p>
             </div>
           ) : (

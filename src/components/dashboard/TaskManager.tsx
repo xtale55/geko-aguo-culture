@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Calendar, Trash, PencilSimple } from "phosphor-react";
+import { Plus, Calendar, Trash, PencilSimple } from "@phosphor-icons/react";
 import { useUserTasks, createTask, updateTask, deleteTask, type UserTask } from "@/hooks/useUserTasks";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";

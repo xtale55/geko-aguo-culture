@@ -10,7 +10,7 @@ import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { PasswordStrengthIndicator } from '@/components/auth/PasswordStrengthIndicator';
 import { ForgotPasswordModal } from '@/components/auth/ForgotPasswordModal';
-import { Waves, Fish, Eye, EyeSlash } from '@phosphor-icons/react';
+import { Waves, Shrimp, Eye, EyeSlash } from '@phosphor-icons/react';
 export default function Auth() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);

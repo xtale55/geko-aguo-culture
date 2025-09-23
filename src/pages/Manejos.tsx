@@ -2,7 +2,7 @@ import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Scales, Drop, Skull, TestTube, Fish, CurrencyDollar, CaretRight, Clock, Pulse, ForkKnife } from '@phosphor-icons/react';
+import { ArrowLeft, Scales, Drop, Skull, TestTube, Shrimp, CurrencyDollar, CaretRight, Clock, Pulse, ForkKnife } from '@phosphor-icons/react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useFarmsQuery } from '@/hooks/useSupabaseQuery';
 import { useRecentManagementData } from '@/hooks/useRecentManagementData';
@@ -292,7 +292,7 @@ export default function Manejos() {
                 {/* Harvest */}
                 <div className="space-y-4">
                   <h4 className="font-semibold text-orange-600 flex items-center gap-2 text-lg">
-                    <Fish className="w-5 h-5" />
+                    <Shrimp className="w-5 h-5" />
                     Despesca
                   </h4>
                   <div className="space-y-3">

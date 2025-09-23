@@ -10,7 +10,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Fish, Calendar, DollarSign } from 'lucide-react';
+import { Loader2, Calendar, DollarSign } from 'lucide-react';
+import { Shrimp } from '@phosphor-icons/react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import HarvestHistoryDetail from './HarvestHistoryDetail';
@@ -381,7 +382,7 @@ const HarvestTab = () => {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Fish className="h-5 w-5" />
+            <Shrimp className="h-5 w-5" />
             Viveiros Ativos para Despesca
           </CardTitle>
           <CardDescription>

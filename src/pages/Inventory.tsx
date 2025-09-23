@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, MagnifyingGlass, Package, Trash, PencilSimple, ArrowLeft, Calendar, Clock, TrendDown, DotsThree, ShoppingCart, Warning } from "phosphor-react";
+import { Plus, MagnifyingGlass, Package, Trash, PencilSimple, ArrowLeft, Calendar, Clock, TrendDown, DotsThree, ShoppingCart, Warning } from "@phosphor-icons/react";
 import { QuantityUtils } from "@/lib/quantityUtils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

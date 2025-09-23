@@ -1,6 +1,6 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Warning, Drop, Fish, ClipboardText, Package } from "phosphor-react";
+import { Warning, Drop, Shrimp, ClipboardText, Package } from "@phosphor-icons/react";
 
 interface Alert {
   id: string;
@@ -22,7 +22,7 @@ export function AlertsModal({ isOpen, onClose, alerts }: AlertsModalProps) {
       case 'water':
         return <Drop className="h-4 w-4" />;
       case 'mortality':
-        return <Fish className="h-4 w-4" />;
+        return <Shrimp className="h-4 w-4" />;
       case 'task':
         return <ClipboardText className="h-4 w-4" />;
       case 'stock':

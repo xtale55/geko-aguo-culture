@@ -63,15 +63,6 @@ export default function Manejos() {
       status: 'Ativo'
     },
     {
-      id: 'despesca',
-      title: 'Despesca',
-      description: 'Gerencie despescas e produção',
-      icon: Fish,
-      iconColor: 'text-orange-600/70',
-      route: '/manejos/despesca',
-      status: 'Ativo'
-    },
-    {
       id: 'custos',
       title: 'Custos Operacionais',
       description: 'Controle custos e despesas',

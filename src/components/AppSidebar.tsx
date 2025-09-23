@@ -17,6 +17,10 @@ const navigationItems = [{
   icon: Fish,
   label: 'Manejos'
 }, {
+  path: '/despesca',
+  icon: Fish,
+  label: 'Despesca'
+}, {
   path: '/feeding',
   icon: ForkKnife,
   label: 'Ração'

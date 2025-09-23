@@ -57,6 +57,7 @@ export function OperationalCosts({ onAddCost }: OperationalCostsProps = {}) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [filteredCosts, setFilteredCosts] = useState<OperationalCost[]>([]);
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [periodFilter, setPeriodFilter] = useState<string>('30');
   const [newCost, setNewCost] = useState({
     category: '',
     amount: '',
@@ -71,7 +72,7 @@ export function OperationalCosts({ onAddCost }: OperationalCostsProps = {}) {
     if (user) {
       loadOperationalCosts();
     }
-  }, [user]);
+  }, [user, periodFilter]);
 
   useEffect(() => {
     if (onAddCost) {
@@ -132,16 +133,19 @@ export function OperationalCosts({ onAddCost }: OperationalCostsProps = {}) {
         setPondBatches(formattedPondBatches);
       }
 
-      // Get costs from last 30 days
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-      const { data: operationalCosts } = await supabase
+      // Get costs based on period filter
+      let query = supabase
         .from('operational_costs')
         .select('*')
-        .in('farm_id', farmIds)
-        .gte('cost_date', thirtyDaysAgo.toISOString().split('T')[0])
-        .order('cost_date', { ascending: false });
+        .in('farm_id', farmIds);
+
+      if (periodFilter !== 'all') {
+        const daysAgo = new Date();
+        daysAgo.setDate(daysAgo.getDate() - parseInt(periodFilter));
+        query = query.gte('cost_date', daysAgo.toISOString().split('T')[0]);
+      }
+
+      const { data: operationalCosts } = await query.order('cost_date', { ascending: false });
 
       if (operationalCosts) {
         // Type assertion to ensure correct category types
@@ -398,9 +402,21 @@ export function OperationalCosts({ onAddCost }: OperationalCostsProps = {}) {
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="flex items-center gap-2">
           <DollarSign className="w-5 h-5" />
-          Custos Operacionais (30 dias)
+          Custos Operacionais
         </CardTitle>
         <div className="flex items-center gap-2">
+          <Select value={periodFilter} onValueChange={setPeriodFilter}>
+            <SelectTrigger className="w-40">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="30">Últimos 30 dias</SelectItem>
+              <SelectItem value="90">Últimos 3 meses</SelectItem>
+              <SelectItem value="180">Últimos 6 meses</SelectItem>
+              <SelectItem value="365">Último ano</SelectItem>
+              <SelectItem value="all">Todo histórico</SelectItem>
+            </SelectContent>
+          </Select>
           <Select value={categoryFilter} onValueChange={setCategoryFilter}>
             <SelectTrigger className="w-40">
               <SelectValue />

@@ -323,7 +323,8 @@ export default function Financial() {
     return <LoadingScreen />;
   }
   return <Layout>
-      <div className="space-y-6">
+      <div className="min-h-screen bg-gradient-to-br from-slate-100 via-slate-50/50 to-slate-200/30">
+        <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-900 via-blue-800 to-slate-700 bg-clip-text text-transparent tracking-tight">Financeiro</h1>
@@ -765,6 +766,7 @@ export default function Financial() {
             </div>
           </TabsContent>
         </Tabs>
+      </div>
       </div>
     </Layout>;
 }

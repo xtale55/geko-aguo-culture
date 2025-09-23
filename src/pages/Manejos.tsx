@@ -66,7 +66,8 @@ export default function Manejos() {
 
   return (
     <Layout>
-      <div className="space-y-6">
+      <div className="min-h-screen bg-gradient-to-br from-slate-100 via-slate-50/50 to-slate-200/30">
+        <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
@@ -344,6 +345,7 @@ export default function Manejos() {
             </CardContent>
           </Card>
         )}
+      </div>
       </div>
     </Layout>
   );

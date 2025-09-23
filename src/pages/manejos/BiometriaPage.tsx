@@ -1,7 +1,7 @@
 import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Scale } from 'lucide-react';
+import { ArrowLeft, Scales } from 'phosphor-react';
 import { BiometryTab } from '@/components/BiometryTab';
 
 export default function BiometriaPage() {
@@ -25,7 +25,7 @@ export default function BiometriaPage() {
               </Button>
               <div className="flex items-center gap-3 mb-2">
                 <div className="p-2 bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg">
-                  <Scale className="w-6 h-6 text-white" />
+                  <Scales className="w-6 h-6 text-white" />
                 </div>
                 <h1 className="text-4xl font-bold text-primary">
                   Biometria

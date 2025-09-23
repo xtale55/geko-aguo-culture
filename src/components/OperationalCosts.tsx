@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Plus, DollarSign, Trash2, Users, Zap, Fuel, Package } from "lucide-react";
+import { Plus, CurrencyDollar, Trash, Users, Lightning, GasPump, Package } from "phosphor-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -334,9 +334,9 @@ export function OperationalCosts({ onAddCost }: OperationalCostsProps = {}) {
       case 'labor':
         return <Users className="w-4 h-4" />;
       case 'energy':
-        return <Zap className="w-4 h-4" />;
+        return <Lightning className="w-4 h-4" />;
       case 'fuel':
-        return <Fuel className="w-4 h-4" />;
+        return <GasPump className="w-4 h-4" />;
       default:
         return <Package className="w-4 h-4" />;
     }
@@ -382,7 +382,7 @@ export function OperationalCosts({ onAddCost }: OperationalCostsProps = {}) {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <DollarSign className="w-5 h-5" />
+            <CurrencyDollar className="w-5 h-5" />
             Custos Operacionais
           </CardTitle>
         </CardHeader>
@@ -401,7 +401,7 @@ export function OperationalCosts({ onAddCost }: OperationalCostsProps = {}) {
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="flex items-center gap-2">
-          <DollarSign className="w-5 h-5" />
+          <CurrencyDollar className="w-5 h-5" />
           Custos Operacionais
         </CardTitle>
         <div className="flex items-center gap-2">
@@ -559,14 +559,14 @@ export function OperationalCosts({ onAddCost }: OperationalCostsProps = {}) {
           </div>
           <div className="bg-warning/10 rounded-lg p-3">
             <div className="flex items-center gap-2 mb-1">
-              <Zap className="w-4 h-4 text-warning" />
+              <Lightning className="w-4 h-4 text-warning" />
               <p className="text-xs text-muted-foreground">Energia</p>
             </div>
             <p className="text-lg font-bold text-warning">R$ {costSummary.energy.toFixed(0)}</p>
           </div>
           <div className="bg-destructive/10 rounded-lg p-3">
             <div className="flex items-center gap-2 mb-1">
-              <Fuel className="w-4 h-4 text-destructive" />
+              <GasPump className="w-4 h-4 text-destructive" />
               <p className="text-xs text-muted-foreground">Combustível</p>
             </div>
             <p className="text-lg font-bold text-destructive">R$ {costSummary.fuel.toFixed(0)}</p>
@@ -580,7 +580,7 @@ export function OperationalCosts({ onAddCost }: OperationalCostsProps = {}) {
           </div>
           <div className="bg-success/10 rounded-lg p-3">
             <div className="flex items-center gap-2 mb-1">
-              <DollarSign className="w-4 h-4 text-success" />
+              <CurrencyDollar className="w-4 h-4 text-success" />
               <p className="text-xs text-muted-foreground">Total</p>
             </div>
             <p className="text-lg font-bold text-success">R$ {costSummary.total.toFixed(0)}</p>
@@ -638,7 +638,7 @@ export function OperationalCosts({ onAddCost }: OperationalCostsProps = {}) {
                         onClick={() => handleDeleteCost(cost.id)}
                         className="text-destructive hover:text-destructive"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash className="w-4 h-4" />
                       </Button>
                     </div>
                   </div>

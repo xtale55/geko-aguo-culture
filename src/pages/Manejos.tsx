@@ -2,7 +2,7 @@ import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Scale, Droplets, Skull, Beaker, Fish, DollarSign, ChevronRight, Clock, Activity, Utensils } from 'lucide-react';
+import { ArrowLeft, Scales, Drop, Skull, TestTube, Fish, CurrencyDollar, CaretRight, Clock, Activity, ForkKnife } from 'phosphor-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useFarmsQuery } from '@/hooks/useSupabaseQuery';
 import { useRecentManagementData } from '@/hooks/useRecentManagementData';
@@ -21,7 +21,7 @@ export default function Manejos() {
       id: 'alimentacao',
       title: 'Alimentação',
       description: 'Registre alimentação diária',
-      icon: Utensils,
+      icon: ForkKnife,
       iconColor: 'text-green-600/70',
       route: '/manejos/alimentacao',
       status: 'Novo'
@@ -30,7 +30,7 @@ export default function Manejos() {
       id: 'insumos',
       title: 'Aplicação de Insumos',
       description: 'Controle probióticos e fertilizantes',
-      icon: Beaker,
+      icon: TestTube,
       iconColor: 'text-emerald-600/70',
       route: '/manejos/insumos',
       status: 'Ativo'
@@ -39,7 +39,7 @@ export default function Manejos() {
       id: 'biometria',
       title: 'Biometria',
       description: 'Registre medições de peso e crescimento',
-      icon: Scale,
+      icon: Scales,
       iconColor: 'text-blue-600/70',
       route: '/manejos/biometria',
       status: 'Ativo'
@@ -48,7 +48,7 @@ export default function Manejos() {
       id: 'agua',
       title: 'Qualidade da Água',
       description: 'Monitore parâmetros físico-químicos',
-      icon: Droplets,
+      icon: Drop,
       iconColor: 'text-cyan-600/70',
       route: '/manejos/agua',
       status: 'Ativo'
@@ -134,7 +134,7 @@ export default function Manejos() {
                       </p>
                     </div>
                     
-                    <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all duration-300 flex-shrink-0" />
+                    <CaretRight className="w-5 h-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all duration-300 flex-shrink-0" />
                   </div>
                 ) : (
                   // Desktop: Layout vertical
@@ -150,7 +150,7 @@ export default function Manejos() {
                             Novo
                           </span>
                         )}
-                        <ChevronRight className="w-3 h-3 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all duration-300" />
+                        <CaretRight className="w-3 h-3 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all duration-300" />
                       </div>
                     </div>
                     
@@ -188,7 +188,7 @@ export default function Manejos() {
                 {/* Biometrics */}
                 <div className="space-y-4">
                   <h4 className="font-semibold text-primary flex items-center gap-2 text-lg">
-                    <Scale className="w-5 h-5" />
+                    <Scales className="w-5 h-5" />
                     Biometrias
                   </h4>
                   <div className="space-y-3">
@@ -214,7 +214,7 @@ export default function Manejos() {
                 {/* Water Quality */}
                 <div className="space-y-4">
                   <h4 className="font-semibold text-cyan-600 flex items-center gap-2 text-lg">
-                    <Droplets className="w-5 h-5" />
+                    <Drop className="w-5 h-5" />
                     Qualidade da Água
                   </h4>
                   <div className="space-y-3">
@@ -240,7 +240,7 @@ export default function Manejos() {
                 {/* Input Applications */}
                 <div className="space-y-4">
                   <h4 className="font-semibold text-emerald-600 flex items-center gap-2 text-lg">
-                    <Beaker className="w-5 h-5" />
+                    <TestTube className="w-5 h-5" />
                     Aplicações de Insumos
                   </h4>
                   <div className="space-y-3">
@@ -318,7 +318,7 @@ export default function Manejos() {
                 {/* Operational Costs */}
                 <div className="space-y-4">
                   <h4 className="font-semibold text-purple-600 flex items-center gap-2 text-lg">
-                    <DollarSign className="w-5 h-5" />
+                    <CurrencyDollar className="w-5 h-5" />
                     Custos Operacionais
                   </h4>
                   <div className="space-y-3">

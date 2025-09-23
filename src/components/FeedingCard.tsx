@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { History, Edit2, Clock } from 'lucide-react';
+import { ClockCounterClockwise, PencilSimple, Clock } from 'phosphor-react';
 import { FeedingHistoryDialog } from '@/components/FeedingHistoryDialog';
 import { FeedingSchedule } from '@/components/FeedingSchedule';
 import { supabase } from '@/integrations/supabase/client';
@@ -204,7 +204,7 @@ export function FeedingCard({
                 onClick={handleEditFeedingRate}
                 className="h-6 px-2 text-xs mt-1"
               >
-                <Edit2 className="w-3 h-3 mr-1" />
+                <PencilSimple className="w-3 h-3 mr-1" />
                 Editar
               </Button>
             </div>
@@ -226,7 +226,7 @@ export function FeedingCard({
           onClick={() => setIsHistoryDialogOpen(true)}
           className="w-full mt-4"
         >
-          <History className="w-4 h-4 mr-2" />
+          <ClockCounterClockwise className="w-4 h-4 mr-2" />
           Histórico de Alimentação
         </Button>
 

@@ -1,7 +1,7 @@
 import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Droplets } from 'lucide-react';
+import { ArrowLeft, Drop } from 'phosphor-react';
 import { WaterQualityTab } from '@/components/WaterQualityTab';
 
 export default function AguaPage() {
@@ -25,7 +25,7 @@ export default function AguaPage() {
               </Button>
               <div className="flex items-center gap-3 mb-2">
                 <div className="p-2 bg-gradient-to-r from-cyan-600 to-cyan-700 rounded-lg">
-                  <Droplets className="w-6 h-6 text-white" />
+                  <Drop className="w-6 h-6 text-white" />
                 </div>
                 <h1 className="text-4xl font-bold text-primary">
                   Qualidade da Água

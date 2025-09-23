@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { Scale, History, Trash2, FileText, Calendar, Save, CheckCircle, Clock } from 'lucide-react';
+import { Scales, ClockCounterClockwise, Trash, FileText, Calendar, FloppyDisk, CheckCircle, Clock } from 'phosphor-react';
 import { useToast } from '@/hooks/use-toast';
 import { getCurrentDateForInput, formatDateForDisplay } from '@/lib/utils';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
@@ -424,7 +424,7 @@ export function BiometryTab() {
   if (ponds.length === 0) {
     return (
       <div className="text-center py-12">
-        <Scale className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+        <Scales className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
         <h2 className="text-2xl font-semibold mb-2">Nenhum viveiro ativo</h2>
         <p className="text-muted-foreground mb-6">
           Não há viveiros povoados para realizar biometrias.
@@ -438,11 +438,11 @@ export function BiometryTab() {
       <Tabs defaultValue="active" className="w-full">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="active" className="flex items-center gap-2">
-            <Scale className="w-4 h-4" />
+            <Scales className="w-4 h-4" />
             Viveiros Ativos
           </TabsTrigger>
           <TabsTrigger value="history" className="flex items-center gap-2">
-            <History className="w-4 h-4" />
+            <ClockCounterClockwise className="w-4 h-4" />
             Histórico
           </TabsTrigger>
         </TabsList>
@@ -530,7 +530,7 @@ export function BiometryTab() {
                     className="w-full"
                     size="sm"
                   >
-                    <Scale className="w-4 h-4 mr-2" />
+                    <Scales className="w-4 h-4 mr-2" />
                     {batch.latest_biometry ? 'Nova Biometria' : 'Primeira Biometria'}
                   </Button>
                 </div>
@@ -555,7 +555,7 @@ export function BiometryTab() {
                 </div>
               ) : biometryHistory.length === 0 ? (
                 <div className="text-center py-8">
-                  <History className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                  <ClockCounterClockwise className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                   <p className="text-muted-foreground">Nenhuma biometria registrada ainda.</p>
                 </div>
               ) : (
@@ -598,7 +598,7 @@ export function BiometryTab() {
                             size="sm"
                             onClick={() => openDeleteDialog(record)}
                           >
-                            <Trash2 className="w-4 h-4" />
+                            <Trash className="w-4 h-4" />
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -816,7 +816,7 @@ export function BiometryTab() {
               disabled={isSavingBatch || getValidRows().length === 0 || !batchDate}
               className="flex-1"
             >
-              <Save className="w-4 h-4 mr-2" />
+              <FloppyDisk className="w-4 h-4 mr-2" />
               {isSavingBatch 
                 ? 'Salvando...' 
                 : `Salvar ${getValidRows().length} Biometria${getValidRows().length !== 1 ? 's' : ''}`

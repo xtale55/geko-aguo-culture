@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Fish, SignOut, House, Waves, ForkKnife, Package, ChartBar, CurrencyDollar } from 'phosphor-react';
+import { Fish, SignOut, House, Waves, ForkKnife, Package, ChartBar, CurrencyDollar, TreeStructure } from 'phosphor-react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter } from '@/components/ui/sidebar';
@@ -12,6 +12,10 @@ const navigationItems = [{
   path: '/farm',
   icon: Waves,
   label: 'Fazenda'
+}, {
+  path: '/stocking',
+  icon: TreeStructure,
+  label: 'Povoamento'
 }, {
   path: '/manejos',
   icon: Fish,

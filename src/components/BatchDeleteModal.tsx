@@ -32,44 +32,76 @@ export function BatchDeleteModal({ isOpen, onClose, onSuccess, batch }: BatchDel
     setIsLoading(true);
 
     try {
-      // Verificar se existem registros dependentes
-      const { data: dependentRecords, error: checkError } = await supabase
+      // Buscar pond_batches relacionados ao lote
+      const { data: pondBatchData, error: pondBatchError } = await supabase
         .from('pond_batches')
-        .select('id, cycle_status')
+        .select('id, pond_id, cycle_status')
         .eq('batch_id', batch.id);
 
-      if (checkError) throw checkError;
+      if (pondBatchError) throw pondBatchError;
 
-      const hasActiveRecords = dependentRecords?.some(record => record.cycle_status === 'active');
+      // Verificar se há ciclos ativos
+      const hasActiveRecords = pondBatchData?.some(record => record.cycle_status === 'active');
       if (hasActiveRecords) {
         toast.error('Não é possível excluir um lote com ciclos ativos.');
         return;
       }
 
-      // Primeiro, atualizar os viveiros para status 'free'
-      if (dependentRecords && dependentRecords.length > 0) {
-        const { data: pondBatchData } = await supabase
-          .from('pond_batches')
-          .select('pond_id')
-          .eq('batch_id', batch.id);
+      if (pondBatchData && pondBatchData.length > 0) {
+        const pondBatchIds = pondBatchData.map(pb => pb.id);
+        const pondIds = pondBatchData.map(pb => pb.pond_id);
 
-        if (pondBatchData) {
-          const pondIds = pondBatchData.map(pb => pb.pond_id);
-          
-          await supabase
-            .from('ponds')
-            .update({ status: 'free' })
-            .in('id', pondIds);
-        }
+        // 1. Deletar registros de despesca primeiro (harvest_records)
+        await supabase
+          .from('harvest_records')
+          .delete()
+          .in('pond_batch_id', pondBatchIds);
 
-        // Deletar registros relacionados primeiro
+        // 2. Deletar outros registros dependentes
+        await supabase
+          .from('biometrics')
+          .delete()
+          .in('pond_batch_id', pondBatchIds);
+
+        await supabase
+          .from('feeding_records')
+          .delete()
+          .in('pond_batch_id', pondBatchIds);
+
+        await supabase
+          .from('input_applications')
+          .delete()
+          .in('pond_batch_id', pondBatchIds);
+
+        await supabase
+          .from('mortality_records')
+          .delete()
+          .in('pond_batch_id', pondBatchIds);
+
+        await supabase
+          .from('survival_adjustments')
+          .delete()
+          .in('pond_batch_id', pondBatchIds);
+
+        await supabase
+          .from('feeding_rates')
+          .delete()
+          .in('pond_batch_id', pondBatchIds);
+
+        // 3. Atualizar status dos viveiros para 'free'
+        await supabase
+          .from('ponds')
+          .update({ status: 'free' })
+          .in('id', pondIds);
+
+        // 4. Deletar pond_batches
         await supabase
           .from('pond_batches')
           .delete()
           .eq('batch_id', batch.id);
       }
 
-      // Deletar o lote
+      // 5. Finalmente, deletar o lote
       const { error: deleteError } = await supabase
         .from('batches')
         .delete()

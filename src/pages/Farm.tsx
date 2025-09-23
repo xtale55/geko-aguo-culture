@@ -291,7 +291,7 @@ export default function Farm() {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gradient-to-br from-slate-100 via-slate-50/50 to-slate-200/30">
+      <div className="min-h-screen" style={{ background: 'linear-gradient(135deg, #e9dac8 0%, #f5f0e8 50%, #ede3d3 100%)' }}>
         <div className="space-y-6">
         {/* Farm Header */}
         <div className="flex justify-between items-start">

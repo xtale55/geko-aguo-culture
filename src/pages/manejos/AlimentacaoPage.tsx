@@ -739,7 +739,7 @@ export default function AlimentacaoPage() {
   if (loading) {
     return (
       <Layout>
-        <div className="min-h-screen" style={{ background: 'linear-gradient(135deg, #e9dac8 0%, #f5f0e8 50%, #ede3d3 100%)' }}>
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-emerald-50/20">
           <div className="flex items-center justify-center h-64">
             <div className="text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
@@ -753,7 +753,7 @@ export default function AlimentacaoPage() {
 
   return (
     <Layout>
-      <div className="min-h-screen" style={{ background: 'linear-gradient(135deg, #e9dac8 0%, #f5f0e8 50%, #ede3d3 100%)' }}>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-emerald-50/20">
         <div className="space-y-6">
           {/* Header */}
           <div className="flex items-center justify-between">

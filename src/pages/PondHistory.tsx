@@ -656,8 +656,7 @@ export default function PondHistory() {
 
   return (
     <Layout>
-      <div className="min-h-screen" style={{ background: 'linear-gradient(135deg, #e9dac8 0%, #f5f0e8 50%, #ede3d3 100%)' }}>
-        <div className="space-y-6">
+      <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
@@ -1516,7 +1515,6 @@ export default function PondHistory() {
             </CardContent>
           </Card>
         )}
-      </div>
       </div>
     </Layout>
   );

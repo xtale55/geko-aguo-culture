@@ -1,4 +1,4 @@
-import { Hourglass } from "phosphor-react";
+import { Hourglass } from "@phosphor-icons/react";
 
 interface LoadingScreenProps {
   message?: string;

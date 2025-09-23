@@ -1,7 +1,7 @@
 import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Beaker } from 'lucide-react';
+import { ArrowLeft, TestTube } from '@phosphor-icons/react';
 import { InputApplicationTab } from '@/components/InputApplicationTab';
 
 export default function InsumosPage() {
@@ -25,7 +25,7 @@ export default function InsumosPage() {
               </Button>
               <div className="flex items-center gap-3 mb-2">
                 <div className="p-2 bg-gradient-to-r from-emerald-600 to-emerald-700 rounded-lg">
-                  <Beaker className="w-6 h-6 text-white" />
+                  <TestTube className="w-6 h-6 text-white" />
                 </div>
                 <h1 className="text-4xl font-bold text-primary">
                   Aplicação de Insumos

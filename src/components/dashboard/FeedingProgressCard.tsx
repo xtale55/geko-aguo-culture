@@ -1,5 +1,5 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { ForkKnife } from "phosphor-react";
+import { ForkKnife } from "@phosphor-icons/react";
 import { useFeedingDashboardStats } from "@/hooks/useFeedingDashboardData";
 import { Progress } from "@/components/ui/progress";
 

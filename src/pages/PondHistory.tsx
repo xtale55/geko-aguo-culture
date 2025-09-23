@@ -12,9 +12,10 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate, useParams } from "react-router-dom";
 import { 
-  ArrowLeft, Calendar, DollarSign, Scale, TrendingUp, 
-  Package, Droplets, Skull, Fish, Edit2, Trash2, History 
+  ArrowLeft, Calendar, DollarSign, Scale, TrendingUp,
+  Package, Droplets, Skull, Edit2, Trash2, History 
 } from "lucide-react";
+import { Shrimp } from '@phosphor-icons/react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useToast } from "@/hooks/use-toast";
 import { QuantityUtils } from "@/lib/quantityUtils";
@@ -1196,7 +1197,7 @@ export default function PondHistory() {
           <Card className="col-span-1">
             <CardHeader className="pb-4">
               <CardTitle className="flex items-center gap-2 text-base">
-                <Fish className="w-4 h-4" />
+                <Shrimp className="w-4 h-4" />
                 Alimentação Semanal
               </CardTitle>
             </CardHeader>
@@ -1234,7 +1235,7 @@ export default function PondHistory() {
                   ))}
                   {weeklyFeedingRecords.length === 0 && (
                     <div className="text-center py-8 text-muted-foreground">
-                      <Fish className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                      <Shrimp className="w-8 h-8 mx-auto mb-2 opacity-50" />
                       <p className="text-sm">Nenhum registro de alimentação encontrado.</p>
                     </div>
                   )}

@@ -4,7 +4,7 @@ import { Layout } from '@/components/Layout';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { AlertTriangle, Plus, Fish, BarChart3, Utensils, Package, Settings, DollarSign } from 'lucide-react';
+import { Warning, Plus, Shrimp, ChartBar, ForkKnife, Package, Gear, CurrencyDollar } from '@phosphor-icons/react';
 import { useFarmsQuery, useActivePondsQuery, useInventoryQuery, useWaterQualityQuery } from '@/hooks/useSupabaseQuery';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
 import { useRecentManagementData } from '@/hooks/useRecentManagementData';
@@ -88,7 +88,7 @@ export default function Dashboard() {
                 <h3 className={`text-sm font-medium ${alerts.length > 0 ? 'text-red-700 dark:text-red-300' : 'text-green-700 dark:text-green-300'}`}>
                   Alertas Críticos
                 </h3>
-                <AlertTriangle className={`h-5 w-5 ${alerts.length > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`} />
+                <Warning className={`h-5 w-5 ${alerts.length > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`} />
               </div>
               <div className="space-y-2">
                 <span className={`text-2xl font-bold ${alerts.length > 0 ? 'text-red-900 dark:text-red-100' : 'text-green-900 dark:text-green-100'}`}>
@@ -126,39 +126,39 @@ export default function Dashboard() {
                   { 
                     label: 'Manejos', 
                     path: '/manejos', 
-                    icon: Fish,
+                    icon: Shrimp,
                     color: 'from-blue-500 to-cyan-500'
                   },
-                  { 
-                    label: 'Registrar Ração', 
-                    path: '/feeding', 
-                    icon: Utensils,
-                    color: 'from-orange-500 to-red-500'
-                  },
-                  { 
-                    label: 'Estoque', 
-                    path: '/inventory', 
-                    icon: Package,
-                    color: 'from-purple-500 to-indigo-500'
-                  },
-                  { 
-                    label: 'Relatórios', 
-                    path: '/reports', 
-                    icon: BarChart3,
-                    color: 'from-green-500 to-emerald-500'
-                  },
-                  { 
-                    label: 'Fazenda', 
-                    path: '/farm', 
-                    icon: Settings,
-                    color: 'from-gray-500 to-slate-600'
-                  },
-                  { 
-                    label: 'Financeiro', 
-                    path: '/financial', 
-                    icon: DollarSign,
-                    color: 'from-yellow-500 to-amber-500'
-                  },
+                    { 
+                      label: 'Registrar Ração', 
+                      path: '/feeding', 
+                      icon: ForkKnife,
+                      color: 'from-orange-500 to-red-500'
+                    },
+                    { 
+                      label: 'Estoque', 
+                      path: '/inventory', 
+                      icon: Package,
+                      color: 'from-purple-500 to-indigo-500'
+                    },
+                    { 
+                      label: 'Relatórios', 
+                      path: '/reports', 
+                      icon: ChartBar,
+                      color: 'from-green-500 to-emerald-500'
+                    },
+                    { 
+                      label: 'Fazenda', 
+                      path: '/farm', 
+                      icon: Gear,
+                      color: 'from-gray-500 to-slate-600'
+                    },
+                    { 
+                      label: 'Financeiro', 
+                      path: '/financial', 
+                      icon: CurrencyDollar,
+                      color: 'from-yellow-500 to-amber-500'
+                    },
                 ].map(({ label, path, icon: Icon, color }) => (
                   <Button
                     key={path}

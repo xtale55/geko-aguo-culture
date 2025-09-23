@@ -9,7 +9,6 @@ import { useToast } from '@/hooks/use-toast';
 import { 
   Calendar, 
   DollarSign, 
-  Fish, 
   TrendingUp, 
   ChevronDown, 
   ChevronRight,
@@ -18,6 +17,7 @@ import {
   Target,
   BarChart3
 } from 'lucide-react';
+import { Shrimp } from '@phosphor-icons/react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import HarvestHistoryDetail from './HarvestHistoryDetail';
@@ -316,7 +316,7 @@ const HarvestCycleHistory = ({ onRefresh }: HarvestCycleHistoryProps) => {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Fish className="h-5 w-5" />
+            <Shrimp className="h-5 w-5" />
             Histórico de Ciclos e Despescas
           </CardTitle>
           <CardDescription>
@@ -326,7 +326,7 @@ const HarvestCycleHistory = ({ onRefresh }: HarvestCycleHistoryProps) => {
         <CardContent>
           {cycleHarvests.length === 0 ? (
             <div className="text-center py-12">
-              <Fish className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <Shrimp className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <p className="text-muted-foreground">
                 Nenhum ciclo com despescas encontrado
               </p>

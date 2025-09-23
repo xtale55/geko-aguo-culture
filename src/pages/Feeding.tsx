@@ -10,7 +10,7 @@ import { FeedingCard } from '@/components/FeedingCard';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
-import { Utensils, Calculator, ArrowLeft, BarChart3 } from 'lucide-react';
+import { ForkKnife, Calculator, ArrowLeft, ChartBar } from '@phosphor-icons/react';
 import { useToast } from '@/hooks/use-toast';
 import { getCurrentDateForInput, formatDateForDisplay } from '@/lib/utils';
 import { QuantityUtils } from '@/lib/quantityUtils';
@@ -351,7 +351,7 @@ export default function Feeding() {
     return (
       <Layout>
         <div className="text-center py-12">
-          <Utensils className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+          <ForkKnife className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
           <h2 className="text-2xl font-semibold mb-2">Nenhum viveiro ativo</h2>
           <p className="text-muted-foreground mb-6">
             É necessário ter viveiros ativos para calcular o arraçoamento.
@@ -410,7 +410,7 @@ export default function Feeding() {
                     {getTotalDailyFeed().toFixed(1)} kg
                   </p>
                 </div>
-                <Utensils className="w-8 h-8 text-blue-600/70" />
+                <ForkKnife className="w-8 h-8 text-blue-600/70" />
               </div>
             </CardContent>
           </Card>
@@ -438,7 +438,7 @@ export default function Feeding() {
                     {getAverageFCA().toFixed(2)}
                   </p>
                 </div>
-                <BarChart3 className="w-8 h-8 text-purple-600/70" />
+                <ChartBar className="w-8 h-8 text-purple-600/70" />
               </div>
             </CardContent>
           </Card>
@@ -450,7 +450,7 @@ export default function Feeding() {
                   <p className="text-sm font-medium text-slate-600">Viveiros Ativos</p>
                   <p className="text-2xl font-bold text-orange-700">{feedingTasks.length}</p>
                 </div>
-                <Utensils className="w-8 h-8 text-orange-600/70" />
+                <ForkKnife className="w-8 h-8 text-orange-600/70" />
               </div>
             </CardContent>
           </Card>

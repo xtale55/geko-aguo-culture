@@ -1,5 +1,5 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { TrendUp, TrendDown, Minus } from "phosphor-react";
+import { TrendUp, TrendDown, Minus } from "@phosphor-icons/react";
 import { useGrowthRate } from "@/hooks/useGrowthRate";
 
 interface GrowthRateCardProps {

@@ -1,6 +1,6 @@
 import * as React from "react"
 import { OTPInput, OTPInputContext } from "input-otp"
-import { Circle } from "phosphor-react"
+import { Circle } from "@phosphor-icons/react"
 
 import { cn } from "@/lib/utils"
 

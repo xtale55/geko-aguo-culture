@@ -7,7 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { PasswordStrengthIndicator } from '@/components/auth/PasswordStrengthIndicator';
-import { Fish, Eye, EyeOff, CheckCircle } from 'lucide-react';
+import { Eye, EyeOff, CheckCircle } from 'lucide-react';
+import { Shrimp } from '@phosphor-icons/react';
 import { supabase } from '@/integrations/supabase/client';
 
 export default function ResetPassword() {
@@ -228,7 +229,7 @@ export default function ResetPassword() {
       <Card className="w-full max-w-md relative backdrop-blur-sm bg-card/95 shadow-[var(--shadow-ocean)]">
         <CardHeader className="text-center space-y-4">
           <div className="mx-auto w-16 h-16 bg-gradient-to-br from-accent to-accent-hover rounded-full flex items-center justify-center">
-            <Fish className="w-8 h-8 text-accent-foreground" />
+            <Shrimp className="w-8 h-8 text-accent-foreground" />
           </div>
           <div>
             <CardTitle className="text-2xl font-bold text-primary">

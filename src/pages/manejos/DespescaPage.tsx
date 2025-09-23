@@ -1,7 +1,7 @@
 import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Fish } from 'lucide-react';
+import { ArrowLeft, Shrimp } from '@phosphor-icons/react';
 import HarvestTab from '@/components/HarvestTab';
 
 export default function DespescaPage() {
@@ -25,7 +25,7 @@ export default function DespescaPage() {
               </Button>
               <div className="flex items-center gap-3 mb-2">
                 <div className="p-2 bg-gradient-to-r from-orange-600 to-orange-700 rounded-lg">
-                  <Fish className="w-6 h-6 text-white" />
+                  <Shrimp className="w-6 h-6 text-white" />
                 </div>
                 <h1 className="text-4xl font-bold text-primary">
                   Despesca

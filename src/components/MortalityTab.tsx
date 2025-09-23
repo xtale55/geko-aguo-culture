@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { Skull, History, Trash2, Settings, Calculator, TrendingUp } from 'lucide-react';
+import { Skull, ClockCounterClockwise, Trash, Gear, Calculator, TrendUp } from '@phosphor-icons/react';
 import { useToast } from '@/hooks/use-toast';
 import { getCurrentDateForInput, formatDateForDisplay } from '@/lib/utils';
 
@@ -614,11 +614,11 @@ export function MortalityTab() {
             Viveiros Ativos
           </TabsTrigger>
           <TabsTrigger value="adjustment" className="flex items-center gap-2">
-            <Settings className="w-4 h-4" />
+            <Gear className="w-4 h-4" />
             Ajuste Sobrevivência
           </TabsTrigger>
           <TabsTrigger value="history" className="flex items-center gap-2">
-            <History className="w-4 h-4" />
+            <ClockCounterClockwise className="w-4 h-4" />
             Histórico
           </TabsTrigger>
         </TabsList>
@@ -690,7 +690,7 @@ export function MortalityTab() {
                             size="sm"
                             variant="outline"
                           >
-                            <Settings className="w-4 h-4 mr-2" />
+                            <Gear className="w-4 h-4 mr-2" />
                             Ajustar Sobrevivência
                           </Button>
                         </div>
@@ -709,7 +709,7 @@ export function MortalityTab() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5" />
+                  <TrendUp className="w-5 h-5" />
                   Ajuste de Sobrevivência
                 </CardTitle>
               </CardHeader>
@@ -729,7 +729,7 @@ export function MortalityTab() {
                   </div>
                   <div className="p-4 border rounded-lg">
                     <div className="flex items-center gap-2 mb-2">
-                      <TrendingUp className="w-4 h-4 text-green-600" />
+                      <TrendUp className="w-4 h-4 text-green-600" />
                       <span className="font-medium">Por Biomassa</span>
                     </div>
                     <p className="text-sm text-muted-foreground">
@@ -786,7 +786,7 @@ export function MortalityTab() {
                           className="w-full"
                           size="sm"
                         >
-                          <Settings className="w-4 h-4 mr-2" />
+                          <Gear className="w-4 h-4 mr-2" />
                           Ajustar Sobrevivência
                         </Button>
                       </div>
@@ -812,7 +812,7 @@ export function MortalityTab() {
                 </div>
               ) : mortalityRecords.length === 0 && survivalAdjustments.length === 0 ? (
                 <div className="text-center py-8">
-                  <History className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                  <ClockCounterClockwise className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                   <p className="text-muted-foreground">Nenhum registro ainda.</p>
                 </div>
               ) : (
@@ -821,7 +821,7 @@ export function MortalityTab() {
                   {survivalAdjustments.length > 0 && (
                     <div>
                       <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                        <Settings className="w-5 h-5" />
+                        <Gear className="w-5 h-5" />
                         Ajustes de Sobrevivência
                       </h3>
                       <Table>
@@ -873,7 +873,7 @@ export function MortalityTab() {
                                   onClick={() => handleDeleteAdjustment(adjustment)}
                                   disabled={submitting}
                                 >
-                                  <Trash2 className="w-4 h-4" />
+                                  <Trash className="w-4 h-4" />
                                 </Button>
                               </TableCell>
                             </TableRow>
@@ -925,7 +925,7 @@ export function MortalityTab() {
                                   size="sm"
                                   onClick={() => openDeleteDialog(record)}
                                 >
-                                  <Trash2 className="w-4 h-4" />
+                                  <Trash className="w-4 h-4" />
                                 </Button>
                               </TableCell>
                             </TableRow>
@@ -1092,7 +1092,7 @@ export function MortalityTab() {
                     onClick={() => setAdjustmentType('biomass_estimate')}
                     className="w-full"
                   >
-                    <TrendingUp className="w-4 h-4 mr-2" />
+                    <TrendUp className="w-4 h-4 mr-2" />
                     Por Biomassa
                   </Button>
                 </div>
@@ -1215,7 +1215,7 @@ export function MortalityTab() {
 
                 <div className="p-4 bg-green-50 rounded-lg border">
                   <h4 className="font-semibold mb-2 flex items-center gap-2">
-                    <TrendingUp className="w-4 h-4" />
+                    <TrendUp className="w-4 h-4" />
                     Resultado do Ajuste
                   </h4>
                   <div className="grid grid-cols-2 gap-4 text-sm">

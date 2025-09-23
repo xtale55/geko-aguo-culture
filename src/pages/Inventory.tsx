@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Search, Package, Trash2, Edit, ArrowLeft, Calendar, Clock, TrendingDown, MoreVertical, ShoppingCart, AlertTriangle } from "lucide-react";
+import { Plus, MagnifyingGlass, Package, Trash, PencilSimple, ArrowLeft, Calendar, Clock, TrendDown, DotsThree, ShoppingCart, Warning } from "@phosphor-icons/react";
 import { QuantityUtils } from "@/lib/quantityUtils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -539,7 +539,7 @@ export default function Inventory() {
                 <div className="flex gap-4">
                   <div className="flex-1">
                     <div className="relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                      <MagnifyingGlass className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                       <Input
                         placeholder="Buscar por nome, marca ou fornecedor..."
                         value={searchTerm}
@@ -672,25 +672,25 @@ export default function Inventory() {
                                         variant="outline"
                                         size="sm"
                                       >
-                                        <MoreVertical className="w-4 h-4" />
+                                        <DotsThree className="w-4 h-4" />
                                       </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end">
                                        <DropdownMenuItem 
                                          onClick={() => handleConfigureAlerts(item)}
                                        >
-                                         <AlertTriangle className="w-4 h-4 mr-2" />
+                                         <Warning className="w-4 h-4 mr-2" />
                                          Configurar Alertas
                                        </DropdownMenuItem>
                                       <DropdownMenuItem onClick={() => startEdit(item)}>
-                                        <Edit className="w-4 h-4 mr-2" />
+                                        <PencilSimple className="w-4 h-4 mr-2" />
                                         Editar Item
                                       </DropdownMenuItem>
                                       <DropdownMenuItem 
                                         onClick={() => handleDelete(item.id)}
                                         className="text-destructive focus:text-destructive"
                                       >
-                                        <Trash2 className="w-4 h-4 mr-2" />
+                                        <Trash className="w-4 h-4 mr-2" />
                                         Excluir Item
                                       </DropdownMenuItem>
                                     </DropdownMenuContent>
@@ -703,7 +703,7 @@ export default function Inventory() {
                                <div className="mt-4 pt-4 border-t space-y-3">
                                  <div className="flex items-center justify-between">
                                    <div className="flex items-center gap-2">
-                                     <TrendingDown className="w-4 h-4 text-muted-foreground" />
+                                     <TrendDown className="w-4 h-4 text-muted-foreground" />
                                      <span className="text-sm font-medium">Previsão de Consumo</span>
                                    </div>
                                    <div className={`flex items-center gap-1 text-sm font-semibold ${getUrgencyColor(forecast.estimatedDaysRemaining)}`}>

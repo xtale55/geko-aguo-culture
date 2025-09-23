@@ -70,7 +70,7 @@ export default function Dashboard() {
     <Layout>
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold">Dashboard</h1>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-900 via-blue-800 to-slate-700 bg-clip-text text-transparent">Dashboard</h1>
           <p className="text-muted-foreground">
             Visão geral da sua fazenda {firstFarm?.name}
           </p>

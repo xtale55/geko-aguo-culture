@@ -27,7 +27,7 @@ export default function InsumosPage() {
                 <div className="p-2 bg-gradient-to-r from-emerald-600 to-emerald-700 rounded-lg">
                   <TestTube className="w-6 h-6 text-white" />
                 </div>
-                <h1 className="text-4xl font-bold text-primary">
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-900 via-blue-800 to-slate-700 bg-clip-text text-transparent">
                   Aplicação de Insumos
                 </h1>
               </div>

@@ -27,7 +27,7 @@ export default function OperationalCostsPage() {
                 <div className="p-2 bg-gradient-to-r from-purple-600 to-purple-700 rounded-lg">
                   <DollarSign className="w-6 h-6 text-white" />
                 </div>
-                <h1 className="text-4xl font-bold text-primary">
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-900 via-blue-800 to-slate-700 bg-clip-text text-transparent">
                   Custos Operacionais
                 </h1>
               </div>

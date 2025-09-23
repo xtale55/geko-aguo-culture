@@ -217,7 +217,7 @@ export default function Biometry() {
               <ArrowLeft className="w-4 h-4 mr-2" />
               Voltar
             </Button>
-            <h1 className="text-3xl font-bold text-foreground">Biometria</h1>
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-900 via-blue-800 to-slate-700 bg-clip-text text-transparent">Biometria</h1>
             <p className="text-muted-foreground">
               Registre o peso médio dos camarões para monitorar o crescimento
             </p>

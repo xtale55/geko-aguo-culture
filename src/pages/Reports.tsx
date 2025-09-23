@@ -524,7 +524,7 @@ export default function Reports() {
         {/* Header */}
         <div className="flex justify-between items-start">
           <div>
-            <h1 className="text-4xl font-bold text-primary mb-2">
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-900 via-blue-800 to-slate-700 bg-clip-text text-transparent mb-2">
               Relatórios de Produção
             </h1>
             <p className="text-slate-600">

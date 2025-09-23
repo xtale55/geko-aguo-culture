@@ -326,7 +326,7 @@ export default function Financial() {
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Financeiro</h1>
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-900 via-blue-800 to-slate-700 bg-clip-text text-transparent tracking-tight">Financeiro</h1>
             <p className="text-muted-foreground">
               Análise completa da situação financeira da fazenda
             </p>

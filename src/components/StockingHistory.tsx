@@ -3,7 +3,10 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { History, Fish, Calendar, MapPin } from 'lucide-react';
+import { ClockCounterClockwise, Fish, Calendar, MapPin, PencilSimple, Trash } from 'phosphor-react';
+import { BatchEditModal } from './BatchEditModal';
+import { BatchDeleteModal } from './BatchDeleteModal';
+import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -30,6 +33,9 @@ export function StockingHistory() {
   const { user } = useAuth();
   const [stockingRecords, setStockingRecords] = useState<StockingRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [selectedBatch, setSelectedBatch] = useState<any>(null);
 
   useEffect(() => {
     if (user) {
@@ -112,12 +118,38 @@ export function StockingHistory() {
     return 'Inativo';
   };
 
+  const handleEditBatch = (record: StockingRecord) => {
+    setSelectedBatch({
+      id: record.id,
+      name: record.batch_name,
+      arrival_date: record.arrival_date,
+      total_pl_quantity: record.total_pl_quantity,
+      pl_size: record.pl_size,
+      pl_cost: record.pl_cost,
+      survival_rate: record.survival_rate
+    });
+    setEditModalOpen(true);
+  };
+
+  const handleDeleteBatch = (record: StockingRecord) => {
+    setSelectedBatch({
+      id: record.id,
+      name: record.batch_name,
+      pond_allocations: record.pond_allocations
+    });
+    setDeleteModalOpen(true);
+  };
+
+  const handleModalSuccess = () => {
+    loadStockingHistory();
+  };
+
   if (loading) {
     return (
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <History className="h-5 w-5" />
+            <ClockCounterClockwise className="h-5 w-5" />
             Histórico de Povoamentos
           </CardTitle>
         </CardHeader>
@@ -134,7 +166,7 @@ export function StockingHistory() {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <History className="h-5 w-5" />
+          <ClockCounterClockwise className="h-5 w-5" />
           Histórico de Povoamentos
         </CardTitle>
         <CardDescription>
@@ -168,9 +200,28 @@ export function StockingHistory() {
                         {format(new Date(record.arrival_date), 'dd/MM/yyyy', { locale: ptBR })}
                       </CardDescription>
                     </div>
-                    <Badge className={getStatusColor(record.status)}>
-                      {getStatusText(record.status)}
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                      <div className="flex gap-1">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleEditBatch(record)}
+                        >
+                          <PencilSimple className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleDeleteBatch(record)}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <Trash className="h-3 w-3" />
+                        </Button>
+                      </div>
+                      <Badge className={getStatusColor(record.status)}>
+                        {getStatusText(record.status)}
+                      </Badge>
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -234,6 +285,26 @@ export function StockingHistory() {
           </div>
         )}
       </CardContent>
+
+      <BatchEditModal
+        isOpen={editModalOpen}
+        onClose={() => {
+          setEditModalOpen(false);
+          setSelectedBatch(null);
+        }}
+        onSuccess={handleModalSuccess}
+        batch={selectedBatch}
+      />
+
+      <BatchDeleteModal
+        isOpen={deleteModalOpen}
+        onClose={() => {
+          setDeleteModalOpen(false);
+          setSelectedBatch(null);
+        }}
+        onSuccess={handleModalSuccess}
+        batch={selectedBatch}
+      />
     </Card>
   );
 }

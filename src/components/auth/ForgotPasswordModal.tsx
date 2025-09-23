@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Envelope, ArrowLeft } from 'phosphor-react';
+import { Envelope, ArrowLeft } from '@phosphor-icons/react';
 
 interface ForgotPasswordModalProps {
   open: boolean;

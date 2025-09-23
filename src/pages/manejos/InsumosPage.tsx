@@ -1,7 +1,7 @@
 import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, TestTube } from 'phosphor-react';
+import { ArrowLeft, TestTube } from '@phosphor-icons/react';
 import { InputApplicationTab } from '@/components/InputApplicationTab';
 
 export default function InsumosPage() {

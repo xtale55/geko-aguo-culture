@@ -1,7 +1,7 @@
 import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Scales } from 'phosphor-react';
+import { ArrowLeft, Scales } from '@phosphor-icons/react';
 import { BiometryTab } from '@/components/BiometryTab';
 
 export default function BiometriaPage() {

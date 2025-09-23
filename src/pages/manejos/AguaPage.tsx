@@ -1,7 +1,7 @@
 import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Drop } from 'phosphor-react';
+import { ArrowLeft, Drop } from '@phosphor-icons/react';
 import { WaterQualityTab } from '@/components/WaterQualityTab';
 
 export default function AguaPage() {

@@ -10,7 +10,7 @@ import { FeedingCard } from '@/components/FeedingCard';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
-import { ForkKnife, Calculator, ArrowLeft, ChartBar } from 'phosphor-react';
+import { ForkKnife, Calculator, ArrowLeft, ChartBar } from '@phosphor-icons/react';
 import { useToast } from '@/hooks/use-toast';
 import { getCurrentDateForInput, formatDateForDisplay } from '@/lib/utils';
 import { QuantityUtils } from '@/lib/quantityUtils';

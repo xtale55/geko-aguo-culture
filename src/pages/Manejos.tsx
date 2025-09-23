@@ -2,7 +2,7 @@ import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Scales, Drop, Skull, TestTube, Fish, CurrencyDollar, CaretRight, Clock, Activity, ForkKnife } from 'phosphor-react';
+import { ArrowLeft, Scales, Drop, Skull, TestTube, Fish, CurrencyDollar, CaretRight, Clock, Pulse, ForkKnife } from '@phosphor-icons/react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useFarmsQuery } from '@/hooks/useSupabaseQuery';
 import { useRecentManagementData } from '@/hooks/useRecentManagementData';
@@ -178,7 +178,7 @@ export default function Manejos() {
             <CardHeader className="pb-8">
               <CardTitle className="flex items-center gap-3 text-foreground text-2xl font-bold">
                 <div className="p-3 rounded-xl bg-gradient-to-br from-primary/20 to-accent/20 border border-primary/30">
-                  <Activity className="w-6 h-6 text-primary" />
+                  <Pulse className="w-6 h-6 text-primary" />
                 </div>
                 Atividade Recente
               </CardTitle>

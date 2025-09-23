@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { Trash, Warning, X } from 'phosphor-react';
+import { Trash, Warning, X } from '@phosphor-icons/react';
 
 interface BatchDeleteModalProps {
   isOpen: boolean;

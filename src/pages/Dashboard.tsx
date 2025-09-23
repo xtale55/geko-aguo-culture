@@ -4,7 +4,7 @@ import { Layout } from '@/components/Layout';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Warning, Plus, Fish, ChartBar, ForkKnife, Package, Gear, CurrencyDollar } from 'phosphor-react';
+import { Warning, Plus, Fish, ChartBar, ForkKnife, Package, Gear, CurrencyDollar } from '@phosphor-icons/react';
 import { useFarmsQuery, useActivePondsQuery, useInventoryQuery, useWaterQualityQuery } from '@/hooks/useSupabaseQuery';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
 import { useRecentManagementData } from '@/hooks/useRecentManagementData';

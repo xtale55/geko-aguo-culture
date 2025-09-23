@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { Skull, ClockCounterClockwise, Trash, Gear, Calculator, TrendUp } from 'phosphor-react';
+import { Skull, ClockCounterClockwise, Trash, Gear, Calculator, TrendUp } from '@phosphor-icons/react';
 import { useToast } from '@/hooks/use-toast';
 import { getCurrentDateForInput, formatDateForDisplay } from '@/lib/utils';
 

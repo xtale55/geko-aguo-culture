@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { Scales, ClockCounterClockwise, Trash, FileText, Calendar, FloppyDisk, CheckCircle, Clock } from 'phosphor-react';
+import { Scales, ClockCounterClockwise, Trash, FileText, Calendar, FloppyDisk, CheckCircle, Clock } from '@phosphor-icons/react';
 import { useToast } from '@/hooks/use-toast';
 import { getCurrentDateForInput, formatDateForDisplay } from '@/lib/utils';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';

@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ClockCounterClockwise, PencilSimple, Clock } from 'phosphor-react';
+import { ClockCounterClockwise, PencilSimple, Clock } from '@phosphor-icons/react';
 import { FeedingHistoryDialog } from '@/components/FeedingHistoryDialog';
 import { FeedingSchedule } from '@/components/FeedingSchedule';
 import { supabase } from '@/integrations/supabase/client';

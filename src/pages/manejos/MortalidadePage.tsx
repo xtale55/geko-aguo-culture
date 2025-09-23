@@ -1,7 +1,7 @@
 import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Skull } from 'phosphor-react';
+import { ArrowLeft, Skull } from '@phosphor-icons/react';
 import { MortalityTab } from '@/components/MortalityTab';
 
 export default function MortalidadePage() {

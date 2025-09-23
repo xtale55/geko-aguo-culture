@@ -1,7 +1,7 @@
 import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Fish } from 'phosphor-react';
+import { ArrowLeft, Fish } from '@phosphor-icons/react';
 import HarvestTab from '@/components/HarvestTab';
 
 export default function DespescaPage() {

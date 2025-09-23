@@ -232,7 +232,7 @@ export function FeedingRateConfig({ farmId, onRateUpdate }: FeedingRateConfigPro
     }
   };
 
-  const currentRate = getCurrentRate(5); // Show example for 5g fish
+  const currentRate = getCurrentRate(5); // Show example for 5g shrimp
 
   return (
     <Card>

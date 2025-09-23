@@ -380,8 +380,8 @@ export default function Financial() {
         <Tabs defaultValue="overview" className="space-y-4">
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="overview">Visão Geral</TabsTrigger>
-            <TabsTrigger value="costs">Custos Detalhados</TabsTrigger>
             <TabsTrigger value="operational">Custos Operacionais</TabsTrigger>
+            <TabsTrigger value="costs">Custos Detalhados</TabsTrigger>
             <TabsTrigger value="profitability">Rentabilidade</TabsTrigger>
           </TabsList>
 

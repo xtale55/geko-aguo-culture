@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Plus, DollarSign, Trash2, Users, Zap, Fuel, Package } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -54,6 +55,8 @@ export function OperationalCosts({ onAddCost }: OperationalCostsProps = {}) {
   });
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [filteredCosts, setFilteredCosts] = useState<OperationalCost[]>([]);
+  const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [newCost, setNewCost] = useState({
     category: '',
     amount: '',
@@ -148,6 +151,7 @@ export function OperationalCosts({ onAddCost }: OperationalCostsProps = {}) {
         }));
         
         setCosts(typedCosts);
+        setFilteredCosts(typedCosts);
 
         // Calculate summary
         const summary: CostSummary = {
@@ -360,6 +364,15 @@ export function OperationalCosts({ onAddCost }: OperationalCostsProps = {}) {
     }
   };
 
+  // Filter costs when category filter changes
+  useEffect(() => {
+    if (categoryFilter === 'all') {
+      setFilteredCosts(costs);
+    } else {
+      setFilteredCosts(costs.filter(cost => cost.category === categoryFilter));
+    }
+  }, [costs, categoryFilter]);
+
   if (loading) {
     return (
       <Card>
@@ -387,13 +400,26 @@ export function OperationalCosts({ onAddCost }: OperationalCostsProps = {}) {
           <DollarSign className="w-5 h-5" />
           Custos Operacionais (30 dias)
         </CardTitle>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button size="sm">
-              <Plus className="w-4 h-4 mr-2" />
-              Adicionar Custo
-            </Button>
-          </DialogTrigger>
+        <div className="flex items-center gap-2">
+          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+            <SelectTrigger className="w-40">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas as categorias</SelectItem>
+              <SelectItem value="labor">Mão de Obra</SelectItem>
+              <SelectItem value="energy">Energia</SelectItem>
+              <SelectItem value="fuel">Combustível</SelectItem>
+              <SelectItem value="other">Outros</SelectItem>
+            </SelectContent>
+          </Select>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button size="sm">
+                <Plus className="w-4 h-4 mr-2" />
+                Adicionar Custo
+              </Button>
+            </DialogTrigger>
           <DialogContent className="max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Registrar Custo Operacional</DialogTitle>
@@ -499,10 +525,11 @@ export function OperationalCosts({ onAddCost }: OperationalCostsProps = {}) {
               
               <Button onClick={handleAddCost} className="w-full">
                 Registrar Custo
-              </Button>
+            </Button>
             </div>
           </DialogContent>
         </Dialog>
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Summary Cards */}
@@ -546,50 +573,63 @@ export function OperationalCosts({ onAddCost }: OperationalCostsProps = {}) {
 
         {/* Recent Costs */}
         <div className="space-y-3">
-          <h3 className="font-medium text-sm">Registros Recentes</h3>
-          {costs.length === 0 ? (
-            <p className="text-muted-foreground text-sm">Nenhum custo operacional registrado nos últimos 30 dias.</p>
+          <h3 className="font-medium text-sm">
+            Registros Recentes 
+            {categoryFilter !== 'all' && ` - ${getCategoryName(categoryFilter)}`}
+            <span className="text-muted-foreground ml-1">({filteredCosts.length})</span>
+          </h3>
+          {filteredCosts.length === 0 ? (
+            <p className="text-muted-foreground text-sm">
+              {categoryFilter === 'all' 
+                ? 'Nenhum custo operacional registrado nos últimos 30 dias.' 
+                : `Nenhum custo da categoria "${getCategoryName(categoryFilter)}" registrado nos últimos 30 dias.`
+              }
+            </p>
           ) : (
-            costs.slice(0, 10).map((cost) => (
-              <div key={cost.id} className="border rounded-lg p-3">
-                <div className="flex justify-between items-start">
-                  <div className="flex items-start gap-3">
-                    <div className={`p-2 rounded-lg ${getCategoryColor(cost.category)}`}>
-                      {getCategoryIcon(cost.category)}
-                    </div>
-                    <div>
-                      <h4 className="font-medium text-sm">{cost.description}</h4>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <Badge variant="outline" className="text-xs">
-                          {getCategoryName(cost.category)}
-                        </Badge>
-                        <span>•</span>
-                        <span>{new Date(cost.cost_date).toLocaleDateString('pt-BR')}</span>
-                        {cost.pond_batch_id && (
-                          <>
-                            <span>•</span>
-                            <Badge variant="secondary" className="text-xs">
-                              {pondBatches.find(pb => pb.id === cost.pond_batch_id)?.pond_name || 'Viveiro'}
-                            </Badge>
-                          </>
-                        )}
+            <ScrollArea className="h-96">
+              <div className="space-y-3 pr-4">
+                {filteredCosts.map((cost) => (
+                <div key={cost.id} className="border rounded-lg p-3">
+                  <div className="flex justify-between items-start">
+                    <div className="flex items-start gap-3">
+                      <div className={`p-2 rounded-lg ${getCategoryColor(cost.category)}`}>
+                        {getCategoryIcon(cost.category)}
+                      </div>
+                      <div>
+                        <h4 className="font-medium text-sm">{cost.description}</h4>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <Badge variant="outline" className="text-xs">
+                            {getCategoryName(cost.category)}
+                          </Badge>
+                          <span>•</span>
+                          <span>{new Date(cost.cost_date).toLocaleDateString('pt-BR')}</span>
+                          {cost.pond_batch_id && (
+                            <>
+                              <span>•</span>
+                              <Badge variant="secondary" className="text-xs">
+                                {pondBatches.find(pb => pb.id === cost.pond_batch_id)?.pond_name || 'Viveiro'}
+                              </Badge>
+                            </>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <p className="font-bold text-lg">R$ {cost.amount.toFixed(2)}</p>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDeleteCost(cost.id)}
-                      className="text-destructive hover:text-destructive"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <p className="font-bold text-lg">R$ {cost.amount.toFixed(2)}</p>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDeleteCost(cost.id)}
+                        className="text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
+                ))}
               </div>
-            ))
+            </ScrollArea>
           )}
         </div>
       </CardContent>

@@ -38,7 +38,16 @@ export default function OperationalCostsPage() {
           </div>
 
           {/* Content */}
-          <OperationalCosts />
+          <div className="flex gap-4 mb-6">
+            <Button 
+              onClick={() => (window as any).openOperationalCostDialog?.()}
+              className="bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white"
+            >
+              <DollarSign className="w-4 h-4 mr-2" />
+              Adicionar Custo Operacional
+            </Button>
+          </div>
+          <OperationalCosts onAddCost={() => {}} />
         </div>
       </div>
     </Layout>

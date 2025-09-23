@@ -38,7 +38,11 @@ interface CostSummary {
   total: number;
 }
 
-export function OperationalCosts() {
+interface OperationalCostsProps {
+  onAddCost?: () => void;
+}
+
+export function OperationalCosts({ onAddCost }: OperationalCostsProps = {}) {
   const [costs, setCosts] = useState<OperationalCost[]>([]);
   const [pondBatches, setPondBatches] = useState<PondBatch[]>([]);
   const [costSummary, setCostSummary] = useState<CostSummary>({
@@ -65,6 +69,13 @@ export function OperationalCosts() {
       loadOperationalCosts();
     }
   }, [user]);
+
+  useEffect(() => {
+    if (onAddCost) {
+      // Expose the dialog open function to parent
+      (window as any).openOperationalCostDialog = () => setIsDialogOpen(true);
+    }
+  }, [onAddCost]);
 
   const loadOperationalCosts = async () => {
     try {

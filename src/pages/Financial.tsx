@@ -400,7 +400,21 @@ export default function Financial() {
               </div>
               <div className="text-center p-4 bg-white rounded-lg border border-purple-100 group-hover:border-purple-200 transition-colors">
                 <p className="text-sm text-muted-foreground mb-1">Ação</p>
-                <div className="text-sm text-purple-700 font-medium">+ Adicionar Custos</div>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate('/operational-costs');
+                    // Small delay to ensure page is loaded before triggering dialog
+                    setTimeout(() => {
+                      (window as any).openOperationalCostDialog?.();
+                    }, 100);
+                  }}
+                  className="text-purple-700 border-purple-200 hover:bg-purple-50"
+                >
+                  + Adicionar
+                </Button>
               </div>
             </div>
           </CardContent>

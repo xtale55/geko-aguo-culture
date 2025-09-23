@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Layout } from "@/components/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -94,6 +95,7 @@ export default function Financial() {
   const [priceTable, setPriceTable] = useState(19);
   const { user } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (user) {
@@ -369,43 +371,36 @@ export default function Financial() {
         </div>
 
         {/* Operational Costs Highlight Card */}
-        <Card className="border-l-4 border-l-purple-500 bg-gradient-to-r from-purple-50/50 to-white">
+        <Card 
+          className="border-l-4 border-l-purple-500 bg-gradient-to-r from-purple-50/50 to-white cursor-pointer hover:shadow-lg hover:shadow-purple-500/10 transition-all duration-300 group"
+          onClick={() => navigate('/operational-costs')}
+        >
           <CardHeader>
             <CardTitle className="flex items-center gap-3">
               <div className="p-2 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg">
                 <Calculator className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h3 className="text-xl font-bold text-purple-800">Custos Operacionais</h3>
-                <p className="text-sm text-purple-600 font-normal">Controle e monitore os custos operacionais da fazenda</p>
+                <h3 className="text-xl font-bold text-purple-800 group-hover:text-purple-900 transition-colors">Custos Operacionais</h3>
+                <p className="text-sm text-purple-600 font-normal">Clique aqui para adicionar e gerenciar custos operacionais</p>
               </div>
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid gap-4 md:grid-cols-3">
-              <div className="text-center p-4 bg-white rounded-lg border border-purple-100">
+              <div className="text-center p-4 bg-white rounded-lg border border-purple-100 group-hover:border-purple-200 transition-colors">
                 <p className="text-sm text-muted-foreground mb-1">Total Operacional</p>
                 <p className="text-2xl font-bold text-purple-700">{formatCurrency(financialData.operationalCosts)}</p>
               </div>
-              <div className="text-center p-4 bg-white rounded-lg border border-purple-100">
+              <div className="text-center p-4 bg-white rounded-lg border border-purple-100 group-hover:border-purple-200 transition-colors">
                 <p className="text-sm text-muted-foreground mb-1">% dos Custos Totais</p>
                 <p className="text-2xl font-bold text-purple-700">
                   {financialData.totalCosts > 0 ? ((financialData.operationalCosts / financialData.totalCosts) * 100).toFixed(1) : '0.0'}%
                 </p>
               </div>
-              <div className="text-center p-4 bg-white rounded-lg border border-purple-100">
-                <p className="text-sm text-muted-foreground mb-1">Gerenciar</p>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => {
-                    const operationalTab = document.querySelector('[value="operational"]') as HTMLElement;
-                    if (operationalTab) operationalTab.click();
-                  }}
-                  className="text-purple-700 border-purple-200 hover:bg-purple-50"
-                >
-                  Ver Detalhes
-                </Button>
+              <div className="text-center p-4 bg-white rounded-lg border border-purple-100 group-hover:border-purple-200 transition-colors">
+                <p className="text-sm text-muted-foreground mb-1">Ação</p>
+                <div className="text-sm text-purple-700 font-medium">+ Adicionar Custos</div>
               </div>
             </div>
           </CardContent>

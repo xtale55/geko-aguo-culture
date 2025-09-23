@@ -105,6 +105,11 @@ export const Layout = memo(function Layout({
                   label: 'Fazenda',
                   color: 'from-blue-500 to-cyan-500'
                 }, {
+                  path: '/despesca',
+                  icon: Fish,
+                  label: 'Despesca',
+                  color: 'from-orange-500 to-orange-600'
+                }, {
                   path: '/feeding',
                   icon: ForkKnife,
                   label: 'Ração',

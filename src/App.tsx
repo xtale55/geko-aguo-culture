@@ -16,13 +16,14 @@ import InsumosPage from "./pages/manejos/InsumosPage";
 import AguaPage from "./pages/manejos/AguaPage";
 import MortalidadePage from "./pages/manejos/MortalidadePage";
 import DespescaPage from "./pages/manejos/DespescaPage";
-import CustosPage from "./pages/manejos/CustosPage";
+
 import AlimentacaoPage from "./pages/manejos/AlimentacaoPage";
 import Feeding from "./pages/Feeding";
 import Inventory from "./pages/Inventory";
 import Reports from "./pages/Reports";
 import Financial from "./pages/Financial";
 import PondHistory from "./pages/PondHistory";
+import OperationalCostsPage from "./pages/OperationalCosts";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -46,13 +47,14 @@ const App = () => (
           <Route path="/manejos/insumos" element={<InsumosPage />} />
           <Route path="/manejos/agua" element={<AguaPage />} />
           <Route path="/manejos/mortalidade" element={<MortalidadePage />} />
-          <Route path="/manejos/despesca" element={<DespescaPage />} />
-          <Route path="/manejos/custos" element={<CustosPage />} />
+          <Route path="/despesca" element={<DespescaPage />} />
+          
           <Route path="/manejos/alimentacao" element={<AlimentacaoPage />} />
           <Route path="/feeding" element={<Feeding />} />
           <Route path="/inventory" element={<Inventory />} />
           <Route path="/reports" element={<Reports />} />
           <Route path="/financial" element={<Financial />} />
+          <Route path="/operational-costs" element={<OperationalCostsPage />} />
           <Route path="/pond-history/:pondId" element={<PondHistory />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

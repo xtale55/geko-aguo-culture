@@ -11,7 +11,7 @@ import { Progress } from '@/components/ui/progress';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Clock, Utensils, History } from 'lucide-react';
+import { ArrowLeft, Clock, Utensils, History, Edit2, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -51,6 +51,7 @@ interface FeedingRecord {
   notes?: string;
   pond_name: string;
   batch_name: string;
+  pond_batch_id: string;
 }
 
 interface FeedType {
@@ -85,6 +86,8 @@ export default function AlimentacaoPage() {
   const [selectedPond, setSelectedPond] = useState<PondWithBatch | null>(null);
   const [availableFeeds, setAvailableFeeds] = useState<FeedType[]>([]);
   const [selectedFeedType, setSelectedFeedType] = useState<string>('');
+  const [editingRecord, setEditingRecord] = useState<FeedingRecord | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
   
   const [feedingData, setFeedingData] = useState<FeedingData>({
     pond_batch_id: '',
@@ -295,7 +298,8 @@ export default function AlimentacaoPage() {
                 planned_amount: record.planned_amount,
                 notes: record.notes,
                 pond_name: pondBatchData.ponds.name,
-                batch_name: pondBatchData.batches.name
+                batch_name: pondBatchData.batches.name,
+                pond_batch_id: record.pond_batch_id
               });
             }
           }
@@ -500,6 +504,238 @@ export default function AlimentacaoPage() {
     }
   };
 
+  const handleEditFeeding = async (record: FeedingRecord) => {
+    setEditingRecord(record);
+    setIsEditing(true);
+    
+    // Find the pond data for this record
+    const { data: pondBatchData } = await supabase
+      .from('pond_batches')
+      .select(`
+        ponds!inner(id, name, area),
+        batches!inner(name)
+      `)
+      .eq('id', record.pond_batch_id)
+      .single();
+
+    if (pondBatchData) {
+      const pondData: PondWithBatch = {
+        id: pondBatchData.ponds.id,
+        name: pondBatchData.ponds.name,
+        area: pondBatchData.ponds.area,
+        status: 'in_use',
+        current_batch: {
+          id: record.pond_batch_id,
+          batch_name: pondBatchData.batches.name,
+          stocking_date: '',
+          current_population: 0
+        }
+      };
+      
+      setSelectedPond(pondData);
+    }
+
+    // Get the feed type from the record
+    const { data: feedingRecordData } = await supabase
+      .from('feeding_records')
+      .select('feed_type_id, feed_type_name')
+      .eq('id', record.id)
+      .single();
+
+    if (feedingRecordData?.feed_type_id) {
+      setSelectedFeedType(feedingRecordData.feed_type_id);
+    }
+
+    setFeedingData({
+      pond_batch_id: record.pond_batch_id,
+      feeding_date: record.feeding_date,
+      feeding_time: record.feeding_time,
+      planned_amount: record.planned_amount,
+      actual_amount: record.actual_amount,
+      notes: record.notes || '',
+      feed_type_id: feedingRecordData?.feed_type_id || '',
+      feed_type_name: feedingRecordData?.feed_type_name || ''
+    });
+
+    setShowDialog(true);
+  };
+
+  const handleDeleteFeeding = async (recordId: string) => {
+    if (!confirm('Tem certeza que deseja excluir este registro de alimentação?')) {
+      return;
+    }
+
+    try {
+      // Get the record to restore inventory
+      const { data: record } = await supabase
+        .from('feeding_records')
+        .select('actual_amount, feed_type_id')
+        .eq('id', recordId)
+        .single();
+
+      if (record?.feed_type_id) {
+        // Restore inventory
+        const { data: currentInventory } = await supabase
+          .from('inventory')
+          .select('quantity')
+          .eq('id', record.feed_type_id)
+          .single();
+
+        if (currentInventory) {
+          await supabase
+            .from('inventory')
+            .update({ 
+              quantity: currentInventory.quantity + record.actual_amount 
+            })
+            .eq('id', record.feed_type_id);
+        }
+      }
+
+      // Delete the feeding record
+      const { error } = await supabase
+        .from('feeding_records')
+        .delete()
+        .eq('id', recordId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Sucesso",
+        description: "Registro excluído com sucesso"
+      });
+
+      loadFeedingHistory();
+      loadAvailableFeeds();
+    } catch (error) {
+      console.error('Error deleting feeding record:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao excluir registro",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleUpdateFeeding = async () => {
+    if (!editingRecord) return;
+
+    try {
+      setSubmitting(true);
+
+      if (!selectedFeedType) {
+        toast({
+          title: "Erro",
+          description: "Selecione um tipo de ração",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Get current and new feed info
+      const { data: currentRecord } = await supabase
+        .from('feeding_records')
+        .select('actual_amount, feed_type_id')
+        .eq('id', editingRecord.id)
+        .single();
+
+      const selectedFeed = availableFeeds.find(feed => feed.id === selectedFeedType);
+      if (!selectedFeed) {
+        toast({
+          title: "Erro",
+          description: "Ração selecionada não encontrada",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Calculate inventory adjustments
+      const oldAmount = currentRecord?.actual_amount || 0;
+      const newAmount = feedingData.actual_amount;
+      const oldFeedTypeId = currentRecord?.feed_type_id;
+      const newFeedTypeId = selectedFeedType;
+
+      // If feed type changed, restore old inventory
+      if (oldFeedTypeId && oldFeedTypeId !== newFeedTypeId) {
+        const { data: oldInventory } = await supabase
+          .from('inventory')
+          .select('quantity')
+          .eq('id', oldFeedTypeId)
+          .single();
+
+        if (oldInventory) {
+          await supabase
+            .from('inventory')
+            .update({ quantity: oldInventory.quantity + oldAmount })
+            .eq('id', oldFeedTypeId);
+        }
+      }
+
+      // Update new inventory
+      const { data: newInventory } = await supabase
+        .from('inventory')
+        .select('quantity')
+        .eq('id', newFeedTypeId)
+        .single();
+
+      if (newInventory) {
+        const inventoryChange = oldFeedTypeId === newFeedTypeId ? (newAmount - oldAmount) : newAmount;
+        const newQuantity = newInventory.quantity - inventoryChange;
+
+        if (newQuantity < 0) {
+          toast({
+            title: "Erro",
+            description: `Estoque insuficiente. Disponível: ${(newInventory.quantity / 1000).toFixed(1)} kg`,
+            variant: "destructive"
+          });
+          return;
+        }
+
+        await supabase
+          .from('inventory')
+          .update({ quantity: newQuantity })
+          .eq('id', newFeedTypeId);
+      }
+
+      // Update feeding record
+      const { error } = await supabase
+        .from('feeding_records')
+        .update({
+          feeding_date: feedingData.feeding_date,
+          feeding_time: feedingData.feeding_time,
+          actual_amount: feedingData.actual_amount,
+          planned_amount: feedingData.planned_amount,
+          notes: feedingData.notes,
+          feed_type_id: selectedFeedType,
+          feed_type_name: selectedFeed.name,
+          unit_cost: selectedFeed.unit_price
+        })
+        .eq('id', editingRecord.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Sucesso",
+        description: "Registro atualizado com sucesso"
+      });
+
+      setShowDialog(false);
+      setIsEditing(false);
+      setEditingRecord(null);
+      loadFeedingHistory();
+      loadAvailableFeeds();
+
+    } catch (error) {
+      console.error('Error updating feeding:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao atualizar registro",
+        variant: "destructive"
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   if (loading) {
     return (
       <Layout>
@@ -662,32 +898,53 @@ export default function AlimentacaoPage() {
                       <p className="text-muted-foreground">Nenhum registro de alimentação encontrado</p>
                     </div>
                   ) : (
-                    <div className="overflow-x-auto">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Data</TableHead>
-                            <TableHead>Horário</TableHead>
-                            <TableHead>Viveiro</TableHead>
-                            <TableHead>Lote</TableHead>
-                            <TableHead>Quantidade</TableHead>
-                            <TableHead>Observações</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {feedingHistory.map(record => (
-                            <TableRow key={record.id}>
-                              <TableCell>{formatDateForDisplay(record.feeding_date)}</TableCell>
-                              <TableCell>{record.feeding_time.slice(0, 5)}</TableCell>
-                              <TableCell>{record.pond_name}</TableCell>
-                              <TableCell>{record.batch_name}</TableCell>
-                              <TableCell>{(record.actual_amount / 1000).toFixed(1)} kg</TableCell>
-                              <TableCell className="max-w-xs truncate">{record.notes || '-'}</TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </div>
+                     <div className="overflow-x-auto">
+                       <Table>
+                         <TableHeader>
+                           <TableRow>
+                             <TableHead>Data</TableHead>
+                             <TableHead>Horário</TableHead>
+                             <TableHead>Viveiro</TableHead>
+                             <TableHead>Lote</TableHead>
+                             <TableHead>Quantidade</TableHead>
+                             <TableHead>Observações</TableHead>
+                             <TableHead className="text-center">Ações</TableHead>
+                           </TableRow>
+                         </TableHeader>
+                         <TableBody>
+                           {feedingHistory.map(record => (
+                             <TableRow key={record.id}>
+                               <TableCell>{formatDateForDisplay(record.feeding_date)}</TableCell>
+                               <TableCell>{record.feeding_time.slice(0, 5)}</TableCell>
+                               <TableCell>{record.pond_name}</TableCell>
+                               <TableCell>{record.batch_name}</TableCell>
+                               <TableCell>{(record.actual_amount / 1000).toFixed(1)} kg</TableCell>
+                               <TableCell className="max-w-xs truncate">{record.notes || '-'}</TableCell>
+                               <TableCell className="text-center">
+                                 <div className="flex items-center justify-center gap-2">
+                                   <Button
+                                     variant="ghost"
+                                     size="sm"
+                                     onClick={() => handleEditFeeding(record)}
+                                     className="h-8 w-8 p-0"
+                                   >
+                                     <Edit2 className="w-4 h-4" />
+                                   </Button>
+                                   <Button
+                                     variant="ghost"
+                                     size="sm"
+                                     onClick={() => handleDeleteFeeding(record.id)}
+                                     className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                                   >
+                                     <Trash2 className="w-4 h-4" />
+                                   </Button>
+                                 </div>
+                               </TableCell>
+                             </TableRow>
+                           ))}
+                         </TableBody>
+                       </Table>
+                     </div>
                   )}
                 </CardContent>
               </Card>
@@ -700,7 +957,7 @@ export default function AlimentacaoPage() {
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
                   <Utensils className="w-5 h-5 text-green-600" />
-                  Registrar Alimentação
+                  {isEditing ? 'Editar Alimentação' : 'Registrar Alimentação'}
                 </DialogTitle>
                 <p className="text-sm text-muted-foreground">
                   {selectedPond?.name} - {selectedPond?.current_batch?.batch_name}
@@ -795,15 +1052,23 @@ export default function AlimentacaoPage() {
                 </div>
 
                 <div className="flex gap-2 pt-4">
-                  <Button variant="outline" onClick={() => setShowDialog(false)} className="flex-1">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      setShowDialog(false);
+                      setIsEditing(false);
+                      setEditingRecord(null);
+                    }} 
+                    className="flex-1"
+                  >
                     Cancelar
                   </Button>
                   <Button 
-                    onClick={handleSubmitFeeding}
+                    onClick={isEditing ? handleUpdateFeeding : handleSubmitFeeding}
                     disabled={submitting || feedingData.actual_amount <= 0 || !selectedFeedType || availableFeeds.length === 0}
                     className="flex-1"
                   >
-                    {submitting ? 'Salvando...' : 'Salvar'}
+                    {submitting ? 'Salvando...' : (isEditing ? 'Atualizar' : 'Salvar')}
                   </Button>
                 </div>
               </div>

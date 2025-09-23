@@ -372,7 +372,16 @@ export default function Financial() {
                   {financialData.totalCosts > 0 ? (financialData.operationalCosts / financialData.totalCosts * 100).toFixed(1) : '0.0'}%
                 </p>
               </div>
-              
+              <Button 
+                onClick={() => {
+                  navigate('/operational-costs');
+                  setTimeout(() => (window as any).openOperationalCostDialog?.(), 100);
+                }}
+                className="bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white shadow-md hover:shadow-lg transition-all duration-300"
+              >
+                <DollarSign className="w-4 h-4 mr-2" />
+                + Adicionar Custo
+              </Button>
             </div>
           </CardContent>
         </Card>

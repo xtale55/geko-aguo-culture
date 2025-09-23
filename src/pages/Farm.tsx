@@ -13,6 +13,7 @@ import { Plus, Fish, Waves, Edit, Trash2, MapPin, Activity, CheckCircle } from '
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { StockingContent } from '@/components/StockingContent';
+import { StockingHistory } from '@/components/StockingHistory';
 import { LoadingScreen } from '@/components/LoadingScreen';
 
 interface Farm {
@@ -477,6 +478,7 @@ export default function Farm() {
           
           <TabsContent value="povoamento" className="space-y-4 mt-6">
             <StockingContent />
+            <StockingHistory />
           </TabsContent>
         </Tabs>
         </div>

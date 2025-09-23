@@ -369,9 +369,10 @@ export default function Financial() {
         </div>
 
         <Tabs defaultValue="overview" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="overview">Visão Geral</TabsTrigger>
             <TabsTrigger value="costs">Custos Detalhados</TabsTrigger>
+            <TabsTrigger value="operational">Custos Operacionais</TabsTrigger>
             <TabsTrigger value="profitability">Rentabilidade</TabsTrigger>
           </TabsList>
 
@@ -667,6 +668,10 @@ export default function Financial() {
                 </ResponsiveContainer>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="operational" className="space-y-6">
+            <OperationalCosts />
           </TabsContent>
 
           <TabsContent value="profitability" className="space-y-6">

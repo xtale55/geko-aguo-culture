@@ -16,7 +16,7 @@ import InsumosPage from "./pages/manejos/InsumosPage";
 import AguaPage from "./pages/manejos/AguaPage";
 import MortalidadePage from "./pages/manejos/MortalidadePage";
 import DespescaPage from "./pages/manejos/DespescaPage";
-import CustosPage from "./pages/manejos/CustosPage";
+
 import AlimentacaoPage from "./pages/manejos/AlimentacaoPage";
 import Feeding from "./pages/Feeding";
 import Inventory from "./pages/Inventory";
@@ -47,7 +47,7 @@ const App = () => (
           <Route path="/manejos/agua" element={<AguaPage />} />
           <Route path="/manejos/mortalidade" element={<MortalidadePage />} />
           <Route path="/despesca" element={<DespescaPage />} />
-          <Route path="/manejos/custos" element={<CustosPage />} />
+          
           <Route path="/manejos/alimentacao" element={<AlimentacaoPage />} />
           <Route path="/feeding" element={<Feeding />} />
           <Route path="/inventory" element={<Inventory />} />

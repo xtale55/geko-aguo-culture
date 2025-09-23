@@ -61,15 +61,6 @@ export default function Manejos() {
       iconColor: 'text-red-600/70',
       route: '/manejos/mortalidade',
       status: 'Ativo'
-    },
-    {
-      id: 'custos',
-      title: 'Custos Operacionais',
-      description: 'Controle custos e despesas',
-      icon: DollarSign,
-      iconColor: 'text-purple-600/70',
-      route: '/manejos/custos',
-      status: 'Novo'
     }
   ];
 

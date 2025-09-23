@@ -401,7 +401,7 @@ export default function Financial() {
               <div className="text-center p-4 bg-white rounded-lg border border-purple-100 group-hover:border-purple-200 transition-colors">
                 <p className="text-sm text-muted-foreground mb-1">Ação</p>
                 <Button 
-                  variant="outline" 
+                  variant="default" 
                   size="sm"
                   onClick={(e) => {
                     e.stopPropagation();
@@ -411,9 +411,9 @@ export default function Financial() {
                       (window as any).openOperationalCostDialog?.();
                     }, 100);
                   }}
-                  className="text-purple-700 border-purple-200 hover:bg-purple-50"
+                  className="bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300"
                 >
-                  + Adicionar
+                  + Adicionar Custo
                 </Button>
               </div>
             </div>

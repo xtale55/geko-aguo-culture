@@ -368,6 +368,49 @@ export default function Financial() {
           </div>
         </div>
 
+        {/* Operational Costs Highlight Card */}
+        <Card className="border-l-4 border-l-purple-500 bg-gradient-to-r from-purple-50/50 to-white">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-3">
+              <div className="p-2 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg">
+                <Calculator className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-purple-800">Custos Operacionais</h3>
+                <p className="text-sm text-purple-600 font-normal">Controle e monitore os custos operacionais da fazenda</p>
+              </div>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 md:grid-cols-3">
+              <div className="text-center p-4 bg-white rounded-lg border border-purple-100">
+                <p className="text-sm text-muted-foreground mb-1">Total Operacional</p>
+                <p className="text-2xl font-bold text-purple-700">{formatCurrency(financialData.operationalCosts)}</p>
+              </div>
+              <div className="text-center p-4 bg-white rounded-lg border border-purple-100">
+                <p className="text-sm text-muted-foreground mb-1">% dos Custos Totais</p>
+                <p className="text-2xl font-bold text-purple-700">
+                  {financialData.totalCosts > 0 ? ((financialData.operationalCosts / financialData.totalCosts) * 100).toFixed(1) : '0.0'}%
+                </p>
+              </div>
+              <div className="text-center p-4 bg-white rounded-lg border border-purple-100">
+                <p className="text-sm text-muted-foreground mb-1">Gerenciar</p>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => {
+                    const operationalTab = document.querySelector('[value="operational"]') as HTMLElement;
+                    if (operationalTab) operationalTab.click();
+                  }}
+                  className="text-purple-700 border-purple-200 hover:bg-purple-50"
+                >
+                  Ver Detalhes
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         <Tabs defaultValue="overview" className="space-y-4">
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="overview">Visão Geral</TabsTrigger>

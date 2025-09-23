@@ -79,6 +79,7 @@ export default function Financial() {
   const [costsByCategory, setCostsByCategory] = useState<CostsByCategory[]>([]);
   const [cycleFinancials, setCycleFinancials] = useState<CycleFinancial[]>([]);
   const [pondCosts, setPondCosts] = useState<PondCosts[]>([]);
+  const [pondBatchesData, setPondBatchesData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPeriod, setSelectedPeriod] = useState('last_30_days');
   const [priceTable, setPriceTable] = useState(19);
@@ -299,6 +300,7 @@ export default function Financial() {
       setCostsByCategory(costs);
       setCycleFinancials(cycleFinancials);
       setPondCosts(pondCostsData);
+      setPondBatchesData(pondBatches);
     } catch (error) {
       console.error('Error loading financial data:', error);
       toast({
@@ -482,9 +484,12 @@ export default function Financial() {
           </TabsContent>
 
           <TabsContent value="costs" className="space-y-6">
-            {/* Pond Costs Overview */}
+            {/* Pond Costs Overview - Active Cycles Only */}
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {pondCosts.map(pondCost => {
+              {pondCosts.filter(pondCost => {
+                const cycle = cycleFinancials.find(c => c.pond_name === pondCost.pond_name && c.batch_name === pondCost.batch_name);
+                return cycle?.status === 'active';
+              }).map(pondCost => {
               const pieData = [{
                 name: 'Ração',
                 value: pondCost.feedCosts,
@@ -583,10 +588,10 @@ export default function Financial() {
             })}
             </div>
 
-            {/* Comparative Table */}
+            {/* Comparative Table - Historical Data with Status */}
             <Card>
               <CardHeader>
-                <CardTitle>Comparativo de Custos por Viveiro</CardTitle>
+                <CardTitle>Histórico Completo de Cultivos</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="overflow-x-auto">
@@ -595,6 +600,8 @@ export default function Financial() {
                       <tr className="border-b">
                         <th className="text-left p-2">Viveiro</th>
                         <th className="text-left p-2">Lote</th>
+                        <th className="text-left p-2">Data Início</th>
+                        <th className="text-center p-2">Status</th>
                         <th className="text-right p-2">DOC</th>
                         <th className="text-right p-2">Área (m²)</th>
                         <th className="text-right p-2">Ração</th>
@@ -607,33 +614,50 @@ export default function Financial() {
                       </tr>
                     </thead>
                     <tbody>
-                      {pondCosts.map(pondCost => <tr key={pondCost.pond_batch_id} className="border-b">
-                          <td className="p-2 font-medium">{pondCost.pond_name}</td>
-                          <td className="p-2">{pondCost.batch_name}</td>
-                          <td className="p-2 text-right">{pondCost.doc}</td>
-                          <td className="p-2 text-right">{pondCost.area.toLocaleString('pt-BR')}</td>
-                          <td className="p-2 text-right">{formatCurrency(pondCost.feedCosts)}</td>
-                          <td className="p-2 text-right">{formatCurrency(pondCost.inputCosts)}</td>
-                          <td className="p-2 text-right">{formatCurrency(pondCost.plCosts)}</td>
-                          <td className="p-2 text-right">{formatCurrency(pondCost.preparationCosts)}</td>
-                          <td className="p-2 text-right">{formatCurrency(pondCost.operationalCosts)}</td>
-                          <td className="p-2 text-right font-bold">{formatCurrency(pondCost.totalCosts)}</td>
-                          <td className="p-2 text-right">{formatCurrency(pondCost.costPerHectare)}</td>
-                        </tr>)}
+                      {pondCosts.map(pondCost => {
+                        const cycle = cycleFinancials.find(c => c.pond_name === pondCost.pond_name && c.batch_name === pondCost.batch_name);
+                        const pondBatchData = pondBatchesData?.find(pb => pb.id === pondCost.pond_batch_id);
+                        const startDate = pondBatchData ? new Date(pondBatchData.stocking_date).toLocaleDateString('pt-BR') : '-';
+                        
+                        return (
+                          <tr key={pondCost.pond_batch_id} className="border-b">
+                            <td className="p-2 font-medium">{pondCost.pond_name}</td>
+                            <td className="p-2">{pondCost.batch_name}</td>
+                            <td className="p-2">{startDate}</td>
+                            <td className="p-2 text-center">
+                              <Badge variant={cycle?.status === 'completed' ? 'default' : 'secondary'}>
+                                {cycle?.status === 'completed' ? 'Finalizado' : 'Ativo'}
+                              </Badge>
+                            </td>
+                            <td className="p-2 text-right">{pondCost.doc}</td>
+                            <td className="p-2 text-right">{pondCost.area.toLocaleString('pt-BR')}</td>
+                            <td className="p-2 text-right">{formatCurrency(pondCost.feedCosts)}</td>
+                            <td className="p-2 text-right">{formatCurrency(pondCost.inputCosts)}</td>
+                            <td className="p-2 text-right">{formatCurrency(pondCost.plCosts)}</td>
+                            <td className="p-2 text-right">{formatCurrency(pondCost.preparationCosts)}</td>
+                            <td className="p-2 text-right">{formatCurrency(pondCost.operationalCosts)}</td>
+                            <td className="p-2 text-right font-bold">{formatCurrency(pondCost.totalCosts)}</td>
+                            <td className="p-2 text-right">{formatCurrency(pondCost.costPerHectare)}</td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Comparative Chart */}
+            {/* Comparative Chart - Active Cycles Only */}
             <Card>
               <CardHeader>
-                <CardTitle>Comparativo de Custos Totais</CardTitle>
+                <CardTitle>Comparativo de Custos Totais - Cultivos Ativos</CardTitle>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={pondCosts}>
+                  <BarChart data={pondCosts.filter(pondCost => {
+                    const cycle = cycleFinancials.find(c => c.pond_name === pondCost.pond_name && c.batch_name === pondCost.batch_name);
+                    return cycle?.status === 'active';
+                  })}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="pond_name" />
                     <YAxis tickFormatter={value => `R$ ${(value / 1000).toFixed(0)}k`} />

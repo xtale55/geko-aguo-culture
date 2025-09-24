@@ -10,12 +10,13 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Calendar, DollarSign } from 'lucide-react';
+import { Loader2, Calendar, DollarSign, AlertTriangle } from 'lucide-react';
 import { Shrimp } from '@phosphor-icons/react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import HarvestHistoryDetail from './HarvestHistoryDetail';
 import HarvestCycleHistory from './HarvestCycleHistory';
+import { PreHarvestWarningModal } from './PreHarvestWarningModal';
 
 interface PondBatch {
   id: string;
@@ -50,6 +51,7 @@ const HarvestTab = () => {
   const [harvestRecords, setHarvestRecords] = useState<HarvestRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [preHarvestWarningOpen, setPreHarvestWarningOpen] = useState(false);
   const [selectedPondBatch, setSelectedPondBatch] = useState<PondBatch | null>(null);
   const [selectedHarvestId, setSelectedHarvestId] = useState<string | null>(null);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
@@ -187,14 +189,20 @@ const HarvestTab = () => {
 
   const openHarvestDialog = (pondBatch: PondBatch) => {
     setSelectedPondBatch(pondBatch);
+    setPreHarvestWarningOpen(true);
+  };
+
+  const handlePreHarvestConfirm = () => {
+    setPreHarvestWarningOpen(false);
     setDialogOpen(true);
+    
     // Reset form
     setHarvestDate(format(new Date(), 'yyyy-MM-dd'));
     setHarvestType('partial');
     setBiomassHarvested('');
     
     // Pre-fill average weight with latest biometry data
-    const defaultWeight = pondBatch.latest_average_weight || 0;
+    const defaultWeight = selectedPondBatch?.latest_average_weight || 0;
     setAverageWeightAtHarvest(defaultWeight.toString());
     
     setPopulationHarvested('');
@@ -249,21 +257,23 @@ const HarvestTab = () => {
         }
       }
 
-      // Validate harvest amounts
+      // Validate harvest amounts - mais flexível para despescas totais
       if (harvestType === 'total') {
-        if (populationValue > selectedPondBatch.current_population) {
+        // Para despesca total, permitir população > current_population (reprodução)
+        // mas avisar se muito maior que o esperado
+        if (populationValue > selectedPondBatch.current_population * 1.2) {
           toast({
-            title: "Erro",
-            description: "Quantidade de despesca não pode ser maior que a população atual",
-            variant: "destructive",
+            title: "Aviso",
+            description: `População despescada 20% maior que esperado. Possível reprodução ou erro na biometria anterior.`,
+            variant: "default",
           });
-          return;
         }
       } else {
-        if (populationValue >= selectedPondBatch.current_population) {
+        // Para despesca parcial, manter validação mais restritiva
+        if (populationValue >= selectedPondBatch.current_population * 0.95) {
           toast({
             title: "Erro",
-            description: "Para despesca parcial, a quantidade deve ser menor que a população total",
+            description: "Para despesca parcial, a quantidade deve ser menor que 95% da população total",
             variant: "destructive",
           });
           return;
@@ -293,7 +303,21 @@ const HarvestTab = () => {
 
       // Update pond_batch and pond status based on harvest type
       if (harvestType === 'total') {
-        // For total harvest, mark pond_batch as completed and pond as free
+        // Para despesca total, calcular sobrevivência real baseada na despesca
+        // Primeiro buscar o pl_quantity original
+        const { data: batchData, error: batchError } = await supabase
+          .from('pond_batches')
+          .select('pl_quantity')
+          .eq('id', selectedPondBatch.id)
+          .single();
+
+        if (batchError) throw batchError;
+
+        const realSurvivalRate = batchData.pl_quantity > 0 
+          ? (populationValue / batchData.pl_quantity) * 100 
+          : 0;
+
+        // Mark pond_batch as completed and pond as free
         const { error: updatePondBatchError } = await supabase
           .from('pond_batches')
           .update({ 
@@ -302,7 +326,7 @@ const HarvestTab = () => {
             final_population: populationValue,
             final_biomass: biomassValue,
             final_average_weight: averageWeightValue,
-            final_survival_rate: (populationValue / selectedPondBatch.current_population) * 100
+            final_survival_rate: realSurvivalRate // Taxa real baseada na despesca
           })
           .eq('id', selectedPondBatch.id);
 
@@ -446,10 +470,11 @@ const HarvestTab = () => {
                         </div>
                       )}
                     </div>
-                    <Button 
+                     <Button 
                       onClick={() => openHarvestDialog(pondBatch)}
                       className="w-full mt-3"
                     >
+                      <AlertTriangle className="w-4 h-4 mr-2" />
                       Registrar Despesca
                     </Button>
                   </CardContent>
@@ -666,6 +691,14 @@ const HarvestTab = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Pre-Harvest Warning Modal */}
+      <PreHarvestWarningModal
+        isOpen={preHarvestWarningOpen}
+        onClose={() => setPreHarvestWarningOpen(false)}
+        onConfirm={handlePreHarvestConfirm}
+        pondBatch={selectedPondBatch || { pond_name: '', batch_name: '' }}
+      />
 
       {/* Harvest History Detail Dialog */}
       <HarvestHistoryDetail

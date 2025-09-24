@@ -1,7 +1,7 @@
 import { memo, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { Shrimp, SignOut, Gear, House, Waves, Scales, Skull, ForkKnife, Drop, Package, ChartBar, CurrencyDollar, DotsThree } from '@phosphor-icons/react';
+import { Fish, SignOut, Gear, House, Waves, Scales, Skull, ForkKnife, Drop, Package, ChartBar, CurrencyDollar, DotsThree } from 'phosphor-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
@@ -34,7 +34,7 @@ export const Layout = memo(function Layout({
           <div className="container mx-auto px-4 h-16 flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-emerald-500 rounded-full flex items-center justify-center">
-                <Shrimp className="w-6 h-6 text-white" />
+                <Fish className="w-6 h-6 text-white" />
               </div>
               <div>
                 <h1 className="text-xl font-bold text-primary">
@@ -66,7 +66,7 @@ export const Layout = memo(function Layout({
             label: 'Dashboard'
           }, {
             path: '/manejos',
-            icon: Shrimp,
+            icon: Fish,
             label: 'Manejos'
           }, {
             path: '/inventory',
@@ -106,7 +106,7 @@ export const Layout = memo(function Layout({
                   color: 'from-blue-500 to-cyan-500'
                 }, {
                   path: '/despesca',
-                  icon: Shrimp,
+                  icon: Fish,
                   label: 'Despesca',
                   color: 'from-orange-500 to-orange-600'
                 }, {
@@ -146,9 +146,9 @@ export const Layout = memo(function Layout({
       <div className="min-h-screen flex w-full bg-background">
         <AppSidebar />
         
-        <div className="flex-1 flex flex-col bg-[#ececee]">
+        <div className="flex-1 flex flex-col">
           {/* Desktop Header */}
-          <header className="border-b border-border bg-card/50 backdrop-blur-sm h-16 flex items-center px-4 my-px">
+          <header className="border-b border-border bg-card/50 backdrop-blur-sm h-16 flex items-center px-4 my-0">
             <SidebarTrigger className="mr-4" />
             <div className="flex-1" />
             <div className="flex items-center space-x-4">

@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Shrimp, SignOut, House, Waves, ForkKnife, Barn, ChartBar, CurrencyDollar, Truck } from '@phosphor-icons/react';
+import { Fish, SignOut, House, Waves, ForkKnife, Package, ChartBar, CurrencyDollar, Truck } from 'phosphor-react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter } from '@/components/ui/sidebar';
@@ -14,7 +14,7 @@ const navigationItems = [{
   label: 'Fazenda'
 }, {
   path: '/manejos',
-  icon: Shrimp,
+  icon: Fish,
   label: 'Manejos'
 }, {
   path: '/despesca',
@@ -26,7 +26,7 @@ const navigationItems = [{
   label: 'Ração'
 }, {
   path: '/inventory',
-  icon: Barn,
+  icon: Package,
   label: 'Estoque'
 }, {
   path: '/reports',
@@ -50,9 +50,9 @@ export function AppSidebar() {
   };
   const isActive = (path: string) => location.pathname === path;
   return <Sidebar collapsible="none" className="w-auto min-w-44">
-      <SidebarHeader className="border-b border-border p-2">
+      <SidebarHeader className="border-b border-border p-2 py-[6px]">
         <div className="flex items-center justify-center my-[10px]">
-          <h1 className="text-lg font-bold bg-gradient-to-r from-blue-900 via-blue-800 to-slate-700 bg-clip-text text-transparent">
+          <h1 className="font-bold bg-gradient-to-r from-blue-900 via-blue-800 to-slate-700 bg-clip-text text-transparent my-0 mx-0 px-[30px] py-px text-2xl">
             AquaHub
           </h1>
         </div>
@@ -75,10 +75,6 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-border p-2">
-        <Button variant="ghost" size="sm" onClick={handleSignOut} className="w-full">
-          <SignOut className="w-4 h-4" />
-        </Button>
-      </SidebarFooter>
+      
     </Sidebar>;
 }

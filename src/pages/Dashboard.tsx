@@ -104,89 +104,89 @@ export default function Dashboard() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Quick Actions */}
-          <Card className="lg:col-span-1">
-            <CardHeader>
-              <CardTitle>Ações Rápidas</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 gap-3">
-                {[
+          <StandardCard
+            title="Ações Rápidas"
+            value=""
+            icon={<div />}
+            className="lg:col-span-1"
+          >
+            <div className="grid grid-cols-2 gap-3 mt-4">
+              {[
+                { 
+                  label: 'Manejos', 
+                  path: '/manejos', 
+                  icon: Shrimp,
+                  color: 'from-blue-500 to-cyan-500'
+                },
                   { 
-                    label: 'Manejos', 
-                    path: '/manejos', 
-                    icon: Shrimp,
-                    color: 'from-blue-500 to-cyan-500'
+                    label: 'Registrar Ração', 
+                    path: '/feeding', 
+                    icon: ForkKnife,
+                    color: 'from-orange-500 to-red-500'
                   },
-                    { 
-                      label: 'Registrar Ração', 
-                      path: '/feeding', 
-                      icon: ForkKnife,
-                      color: 'from-orange-500 to-red-500'
-                    },
-                    { 
-                      label: 'Estoque', 
-                      path: '/inventory', 
-                      icon: Package,
-                      color: 'from-purple-500 to-indigo-500'
-                    },
-                    { 
-                      label: 'Relatórios', 
-                      path: '/reports', 
-                      icon: ChartBar,
-                      color: 'from-green-500 to-emerald-500'
-                    },
-                    { 
-                      label: 'Fazenda', 
-                      path: '/farm', 
-                      icon: Gear,
-                      color: 'from-gray-500 to-slate-600'
-                    },
-                    { 
-                      label: 'Financeiro', 
-                      path: '/financial', 
-                      icon: CurrencyDollar,
-                      color: 'from-yellow-500 to-amber-500'
-                    },
-                ].map(({ label, path, icon: Icon, color }) => (
-                  <Button
-                    key={path}
-                    variant="outline"
-                    className={`h-20 flex flex-col gap-2 bg-gradient-to-br ${color} text-white border-0 hover:opacity-90`}
-                    onClick={() => navigate(path)}
-                  >
-                    <Icon className="h-6 w-6" />
-                    <span className="text-xs text-center">{label}</span>
-                  </Button>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+                  { 
+                    label: 'Estoque', 
+                    path: '/inventory', 
+                    icon: Package,
+                    color: 'from-purple-500 to-indigo-500'
+                  },
+                  { 
+                    label: 'Relatórios', 
+                    path: '/reports', 
+                    icon: ChartBar,
+                    color: 'from-green-500 to-emerald-500'
+                  },
+                  { 
+                    label: 'Fazenda', 
+                    path: '/farm', 
+                    icon: Gear,
+                    color: 'from-gray-500 to-slate-600'
+                  },
+                  { 
+                    label: 'Financeiro', 
+                    path: '/financial', 
+                    icon: CurrencyDollar,
+                    color: 'from-yellow-500 to-amber-500'
+                  },
+              ].map(({ label, path, icon: Icon, color }) => (
+                <Button
+                  key={path}
+                  variant="outline"
+                  className={`h-20 flex flex-col gap-2 bg-gradient-to-br ${color} text-white border-0 hover:opacity-90`}
+                  onClick={() => navigate(path)}
+                >
+                  <Icon className="h-6 w-6" />
+                  <span className="text-xs text-center">{label}</span>
+                </Button>
+              ))}
+            </div>
+          </StandardCard>
 
           {/* Recent Activities */}
-          <Card className="lg:col-span-1">
-            <CardHeader>
-              <CardTitle>Atividades Recentes</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {recentActivities.length === 0 ? (
-                  <p className="text-muted-foreground text-sm">Nenhuma atividade recente</p>
-                ) : (
-                  recentActivities.slice(0, 5).map((activity, index) => (
-                    <div key={index} className="flex items-start gap-3">
-                      <div className="w-2 h-2 bg-primary rounded-full mt-2" />
-                      <div className="flex-1">
-                        <p className="text-sm">{activity.description}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {format(new Date(activity.date), "dd MMM, HH:mm", { locale: ptBR })}
-                        </p>
-                      </div>
+          <StandardCard
+            title="Atividades Recentes"
+            value=""
+            icon={<div />}
+            className="lg:col-span-1"
+          >
+            <div className="space-y-3 mt-4">
+              {recentActivities.length === 0 ? (
+                <p className="text-muted-foreground text-sm">Nenhuma atividade recente</p>
+              ) : (
+                recentActivities.slice(0, 5).map((activity, index) => (
+                  <div key={index} className="flex items-start gap-3">
+                    <div className="w-2 h-2 bg-primary rounded-full mt-2" />
+                    <div className="flex-1">
+                      <p className="text-sm">{activity.description}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {format(new Date(activity.date), "dd MMM, HH:mm", { locale: ptBR })}
+                      </p>
                     </div>
-                  ))
-                )}
-              </div>
-            </CardContent>
-          </Card>
+                  </div>
+                ))
+              )}
+            </div>
+          </StandardCard>
 
           {/* Task Manager */}
           <TaskManager farmId={firstFarm?.id} />

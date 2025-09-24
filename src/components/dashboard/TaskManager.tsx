@@ -7,12 +7,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Calendar, Trash, PencilSimple } from "@phosphor-icons/react";
+import { Plus, Calendar, Trash, PencilSimple, ClipboardText } from "@phosphor-icons/react";
 import { useUserTasks, createTask, updateTask, deleteTask, type UserTask } from "@/hooks/useUserTasks";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { StandardCard } from "@/components/StandardCard";
 
 interface TaskManagerProps {
   farmId?: string;
@@ -115,10 +116,13 @@ export function TaskManager({ farmId }: TaskManagerProps) {
   const completedTasks = tasks.filter(task => task.completed);
 
   return (
-    <Card>
+    <Card className="bg-[#f5f3f0]">
       <CardHeader>
         <CardTitle className="text-lg flex items-center justify-between">
-          Tarefas Pendentes
+          <div className="flex items-center gap-2">
+            <ClipboardText className="h-5 w-5 text-primary" />
+            Tarefas Pendentes
+          </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button size="sm" onClick={() => resetForm()}>

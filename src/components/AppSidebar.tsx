@@ -58,7 +58,7 @@ export function AppSidebar() {
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="pt-4" style={{backgroundColor: '#ececee'}}>
+      <SidebarContent className="pt-4 bg-gradient-to-br from-sky-100/80 via-blue-50/60 to-slate-100/70 backdrop-blur-md border-r border-sky-200/30">
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>

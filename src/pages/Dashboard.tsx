@@ -5,7 +5,7 @@ import { LoadingScreen } from '@/components/LoadingScreen';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { StandardCard } from '@/components/StandardCard';
-import { AlertTriangle, Plus, Fish, BarChart3, Utensils, Package, Settings, DollarSign } from 'lucide-react';
+import { Warning, Plus, Fish, ChartBar, ForkKnife, Package, Gear, CurrencyDollar } from '@phosphor-icons/react';
 import { useFarmsQuery, useActivePondsQuery, useInventoryQuery, useWaterQualityQuery } from '@/hooks/useSupabaseQuery';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
 import { useRecentManagementData } from '@/hooks/useRecentManagementData';
@@ -82,7 +82,7 @@ export default function Dashboard() {
           <StandardCard
             title="Alertas Críticos"
             value={alerts.length}
-            icon={<AlertTriangle className="h-5 w-5" />}
+            icon={<Warning className="h-5 w-5" />}
             subtitle={alerts.length === 0 ? 'Tudo funcionando bem' : `${alerts.length === 1 ? 'Clique para ver' : 'Clique para detalhes'}`}
             colorClass={alerts.length > 0 ? 'text-destructive' : 'text-primary'}
             onClick={() => setAlertsModalOpen(true)}
@@ -106,41 +106,48 @@ export default function Dashboard() {
           <StandardCard
             title="Ações Rápidas"
             value=""
-            icon={<Settings className="h-5 w-5" />}
+            icon={<Gear className="h-5 w-5" />}
             colorClass="text-primary"
           >
             <div className="grid grid-cols-2 gap-3 mt-3">
               {[{
               label: 'Manejos',
               path: '/manejos',
-              icon: Fish
+              icon: Fish,
+              color: 'text-blue-600'
             }, {
               label: 'Registrar Ração',
               path: '/feeding',
-              icon: Utensils
+              icon: ForkKnife,
+              color: 'text-orange-600'
             }, {
               label: 'Estoque',
               path: '/inventory',
-              icon: Package
+              icon: Package,
+              color: 'text-purple-600'
             }, {
               label: 'Relatórios',
               path: '/reports',
-              icon: BarChart3
+              icon: ChartBar,
+              color: 'text-green-600'
             }, {
               label: 'Fazenda',
               path: '/farm',
-              icon: Settings
+              icon: Gear,
+              color: 'text-gray-600'
             }, {
               label: 'Financeiro',
               path: '/financial',
-              icon: DollarSign
+              icon: CurrencyDollar,
+              color: 'text-yellow-600'
             }].map(({
               label,
               path,
-              icon: Icon
-            }) => <Button key={path} variant="outline" className="h-20 flex flex-col gap-2 bg-card hover:bg-muted/50 border-border text-foreground" onClick={() => navigate(path)}>
-                  <Icon className="h-6 w-6 text-muted-foreground" />
-                  <span className="text-xs text-center">{label}</span>
+              icon: Icon,
+              color
+            }) => <Button key={path} variant="outline" className="h-20 flex flex-col gap-2 bg-card hover:bg-muted/50 border-border text-foreground group" onClick={() => navigate(path)}>
+                  <Icon className={`h-6 w-6 ${color} group-hover:scale-110 transition-transform`} />
+                  <span className={`text-xs text-center ${color} font-medium`}>{label}</span>
                 </Button>)}
             </div>
           </StandardCard>
@@ -149,7 +156,7 @@ export default function Dashboard() {
           <StandardCard
             title="Atividades Recentes"
             value=""
-            icon={<BarChart3 className="h-5 w-5" />}
+            icon={<ChartBar className="h-5 w-5" />}
             colorClass="text-primary"
           >
             <div className="space-y-3 mt-3">

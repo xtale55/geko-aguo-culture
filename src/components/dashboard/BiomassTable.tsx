@@ -36,7 +36,7 @@ export function BiomassTable({ farmId }: BiomassTableProps) {
             <Fish className="h-5 w-5 text-primary" />
             Biomassa por Faixa de Peso
           </div>
-          <Badge variant="outline" className="text-sm">
+          <Badge variant="outline" className="text-base font-medium">
             Total: {totalBiomass.toFixed(1)} kg
           </Badge>
         </CardTitle>

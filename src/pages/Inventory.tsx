@@ -357,7 +357,7 @@ export default function Inventory() {
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Voltar
               </Button>
-              <h1 className="text-4xl font-bold text-primary mb-2">
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-900 via-blue-800 to-slate-700 bg-clip-text text-transparent mb-2">
                 Controle de Estoque
               </h1>
             </div>

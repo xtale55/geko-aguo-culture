@@ -669,7 +669,7 @@ export default function PondHistory() {
               <ArrowLeft className="w-4 h-4 mr-2" />
               Voltar aos Relatórios
             </Button>
-            <h1 className="text-3xl font-bold text-foreground">Histórico - {pondName}</h1>
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-900 via-blue-800 to-slate-700 bg-clip-text text-transparent">Histórico - {pondName}</h1>
             <p className="text-muted-foreground">
               Análise completa de custos e performance do viveiro
             </p>

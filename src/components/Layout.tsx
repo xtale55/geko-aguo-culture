@@ -148,7 +148,7 @@ export const Layout = memo(function Layout({
         
         <div className="flex-1 flex flex-col">
           {/* Desktop Header */}
-          <header className="border-b border-border bg-card/50 backdrop-blur-sm h-16 flex items-center px-4 my-px">
+          <header className="border-b border-border bg-card/50 backdrop-blur-sm h-16 flex items-center px-4 my-0 py-[6px]">
             <SidebarTrigger className="mr-4" />
             <div className="flex-1" />
             <div className="flex items-center space-x-4">

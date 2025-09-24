@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Shrimp, SignOut, House, Waves, ForkKnife, Barn, ChartBar, CurrencyDollar, Truck } from '@phosphor-icons/react';
+import { Shrimp, SignOut, House, Waves, ForkKnife, Package, ChartBar, CurrencyDollar, Truck } from '@phosphor-icons/react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter } from '@/components/ui/sidebar';
@@ -26,7 +26,7 @@ const navigationItems = [{
   label: 'Ração'
 }, {
   path: '/inventory',
-  icon: Barn,
+  icon: Package,
   label: 'Estoque'
 }, {
   path: '/reports',
@@ -50,15 +50,15 @@ export function AppSidebar() {
   };
   const isActive = (path: string) => location.pathname === path;
   return <Sidebar collapsible="none" className="w-auto min-w-44">
-      <SidebarHeader className="border-b border-border p-2">
+      <SidebarHeader className="border-b border-sky-200/30 p-2 py-[6px] bg-gradient-to-br from-sky-100/80 via-blue-50/60 to-slate-100/70 backdrop-blur-md">
         <div className="flex items-center justify-center my-[10px]">
-          <h1 className="text-lg font-bold bg-gradient-to-r from-blue-900 via-blue-800 to-slate-700 bg-clip-text text-transparent">
+          <h1 className="font-bold bg-gradient-to-r from-blue-900 via-blue-800 to-slate-700 bg-clip-text text-transparent my-0 mx-0 px-[30px] py-px text-2xl">
             AquaHub
           </h1>
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="pt-4">
+      <SidebarContent className="pt-4 bg-gradient-to-br from-sky-100/80 via-blue-50/60 to-slate-100/70 backdrop-blur-md border-r border-sky-200/30">
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -75,10 +75,6 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-border p-2">
-        <Button variant="ghost" size="sm" onClick={handleSignOut} className="w-full">
-          <SignOut className="w-4 h-4" />
-        </Button>
-      </SidebarFooter>
+      
     </Sidebar>;
 }

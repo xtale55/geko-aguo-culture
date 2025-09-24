@@ -2,6 +2,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useBiomassByWeight } from "@/hooks/useBiomassByWeight";
 import { Badge } from "@/components/ui/badge";
+import { StandardCard } from "@/components/StandardCard";
+import { Shrimp } from "@phosphor-icons/react";
 
 interface BiomassTableProps {
   farmId?: string;
@@ -12,28 +14,29 @@ export function BiomassTable({ farmId }: BiomassTableProps) {
 
   if (biomassRanges.length === 0) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Biomassa por Faixa de Peso</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8 text-muted-foreground">
-            <p>Nenhum dado de biomassa disponível</p>
-            <p className="text-sm mt-1">Adicione biometrias aos seus viveiros para ver esta informação</p>
-          </div>
-        </CardContent>
-      </Card>
+      <StandardCard
+        title="Biomassa por Faixa de Peso"
+        value="-"
+        icon={<Shrimp />}
+        subtitle="Nenhum dado de biomassa disponível"
+        colorClass="text-muted-foreground"
+      >
+        <p className="text-sm mt-1 text-muted-foreground">Adicione biometrias aos seus viveiros para ver esta informação</p>
+      </StandardCard>
     );
   }
 
   const totalBiomass = biomassRanges.reduce((sum, range) => sum + range.biomass, 0);
 
   return (
-    <Card>
+    <Card className="bg-[#f5f3f0]">
       <CardHeader>
         <CardTitle className="text-lg flex items-center justify-between">
-          Biomassa por Faixa de Peso
-          <Badge variant="outline" className="text-sm">
+          <div className="flex items-center gap-2">
+            <Shrimp className="h-5 w-5 text-primary" />
+            Biomassa por Faixa de Peso
+          </div>
+          <Badge variant="outline" className="text-base font-medium">
             Total: {totalBiomass.toFixed(1)} kg
           </Badge>
         </CardTitle>

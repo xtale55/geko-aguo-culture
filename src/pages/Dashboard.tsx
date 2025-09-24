@@ -4,6 +4,7 @@ import { Layout } from '@/components/Layout';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { StandardCard } from '@/components/StandardCard';
 import { Warning, Plus, Shrimp, ChartBar, ForkKnife, Package, Gear, CurrencyDollar } from '@phosphor-icons/react';
 import { useFarmsQuery, useActivePondsQuery, useInventoryQuery, useWaterQualityQuery } from '@/hooks/useSupabaseQuery';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
@@ -19,20 +20,26 @@ import { GrowthRateCard } from '@/components/dashboard/GrowthRateCard';
 import { BiomassTable } from '@/components/dashboard/BiomassTable';
 import { TaskManager } from '@/components/dashboard/TaskManager';
 import { AlertsModal } from '@/components/dashboard/AlertsModal';
-
 export default function Dashboard() {
   const navigate = useNavigate();
   const [alertsModalOpen, setAlertsModalOpen] = useState(false);
-  
-  const { data: farms, isLoading: farmsLoading } = useFarmsQuery();
+  const {
+    data: farms,
+    isLoading: farmsLoading
+  } = useFarmsQuery();
   const firstFarm = farms?.[0];
-  
-  const { data: pondsData, isLoading: pondsLoading } = useActivePondsQuery(firstFarm?.id);
-  const { data: inventoryData, isLoading: inventoryLoading } = useInventoryQuery(firstFarm?.id);
-  const { data: waterQualityData, isLoading: waterQualityLoading } = useWaterQualityQuery(
-    pondsData?.map(p => p.id) || []
-  );
-  
+  const {
+    data: pondsData,
+    isLoading: pondsLoading
+  } = useActivePondsQuery(firstFarm?.id);
+  const {
+    data: inventoryData,
+    isLoading: inventoryLoading
+  } = useInventoryQuery(firstFarm?.id);
+  const {
+    data: waterQualityData,
+    isLoading: waterQualityLoading
+  } = useWaterQualityQuery(pondsData?.map(p => p.id) || []);
   const stats = useDashboardStats(pondsData, inventoryData, waterQualityData);
   const alerts = useAlertsData(pondsData, waterQualityData, inventoryData);
   const recentData = useRecentManagementData(firstFarm?.id);
@@ -40,16 +47,12 @@ export default function Dashboard() {
     description: `Biometria registrada - ${bio.average_weight}g`,
     date: bio.created_at
   })).slice(0, 5);
-
   const isLoading = farmsLoading || pondsLoading || inventoryLoading || waterQualityLoading;
-
   if (isLoading) {
     return <LoadingScreen />;
   }
-
   if (!farms || farms.length === 0) {
-    return (
-      <Layout>
+    return <Layout>
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="text-center space-y-4">
             <h2 className="text-2xl font-bold">Bem-vindo ao AquaHub!</h2>
@@ -62,14 +65,11 @@ export default function Dashboard() {
             </Button>
           </div>
         </div>
-      </Layout>
-    );
+      </Layout>;
   }
-
-  return (
-    <Layout>
+  return <Layout>
       <div className="space-y-6">
-        <div>
+        <div className="py-0">
           <h1 className="text-3xl font-bold">Dashboard</h1>
           <p className="text-muted-foreground">
             Visão geral da sua fazenda {firstFarm?.name}
@@ -79,27 +79,14 @@ export default function Dashboard() {
         {/* Critical Alerts Row - First Row Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Critical Alerts Card - Clickable */}
-          <Card 
-            className={`h-full cursor-pointer transition-all hover:shadow-lg ${alerts.length > 0 ? 'bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20 border-red-200 dark:border-red-800 hover:border-red-300 dark:hover:border-red-700' : 'bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 border-green-200 dark:border-green-800 hover:border-green-300 dark:hover:border-green-700'}`}
+          <StandardCard
+            title="Alertas Críticos"
+            value={alerts.length}
+            icon={<Warning className="h-5 w-5" />}
+            subtitle={alerts.length === 0 ? 'Tudo funcionando bem' : `${alerts.length === 1 ? 'Clique para ver' : 'Clique para detalhes'}`}
+            colorClass={alerts.length > 0 ? 'text-destructive' : 'text-primary'}
             onClick={() => setAlertsModalOpen(true)}
-          >
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className={`text-sm font-medium ${alerts.length > 0 ? 'text-red-700 dark:text-red-300' : 'text-green-700 dark:text-green-300'}`}>
-                  Alertas Críticos
-                </h3>
-                <Warning className={`h-5 w-5 ${alerts.length > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`} />
-              </div>
-              <div className="space-y-2">
-                <span className={`text-2xl font-bold ${alerts.length > 0 ? 'text-red-900 dark:text-red-100' : 'text-green-900 dark:text-green-100'}`}>
-                  {alerts.length}
-                </span>
-                <p className={`text-xs ${alerts.length > 0 ? 'text-red-600 dark:text-red-300' : 'text-green-600 dark:text-green-300'}`}>
-                  {alerts.length === 0 ? 'Tudo funcionando bem' : `${alerts.length === 1 ? 'Clique para ver' : 'Clique para detalhes'}`}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+          />
 
           {/* Daily Feeding Progress */}
           <FeedingProgressCard farmId={firstFarm?.id} />
@@ -116,89 +103,76 @@ export default function Dashboard() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Quick Actions */}
-          <Card className="lg:col-span-1">
-            <CardHeader>
-              <CardTitle>Ações Rápidas</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 gap-3">
-                {[
-                  { 
-                    label: 'Manejos', 
-                    path: '/manejos', 
-                    icon: Shrimp,
-                    color: 'from-blue-500 to-cyan-500'
-                  },
-                    { 
-                      label: 'Registrar Ração', 
-                      path: '/feeding', 
-                      icon: ForkKnife,
-                      color: 'from-orange-500 to-red-500'
-                    },
-                    { 
-                      label: 'Estoque', 
-                      path: '/inventory', 
-                      icon: Package,
-                      color: 'from-purple-500 to-indigo-500'
-                    },
-                    { 
-                      label: 'Relatórios', 
-                      path: '/reports', 
-                      icon: ChartBar,
-                      color: 'from-green-500 to-emerald-500'
-                    },
-                    { 
-                      label: 'Fazenda', 
-                      path: '/farm', 
-                      icon: Gear,
-                      color: 'from-gray-500 to-slate-600'
-                    },
-                    { 
-                      label: 'Financeiro', 
-                      path: '/financial', 
-                      icon: CurrencyDollar,
-                      color: 'from-yellow-500 to-amber-500'
-                    },
-                ].map(({ label, path, icon: Icon, color }) => (
-                  <Button
-                    key={path}
-                    variant="outline"
-                    className={`h-20 flex flex-col gap-2 bg-gradient-to-br ${color} text-white border-0 hover:opacity-90`}
-                    onClick={() => navigate(path)}
-                  >
-                    <Icon className="h-6 w-6" />
-                    <span className="text-xs text-center">{label}</span>
-                  </Button>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+          <StandardCard
+            title="Ações Rápidas"
+            value=""
+            icon={<Gear className="h-5 w-5" />}
+            colorClass="text-primary"
+          >
+            <div className="grid grid-cols-2 gap-3 mt-3">
+              {[{
+              label: 'Manejos',
+              path: '/manejos',
+              icon: Shrimp,
+              color: 'text-blue-600'
+            }, {
+              label: 'Registrar Ração',
+              path: '/feeding',
+              icon: ForkKnife,
+              color: 'text-orange-600'
+            }, {
+              label: 'Estoque',
+              path: '/inventory',
+              icon: Package,
+              color: 'text-purple-600'
+            }, {
+              label: 'Relatórios',
+              path: '/reports',
+              icon: ChartBar,
+              color: 'text-green-600'
+            }, {
+              label: 'Fazenda',
+              path: '/farm',
+              icon: Gear,
+              color: 'text-gray-600'
+            }, {
+              label: 'Financeiro',
+              path: '/financial',
+              icon: CurrencyDollar,
+              color: 'text-yellow-600'
+            }].map(({
+              label,
+              path,
+              icon: Icon,
+              color
+            }) => <Button key={path} variant="outline" className="h-20 flex flex-col gap-2 bg-card hover:bg-muted/50 border-border text-foreground group" onClick={() => navigate(path)}>
+                  <Icon className={`h-6 w-6 ${color} group-hover:scale-110 transition-transform`} />
+                  <span className={`text-xs text-center ${color} font-medium`}>{label}</span>
+                </Button>)}
+            </div>
+          </StandardCard>
 
           {/* Recent Activities */}
-          <Card className="lg:col-span-1">
-            <CardHeader>
-              <CardTitle>Atividades Recentes</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {recentActivities.length === 0 ? (
-                  <p className="text-muted-foreground text-sm">Nenhuma atividade recente</p>
-                ) : (
-                  recentActivities.slice(0, 5).map((activity, index) => (
-                    <div key={index} className="flex items-start gap-3">
-                      <div className="w-2 h-2 bg-primary rounded-full mt-2" />
-                      <div className="flex-1">
-                        <p className="text-sm">{activity.description}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {format(new Date(activity.date), "dd MMM, HH:mm", { locale: ptBR })}
-                        </p>
-                      </div>
+          <StandardCard
+            title="Atividades Recentes"
+            value=""
+            icon={<ChartBar className="h-5 w-5" />}
+            colorClass="text-primary"
+          >
+            <div className="space-y-3 mt-3">
+              {recentActivities.length === 0 ? <p className="text-muted-foreground text-sm">Nenhuma atividade recente</p> : recentActivities.slice(0, 5).map((activity, index) => <div key={index} className="flex items-start gap-3">
+                    <div className="w-2 h-2 bg-primary rounded-full mt-2" />
+                    <div className="flex-1">
+                      <p className="text-sm">{activity.description}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {format(new Date(activity.date), "dd MMM, HH:mm", {
+                    locale: ptBR
+                  })}
+                      </p>
                     </div>
-                  ))
-                )}
-              </div>
-            </CardContent>
-          </Card>
+                  </div>)}
+            </div>
+          </StandardCard>
 
           {/* Task Manager */}
           <TaskManager farmId={firstFarm?.id} />
@@ -206,11 +180,6 @@ export default function Dashboard() {
       </div>
 
       {/* Alerts Modal */}
-      <AlertsModal 
-        isOpen={alertsModalOpen}
-        onClose={() => setAlertsModalOpen(false)}
-        alerts={alerts}
-      />
-    </Layout>
-  );
+      <AlertsModal isOpen={alertsModalOpen} onClose={() => setAlertsModalOpen(false)} alerts={alerts} />
+    </Layout>;
 }

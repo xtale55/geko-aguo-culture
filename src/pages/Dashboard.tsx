@@ -4,6 +4,7 @@ import { Layout } from '@/components/Layout';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { StandardCard } from '@/components/StandardCard';
 import { AlertTriangle, Plus, Fish, BarChart3, Utensils, Package, Settings, DollarSign } from 'lucide-react';
 import { useFarmsQuery, useActivePondsQuery, useInventoryQuery, useWaterQualityQuery } from '@/hooks/useSupabaseQuery';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
@@ -78,24 +79,14 @@ export default function Dashboard() {
         {/* Critical Alerts Row - First Row Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Critical Alerts Card - Clickable */}
-          <Card className={`h-full cursor-pointer transition-all hover:shadow-lg ${alerts.length > 0 ? 'bg-gradient-to-br from-destructive/10 to-destructive/20 border-destructive/30 hover:border-destructive/50' : 'bg-gradient-to-br from-primary/10 to-primary/20 border-primary/30 hover:border-primary/50'}`} onClick={() => setAlertsModalOpen(true)}>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className={`text-sm font-medium ${alerts.length > 0 ? 'text-red-700 dark:text-red-300' : 'text-green-700 dark:text-green-300'}`}>
-                  Alertas Críticos
-                </h3>
-                <AlertTriangle className={`h-5 w-5 ${alerts.length > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`} />
-              </div>
-              <div className="space-y-2">
-                <span className={`text-2xl font-bold ${alerts.length > 0 ? 'text-red-900 dark:text-red-100' : 'text-green-900 dark:text-green-100'}`}>
-                  {alerts.length}
-                </span>
-                <p className={`text-xs ${alerts.length > 0 ? 'text-red-600 dark:text-red-300' : 'text-green-600 dark:text-green-300'}`}>
-                  {alerts.length === 0 ? 'Tudo funcionando bem' : `${alerts.length === 1 ? 'Clique para ver' : 'Clique para detalhes'}`}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+          <StandardCard
+            title="Alertas Críticos"
+            value={alerts.length}
+            icon={<AlertTriangle className="h-5 w-5" />}
+            subtitle={alerts.length === 0 ? 'Tudo funcionando bem' : `${alerts.length === 1 ? 'Clique para ver' : 'Clique para detalhes'}`}
+            colorClass={alerts.length > 0 ? 'text-destructive' : 'text-primary'}
+            onClick={() => setAlertsModalOpen(true)}
+          />
 
           {/* Daily Feeding Progress */}
           <FeedingProgressCard farmId={firstFarm?.id} />
@@ -112,76 +103,76 @@ export default function Dashboard() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Quick Actions */}
-          <Card className="lg:col-span-1">
-            <CardHeader>
-              <CardTitle>Ações Rápidas</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 gap-3">
-                {[{
-                label: 'Manejos',
-                path: '/manejos',
-                icon: Fish,
-                color: 'from-blue-500 to-cyan-500'
-              }, {
-                label: 'Registrar Ração',
-                path: '/feeding',
-                icon: Utensils,
-                color: 'from-orange-500 to-red-500'
-              }, {
-                label: 'Estoque',
-                path: '/inventory',
-                icon: Package,
-                color: 'from-purple-500 to-indigo-500'
-              }, {
-                label: 'Relatórios',
-                path: '/reports',
-                icon: BarChart3,
-                color: 'from-green-500 to-emerald-500'
-              }, {
-                label: 'Fazenda',
-                path: '/farm',
-                icon: Settings,
-                color: 'from-gray-500 to-slate-600'
-              }, {
-                label: 'Financeiro',
-                path: '/financial',
-                icon: DollarSign,
-                color: 'from-yellow-500 to-amber-500'
-              }].map(({
-                label,
-                path,
-                icon: Icon,
-                color
-              }) => <Button key={path} variant="outline" className={`h-20 flex flex-col gap-2 bg-gradient-to-br ${color} text-white border-0 hover:opacity-90`} onClick={() => navigate(path)}>
-                    <Icon className="h-6 w-6" />
-                    <span className="text-xs text-center">{label}</span>
-                  </Button>)}
-              </div>
-            </CardContent>
-          </Card>
+          <StandardCard
+            title="Ações Rápidas"
+            value=""
+            icon={<Settings className="h-5 w-5" />}
+            colorClass="text-primary"
+          >
+            <div className="grid grid-cols-2 gap-3 mt-3">
+              {[{
+              label: 'Manejos',
+              path: '/manejos',
+              icon: Fish,
+              color: 'from-blue-500 to-cyan-500'
+            }, {
+              label: 'Registrar Ração',
+              path: '/feeding',
+              icon: Utensils,
+              color: 'from-orange-500 to-red-500'
+            }, {
+              label: 'Estoque',
+              path: '/inventory',
+              icon: Package,
+              color: 'from-purple-500 to-indigo-500'
+            }, {
+              label: 'Relatórios',
+              path: '/reports',
+              icon: BarChart3,
+              color: 'from-green-500 to-emerald-500'
+            }, {
+              label: 'Fazenda',
+              path: '/farm',
+              icon: Settings,
+              color: 'from-gray-500 to-slate-600'
+            }, {
+              label: 'Financeiro',
+              path: '/financial',
+              icon: DollarSign,
+              color: 'from-yellow-500 to-amber-500'
+            }].map(({
+              label,
+              path,
+              icon: Icon,
+              color
+            }) => <Button key={path} variant="outline" className={`h-20 flex flex-col gap-2 bg-gradient-to-br ${color} text-white border-0 hover:opacity-90`} onClick={() => navigate(path)}>
+                  <Icon className="h-6 w-6" />
+                  <span className="text-xs text-center">{label}</span>
+                </Button>)}
+            </div>
+          </StandardCard>
 
           {/* Recent Activities */}
-          <Card className="lg:col-span-1">
-            <CardHeader>
-              <CardTitle>Atividades Recentes</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {recentActivities.length === 0 ? <p className="text-muted-foreground text-sm">Nenhuma atividade recente</p> : recentActivities.slice(0, 5).map((activity, index) => <div key={index} className="flex items-start gap-3">
-                      <div className="w-2 h-2 bg-primary rounded-full mt-2" />
-                      <div className="flex-1">
-                        <p className="text-sm">{activity.description}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {format(new Date(activity.date), "dd MMM, HH:mm", {
-                      locale: ptBR
-                    })}
-                        </p>
-                      </div>
-                    </div>)}
-              </div>
-            </CardContent>
-          </Card>
+          <StandardCard
+            title="Atividades Recentes"
+            value=""
+            icon={<BarChart3 className="h-5 w-5" />}
+            colorClass="text-primary"
+          >
+            <div className="space-y-3 mt-3">
+              {recentActivities.length === 0 ? <p className="text-muted-foreground text-sm">Nenhuma atividade recente</p> : recentActivities.slice(0, 5).map((activity, index) => <div key={index} className="flex items-start gap-3">
+                    <div className="w-2 h-2 bg-primary rounded-full mt-2" />
+                    <div className="flex-1">
+                      <p className="text-sm">{activity.description}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {format(new Date(activity.date), "dd MMM, HH:mm", {
+                    locale: ptBR
+                  })}
+                      </p>
+                    </div>
+                  </div>)}
+            </div>
+          </StandardCard>
 
           {/* Task Manager */}
           <TaskManager farmId={firstFarm?.id} />

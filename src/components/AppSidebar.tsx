@@ -58,7 +58,7 @@ export function AppSidebar() {
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="pt-4">
+      <SidebarContent className="pt-4" style={{backgroundColor: '#ececee'}}>
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>

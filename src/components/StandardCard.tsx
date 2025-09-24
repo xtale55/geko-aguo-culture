@@ -26,7 +26,7 @@ export function StandardCard({
   return (
     <Card 
       className={cn(
-        "h-full bg-[#faf8f5] border-border hover:shadow-lg transition-all duration-200",
+        "h-full bg-[#f5f3f0] border-border hover:shadow-lg transition-all duration-200",
         onClick && "cursor-pointer hover:border-muted-foreground/50",
         className
       )}

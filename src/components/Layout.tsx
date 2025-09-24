@@ -1,7 +1,7 @@
 import { memo, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { Fish, SignOut, Gear, House, Waves, Scales, Skull, ForkKnife, Drop, Package, ChartBar, CurrencyDollar, DotsThree } from 'phosphor-react';
+import { Fish, SignOut, Gear, House, Waves, Scales, Skull, ForkKnife, Drop, Package, ChartBar, CurrencyDollar, DotsThree } from '@phosphor-icons/react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';

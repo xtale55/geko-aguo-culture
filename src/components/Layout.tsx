@@ -1,7 +1,7 @@
 import { memo, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { Fish, SignOut, Gear, House, Waves, Scales, Skull, ForkKnife, Drop, Package, ChartBar, CurrencyDollar, DotsThree } from '@phosphor-icons/react';
+import { Fish, SignOut, Gear, House, Waves, Scales, Skull, ForkKnife, Drop, Package, ChartBar, CurrencyDollar, DotsThree } from 'phosphor-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
@@ -146,9 +146,9 @@ export const Layout = memo(function Layout({
       <div className="min-h-screen flex w-full bg-background">
         <AppSidebar />
         
-        <div className="flex-1 flex flex-col" style={{backgroundColor: '#f4f4f5'}}>
+        <div className="flex-1 flex flex-col">
           {/* Desktop Header */}
-          <header className="border-b border-border bg-card/50 backdrop-blur-sm h-16 flex items-center px-4 my-0">
+          <header className="border-b border-border bg-card/50 backdrop-blur-sm h-16 flex items-center px-4 my-0 py-[6px]">
             <SidebarTrigger className="mr-4" />
             <div className="flex-1" />
             <div className="flex items-center space-x-4">

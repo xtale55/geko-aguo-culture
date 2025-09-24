@@ -78,7 +78,10 @@ export function useFeedingProgress(farmId?: string) {
       
       return feedingResult;
     },
-    { enabled: !!farmId }
+    { 
+      enabled: !!farmId,
+      staleTime: 30 * 1000 // 30 segundos para dados de alimentação
+    }
   );
 }
 

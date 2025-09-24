@@ -159,7 +159,10 @@ export function useFeedingDashboardData(farmId?: string) {
         error: null
       };
     },
-    { enabled: !!farmId }
+    { 
+      enabled: !!farmId,
+      staleTime: 30 * 1000 // 30 segundos para dados de alimentação
+    }
   );
 }
 

@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useQueryClient } from '@tanstack/react-query';
 import { Edit2, Clock, Plus, History } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { FeedingHistoryDialog } from './FeedingHistoryDialog';
@@ -83,8 +84,10 @@ export function FeedingSchedule({
   const [feedingDate, setFeedingDate] = useState<string>(selectedDate);
   const [feedingTime, setFeedingTime] = useState<string>("");
   const [isHistoryDialogOpen, setIsHistoryDialogOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
 
   const feedPerMeal = dailyFeed / mealsPerDay;
 
@@ -193,6 +196,13 @@ export function FeedingSchedule({
 
         if (error) throw error;
 
+        // Invalidar caches relacionados
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ['feeding-dashboard-data', farmId] }),
+          queryClient.invalidateQueries({ queryKey: ['feeding-progress', farmId] }),
+          queryClient.invalidateQueries({ queryKey: ['inventory', farmId] })
+        ]);
+
         toast({
           title: "Alimentação removida",
           description: "Registro removido e estoque restaurado"
@@ -295,6 +305,8 @@ export function FeedingSchedule({
 
   const handleSaveFeeding = async () => {
     try {
+      setIsLoading(true);
+      
       // Anti-Drift: usar QuantityUtils para converter entrada em gramas (inteiro)
       const actualAmountGrams = QuantityUtils.parseInputToGrams(actualAmount);
       
@@ -345,6 +357,21 @@ export function FeedingSchedule({
         });
         return;
       }
+
+      // Optimistic update: atualizar UI imediatamente
+      const optimisticRecord: FeedingRecord = {
+        id: 'temp-' + Date.now(),
+        feeding_date: feedingDate,
+        feeding_time: feedingTime,
+        actual_amount: actualAmountGrams,
+        notes: notes || '',
+        feed_type_id: selectedFeedType,
+        feed_type_name: selectedFeed.name,
+        unit_cost: selectedFeed.unit_price,
+        created_at: new Date().toISOString()
+      };
+
+      setFeedingRecords(prev => [optimisticRecord, ...prev]);
       
       const feedingData = {
         pond_batch_id: pondBatchId,
@@ -377,6 +404,14 @@ export function FeedingSchedule({
 
       if (inventoryError) throw inventoryError;
 
+      // Invalidar caches relacionados
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['feeding-dashboard-data', farmId] }),
+        queryClient.invalidateQueries({ queryKey: ['feeding-progress', farmId] }),
+        queryClient.invalidateQueries({ queryKey: ['inventory', farmId] }),
+        queryClient.invalidateQueries({ queryKey: ['feeding-records'] })
+      ]);
+
       toast({
         title: "Alimentação registrada",
         description: `${QuantityUtils.formatKg(actualAmountGrams)}kg de ${selectedFeed.name} registrados às ${feedingTime}`
@@ -392,11 +427,15 @@ export function FeedingSchedule({
       loadAvailableFeeds();
       onFeedingUpdate();
     } catch (error: any) {
+      // Reverter optimistic update em caso de erro
+      loadFeedingRecords();
       toast({
         variant: "destructive",
         title: "Erro",
         description: error.message
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -634,10 +673,10 @@ export function FeedingSchedule({
                 <div className="flex gap-2">
                   <Button 
                     onClick={handleSaveFeeding}
-                    disabled={!selectedFeedType || !actualAmount || !feedingTime || availableFeeds.length === 0}
+                    disabled={!selectedFeedType || !actualAmount || !feedingTime || availableFeeds.length === 0 || isLoading}
                     className="flex-1"
                   >
-                    Registrar Alimentação
+                    {isLoading ? "Registrando..." : "Registrar Alimentação"}
                   </Button>
                   <Button 
                     variant="outline" 

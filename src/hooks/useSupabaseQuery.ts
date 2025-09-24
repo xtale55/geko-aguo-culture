@@ -23,7 +23,7 @@ export function useSupabaseQuery<T>(
       return result.data;
     },
     enabled: !!user && (options?.enabled !== false),
-    staleTime: options?.staleTime || 5 * 60 * 1000, // 5 minutes
+    staleTime: options?.staleTime || 30 * 1000, // 30 seconds para dados críticos
     gcTime: options?.gcTime || 10 * 60 * 1000, // 10 minutes
   });
 }

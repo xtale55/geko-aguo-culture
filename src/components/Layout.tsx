@@ -146,7 +146,7 @@ export const Layout = memo(function Layout({
       <div className="min-h-screen flex w-full bg-background">
         <AppSidebar />
         
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col" style={{backgroundColor: '#ececee'}}>
           {/* Desktop Header */}
           <header className="border-b border-border bg-card/50 backdrop-blur-sm h-16 flex items-center px-4 my-0">
             <SidebarTrigger className="mr-4" />

@@ -116,47 +116,47 @@ export default function Dashboard() {
                   label: 'Manejos', 
                   path: '/manejos', 
                   icon: Shrimp,
-                  color: 'from-blue-500 to-cyan-500'
+                  iconColor: 'text-blue-500'
                 },
                   { 
                     label: 'Registrar Ração', 
                     path: '/feeding', 
                     icon: ForkKnife,
-                    color: 'from-orange-500 to-red-500'
+                    iconColor: 'text-orange-500'
                   },
                   { 
                     label: 'Estoque', 
                     path: '/inventory', 
                     icon: Package,
-                    color: 'from-purple-500 to-indigo-500'
+                    iconColor: 'text-purple-500'
                   },
                   { 
                     label: 'Relatórios', 
                     path: '/reports', 
                     icon: ChartBar,
-                    color: 'from-green-500 to-emerald-500'
+                    iconColor: 'text-green-500'
                   },
                   { 
                     label: 'Fazenda', 
                     path: '/farm', 
                     icon: Gear,
-                    color: 'from-gray-500 to-slate-600'
+                    iconColor: 'text-gray-500'
                   },
                   { 
                     label: 'Financeiro', 
                     path: '/financial', 
                     icon: CurrencyDollar,
-                    color: 'from-yellow-500 to-amber-500'
+                    iconColor: 'text-yellow-500'
                   },
-              ].map(({ label, path, icon: Icon, color }) => (
+              ].map(({ label, path, icon: Icon, iconColor }) => (
                 <Button
                   key={path}
                   variant="outline"
-                  className={`h-20 flex flex-col gap-2 bg-gradient-to-br ${color} text-white border-0 hover:opacity-90`}
+                  className="h-20 flex flex-col gap-2 bg-white/50 hover:bg-white/80 border border-gray-200"
                   onClick={() => navigate(path)}
                 >
-                  <Icon className="h-6 w-6" />
-                  <span className="text-xs text-center">{label}</span>
+                  <Icon className={`h-6 w-6 ${iconColor}`} />
+                  <span className="text-xs text-center text-foreground">{label}</span>
                 </Button>
               ))}
             </div>

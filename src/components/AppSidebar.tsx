@@ -50,7 +50,7 @@ export function AppSidebar() {
   };
   const isActive = (path: string) => location.pathname === path;
   return <Sidebar collapsible="none" className="w-auto min-w-44">
-      <SidebarHeader className="border-b border-border p-2 py-[6px]">
+      <SidebarHeader className="border-b border-sky-200/30 p-2 py-[6px] bg-gradient-to-br from-sky-100/80 via-blue-50/60 to-slate-100/70 backdrop-blur-md">
         <div className="flex items-center justify-center my-[10px]">
           <h1 className="font-bold bg-gradient-to-r from-blue-900 via-blue-800 to-slate-700 bg-clip-text text-transparent my-0 mx-0 px-[30px] py-px text-2xl">
             AquaHub

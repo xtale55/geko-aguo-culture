@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,17 +11,14 @@ import { Progress } from '@/components/ui/progress';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Clock, History, Edit2, Trash2, Loader2, Utensils } from 'lucide-react';
+import { ArrowLeft, Clock, Utensils, History, Edit2, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { getCurrentDateForInput, formatDateForDisplay } from '@/lib/utils';
 import { QuantityUtils } from '@/lib/quantityUtils';
-import { useActivePondsWithFeeding, useFeedingHistory, useAvailableFeeds } from '@/hooks/useOptimizedFeedingData';
-import { FeedingPondCard } from '@/components/FeedingPondCard';
-import { useRealtimeFeedingUpdates } from '@/hooks/useRealtimeFeedingUpdates';
-import { useQueryClient } from '@tanstack/react-query';
+import { getFeedItemsIncludingMixtures } from '@/lib/feedUtils';
 
 interface PondWithBatch {
   id: string;
@@ -79,31 +76,15 @@ export default function AlimentacaoPage() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
-  const queryClient = useQueryClient();
   
-  // Hooks React Query otimizados
-  const { 
-    data: ponds = [], 
-    isLoading: pondsLoading,
-    error: pondsError 
-  } = useActivePondsWithFeeding();
-  
-  const { 
-    data: feedingHistory = [], 
-    isLoading: historyLoading,
-    error: historyError 
-  } = useFeedingHistory();
-  
-  const { 
-    data: availableFeeds = [], 
-    isLoading: feedsLoading,
-    error: feedsError 
-  } = useAvailableFeeds();
-
-  // Estado da UI
+  const [ponds, setPonds] = useState<PondWithBatch[]>([]);
+  const [feedingHistory, setFeedingHistory] = useState<FeedingRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [historyLoading, setHistoryLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [showDialog, setShowDialog] = useState(false);
   const [selectedPond, setSelectedPond] = useState<PondWithBatch | null>(null);
+  const [availableFeeds, setAvailableFeeds] = useState<FeedType[]>([]);
   const [selectedFeedType, setSelectedFeedType] = useState<string>('');
   const [editingRecord, setEditingRecord] = useState<FeedingRecord | null>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -117,33 +98,253 @@ export default function AlimentacaoPage() {
     notes: ''
   });
 
-  // Setup realtime updates
-  useRealtimeFeedingUpdates(user?.id);
+  useEffect(() => {
+    if (user) {
+      loadActivePonds();
+      loadFeedingHistory();
+      loadAvailableFeeds();
+    }
+  }, [user]);
 
-  // Tratamento de erros otimizado
-  if (pondsError) {
-    toast({
-      title: "Erro",
-      description: "Erro ao carregar dados dos viveiros",
-      variant: "destructive"
-    });
-  }
+  const loadActivePonds = async () => {
+    try {
+      // Load farms first
+      const { data: farmsData, error: farmsError } = await supabase
+        .from('farms')
+        .select('id')
+        .eq('user_id', user?.id);
 
-  if (historyError && !historyLoading) {
-    toast({
-      title: "Erro", 
-      description: "Erro ao carregar histórico de alimentação",
-      variant: "destructive"
-    });
-  }
+      if (farmsError) throw farmsError;
 
-  if (feedsError && !feedsLoading) {
-    toast({
-      title: "Erro",
-      description: "Erro ao carregar rações disponíveis", 
-      variant: "destructive"
-    });
-  }
+      if (farmsData && farmsData.length > 0) {
+        // Load active ponds with active batch data
+        const { data: pondsData, error: pondsError } = await supabase
+          .from('ponds')
+          .select(`
+            *,
+            pond_batches!inner(
+              id,
+              current_population,
+              stocking_date,
+              cycle_status,
+              batches!inner(name)
+            )
+          `)
+          .eq('farm_id', farmsData[0].id)
+          .eq('status', 'in_use')
+          .eq('pond_batches.cycle_status', 'active')
+          .gt('pond_batches.current_population', 0)
+          .order('name');
+
+        if (pondsError) throw pondsError;
+
+        // Process and format pond data
+        const formattedPonds: PondWithBatch[] = pondsData?.map(pond => {
+          const activeBatch = pond.pond_batches[0];
+          return {
+            id: pond.id,
+            name: pond.name,
+            area: pond.area,
+            status: pond.status,
+            current_batch: activeBatch ? {
+              id: activeBatch.id,
+              batch_name: activeBatch.batches.name,
+              stocking_date: activeBatch.stocking_date,
+              current_population: activeBatch.current_population
+            } : undefined
+          };
+        }) || [];
+
+        // Load today's feeding summary for each pond
+        for (const pond of formattedPonds) {
+          if (pond.current_batch) {
+            await loadTodayFeedingSummary(pond);
+          }
+        }
+
+        setPonds(formattedPonds);
+      }
+    } catch (error) {
+      console.error('Error loading ponds:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao carregar viveiros",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadTodayFeedingSummary = async (pond: PondWithBatch) => {
+    if (!pond.current_batch) return;
+
+    try {
+      const today = getCurrentDateForInput();
+      
+      // Get today's feeding records
+      const { data: feedingRecords } = await supabase
+        .from('feeding_records')
+        .select('actual_amount')
+        .eq('pond_batch_id', pond.current_batch.id)
+        .eq('feeding_date', today);
+
+      // Get latest biometry for calculations
+      const { data: biometry } = await supabase
+        .from('biometrics')
+        .select('average_weight')
+        .eq('pond_batch_id', pond.current_batch.id)
+        .order('measurement_date', { ascending: false })
+        .limit(1);
+
+      // Get farm_id from pond to find feeding rates
+      const { data: pondData } = await supabase
+        .from('ponds')
+        .select('farm_id')
+        .eq('id', pond.id)
+        .single();
+
+      const avgWeight = biometry?.[0]?.average_weight || 1; // Default to 1g if no biometry
+
+      // Get feeding rate configuration based on weight range and farm_id
+      const { data: feedingRate } = await supabase
+        .from('feeding_rates')
+        .select('feeding_percentage, meals_per_day, weight_range_min, weight_range_max')
+        .eq('farm_id', pondData?.farm_id)
+        .lte('weight_range_min', avgWeight)
+        .gte('weight_range_max', avgWeight)
+        .maybeSingle();
+
+      const totalDaily = feedingRecords?.reduce((sum, record) => sum + record.actual_amount, 0) || 0;
+      const mealsCompleted = feedingRecords?.length || 0;
+      const mealsPerDay = feedingRate?.meals_per_day || 3;
+      
+      // Calculate planned amounts
+      let plannedTotalDaily = 0;
+      let plannedPerMeal = 0;
+      
+      if (feedingRate && pond.current_batch) {
+        const biomass = (pond.current_batch.current_population * avgWeight) / 1000; // kg
+        plannedTotalDaily = (biomass * feedingRate.feeding_percentage / 100) * 1000; // grams
+        plannedPerMeal = Math.round(plannedTotalDaily / feedingRate.meals_per_day);
+      }
+
+      // Update pond with feeding summary
+      pond.current_batch.latest_feeding = {
+        feeding_date: today,
+        total_daily: totalDaily,
+        meals_completed: mealsCompleted,
+        meals_per_day: mealsPerDay,
+        planned_total_daily: plannedTotalDaily,
+        planned_per_meal: plannedPerMeal,
+        feeding_percentage: feedingRate?.feeding_percentage || 0
+      };
+    } catch (error) {
+      console.error('Error loading feeding summary:', error);
+    }
+  };
+
+  const loadFeedingHistory = async () => {
+    try {
+      setHistoryLoading(true);
+
+      // Load farms first
+      const { data: farmsData, error: farmsError } = await supabase
+        .from('farms')
+        .select('id')
+        .eq('user_id', user?.id);
+
+      if (farmsError) throw farmsError;
+
+      if (farmsData && farmsData.length > 0) {
+        const { data: historyData, error: historyError } = await supabase
+          .from('feeding_records')
+          .select(`
+            id,
+            feeding_date,
+            feeding_time,
+            actual_amount,
+            planned_amount,
+            notes,
+            pond_batch_id
+          `)
+          .order('feeding_date', { ascending: false })
+          .order('feeding_time', { ascending: false })
+          .limit(50);
+
+        if (historyError) throw historyError;
+
+        // Get pond and batch info for each record
+        const formattedHistory: FeedingRecord[] = [];
+        
+        if (historyData) {
+          for (const record of historyData) {
+            const { data: pondBatchData } = await supabase
+              .from('pond_batches')
+              .select(`
+                ponds!inner(name, farm_id),
+                batches!inner(name)
+              `)
+              .eq('id', record.pond_batch_id)
+              .eq('ponds.farm_id', farmsData[0].id)
+              .single();
+
+            if (pondBatchData) {
+              formattedHistory.push({
+                id: record.id,
+                feeding_date: record.feeding_date,
+                feeding_time: record.feeding_time,
+                actual_amount: record.actual_amount,
+                planned_amount: record.planned_amount,
+                notes: record.notes,
+                pond_name: pondBatchData.ponds.name,
+                batch_name: pondBatchData.batches.name,
+                pond_batch_id: record.pond_batch_id
+              });
+            }
+          }
+        }
+
+        setFeedingHistory(formattedHistory);
+      }
+    } catch (error) {
+      console.error('Error loading feeding history:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao carregar histórico de alimentação",
+        variant: "destructive"
+      });
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  const loadAvailableFeeds = async () => {
+    try {
+      // Load farms first
+      const { data: farmsData, error: farmsError } = await supabase
+        .from('farms')
+        .select('id')
+        .eq('user_id', user?.id);
+
+      if (farmsError) throw farmsError;
+
+      if (farmsData && farmsData.length > 0) {
+        const feedsData = await getFeedItemsIncludingMixtures(farmsData[0].id);
+
+        const feeds: FeedType[] = feedsData.map(feed => ({
+          id: feed.id,
+          name: feed.name,
+          quantity: feed.quantity / 1000, // Convert to kg for display
+          unit_price: feed.unit_price
+        })) || [];
+
+        setAvailableFeeds(feeds);
+      }
+    } catch (error) {
+      console.error('Error loading available feeds:', error);
+    }
+  };
 
   const handleOpenDialog = async (pond: PondWithBatch) => {
     if (!pond.current_batch) return;
@@ -287,11 +488,9 @@ export default function AlimentacaoPage() {
       });
 
       setShowDialog(false);
-      
-      // Invalidar caches para atualizar dados
-      queryClient.invalidateQueries({ queryKey: ['active-ponds-feeding'] });
-      queryClient.invalidateQueries({ queryKey: ['feeding-history'] });
-      queryClient.invalidateQueries({ queryKey: ['available-feeds'] });
+      loadActivePonds();
+      loadFeedingHistory();
+      loadAvailableFeeds(); // Reload feeds to update quantities
 
     } catch (error) {
       console.error('Error saving feeding:', error);
@@ -305,79 +504,115 @@ export default function AlimentacaoPage() {
     }
   };
 
-  const handleEditFeeding = (record: FeedingRecord) => {
+  const handleEditFeeding = async (record: FeedingRecord) => {
     setEditingRecord(record);
     setIsEditing(true);
+    
+    // Find the pond data for this record
+    const { data: pondBatchData } = await supabase
+      .from('pond_batches')
+      .select(`
+        ponds!inner(id, name, area),
+        batches!inner(name)
+      `)
+      .eq('id', record.pond_batch_id)
+      .single();
+
+    if (pondBatchData) {
+      const pondData: PondWithBatch = {
+        id: pondBatchData.ponds.id,
+        name: pondBatchData.ponds.name,
+        area: pondBatchData.ponds.area,
+        status: 'in_use',
+        current_batch: {
+          id: record.pond_batch_id,
+          batch_name: pondBatchData.batches.name,
+          stocking_date: '',
+          current_population: 0
+        }
+      };
+      
+      setSelectedPond(pondData);
+    }
+
+    // Get the feed type from the record
+    const { data: feedingRecordData } = await supabase
+      .from('feeding_records')
+      .select('feed_type_id, feed_type_name')
+      .eq('id', record.id)
+      .single();
+
+    if (feedingRecordData?.feed_type_id) {
+      setSelectedFeedType(feedingRecordData.feed_type_id);
+    }
+
     setFeedingData({
       pond_batch_id: record.pond_batch_id,
       feeding_date: record.feeding_date,
       feeding_time: record.feeding_time,
       planned_amount: record.planned_amount,
       actual_amount: record.actual_amount,
-      notes: record.notes || ''
+      notes: record.notes || '',
+      feed_type_id: feedingRecordData?.feed_type_id || '',
+      feed_type_name: feedingRecordData?.feed_type_name || ''
     });
+
     setShowDialog(true);
   };
 
   const handleDeleteFeeding = async (recordId: string) => {
-    if (!confirm('Tem certeza que deseja excluir este registro?')) return;
+    if (!confirm('Tem certeza que deseja excluir este registro de alimentação?')) {
+      return;
+    }
 
     try {
-      setSubmitting(true);
-
-      // First, get the feeding record to restore inventory
-      const { data: feedingRecord, error: fetchError } = await supabase
+      // Get the record to restore inventory
+      const { data: record } = await supabase
         .from('feeding_records')
-        .select('feed_type_id, actual_amount')
+        .select('actual_amount, feed_type_id')
         .eq('id', recordId)
         .single();
 
-      if (fetchError) throw fetchError;
-
-      // Restore inventory if feed_type_id exists
-      if (feedingRecord.feed_type_id) {
-        const { data: currentInventory, error: invError } = await supabase
+      if (record?.feed_type_id) {
+        // Restore inventory
+        const { data: currentInventory } = await supabase
           .from('inventory')
           .select('quantity')
-          .eq('id', feedingRecord.feed_type_id)
+          .eq('id', record.feed_type_id)
           .single();
 
-        if (!invError && currentInventory) {
-          const newQuantity = currentInventory.quantity + feedingRecord.actual_amount;
+        if (currentInventory) {
           await supabase
             .from('inventory')
-            .update({ quantity: newQuantity })
-            .eq('id', feedingRecord.feed_type_id);
+            .update({ 
+              quantity: currentInventory.quantity + record.actual_amount 
+            })
+            .eq('id', record.feed_type_id);
         }
       }
 
       // Delete the feeding record
-      const { error: deleteError } = await supabase
+      const { error } = await supabase
         .from('feeding_records')
         .delete()
         .eq('id', recordId);
 
-      if (deleteError) throw deleteError;
+      if (error) throw error;
 
       toast({
         title: "Sucesso",
-        description: "Registro de alimentação excluído"
+        description: "Registro excluído com sucesso"
       });
 
-      // Invalidar caches
-      queryClient.invalidateQueries({ queryKey: ['feeding-history'] });
-      queryClient.invalidateQueries({ queryKey: ['active-ponds-feeding'] });
-      queryClient.invalidateQueries({ queryKey: ['available-feeds'] });
-
+      loadFeedingHistory();
+      loadAvailableFeeds();
     } catch (error) {
       console.error('Error deleting feeding record:', error);
       toast({
         title: "Erro",
-        description: "Erro ao excluir registro de alimentação",
+        description: "Erro ao excluir registro",
         variant: "destructive"
       });
-    } finally {
-      setSubmitting(false);
     }
   };
 
@@ -387,14 +622,92 @@ export default function AlimentacaoPage() {
     try {
       setSubmitting(true);
 
+      if (!selectedFeedType) {
+        toast({
+          title: "Erro",
+          description: "Selecione um tipo de ração",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Get current and new feed info
+      const { data: currentRecord } = await supabase
+        .from('feeding_records')
+        .select('actual_amount, feed_type_id')
+        .eq('id', editingRecord.id)
+        .single();
+
+      const selectedFeed = availableFeeds.find(feed => feed.id === selectedFeedType);
+      if (!selectedFeed) {
+        toast({
+          title: "Erro",
+          description: "Ração selecionada não encontrada",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Calculate inventory adjustments
+      const oldAmount = currentRecord?.actual_amount || 0;
+      const newAmount = feedingData.actual_amount;
+      const oldFeedTypeId = currentRecord?.feed_type_id;
+      const newFeedTypeId = selectedFeedType;
+
+      // If feed type changed, restore old inventory
+      if (oldFeedTypeId && oldFeedTypeId !== newFeedTypeId) {
+        const { data: oldInventory } = await supabase
+          .from('inventory')
+          .select('quantity')
+          .eq('id', oldFeedTypeId)
+          .single();
+
+        if (oldInventory) {
+          await supabase
+            .from('inventory')
+            .update({ quantity: oldInventory.quantity + oldAmount })
+            .eq('id', oldFeedTypeId);
+        }
+      }
+
+      // Update new inventory
+      const { data: newInventory } = await supabase
+        .from('inventory')
+        .select('quantity')
+        .eq('id', newFeedTypeId)
+        .single();
+
+      if (newInventory) {
+        const inventoryChange = oldFeedTypeId === newFeedTypeId ? (newAmount - oldAmount) : newAmount;
+        const newQuantity = newInventory.quantity - inventoryChange;
+
+        if (newQuantity < 0) {
+          toast({
+            title: "Erro",
+            description: `Estoque insuficiente. Disponível: ${(newInventory.quantity / 1000).toFixed(1)} kg`,
+            variant: "destructive"
+          });
+          return;
+        }
+
+        await supabase
+          .from('inventory')
+          .update({ quantity: newQuantity })
+          .eq('id', newFeedTypeId);
+      }
+
+      // Update feeding record
       const { error } = await supabase
         .from('feeding_records')
         .update({
           feeding_date: feedingData.feeding_date,
           feeding_time: feedingData.feeding_time,
-          planned_amount: feedingData.planned_amount,
           actual_amount: feedingData.actual_amount,
-          notes: feedingData.notes
+          planned_amount: feedingData.planned_amount,
+          notes: feedingData.notes,
+          feed_type_id: selectedFeedType,
+          feed_type_name: selectedFeed.name,
+          unit_cost: selectedFeed.unit_price
         })
         .eq('id', editingRecord.id);
 
@@ -402,23 +715,20 @@ export default function AlimentacaoPage() {
 
       toast({
         title: "Sucesso",
-        description: "Registro de alimentação atualizado"
+        description: "Registro atualizado com sucesso"
       });
 
       setShowDialog(false);
-      setEditingRecord(null);
       setIsEditing(false);
-      
-      // Invalidar caches
-      queryClient.invalidateQueries({ queryKey: ['feeding-history'] });
-      queryClient.invalidateQueries({ queryKey: ['available-feeds'] });
-      queryClient.invalidateQueries({ queryKey: ['active-ponds-feeding'] });
+      setEditingRecord(null);
+      loadFeedingHistory();
+      loadAvailableFeeds();
 
     } catch (error) {
-      console.error('Error updating feeding record:', error);
+      console.error('Error updating feeding:', error);
       toast({
         title: "Erro",
-        description: "Erro ao atualizar registro de alimentação",
+        description: "Erro ao atualizar registro",
         variant: "destructive"
       });
     } finally {
@@ -426,239 +736,339 @@ export default function AlimentacaoPage() {
     }
   };
 
+  if (loading) {
+    return (
+      <Layout>
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-emerald-50/20">
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+              <p className="text-muted-foreground">Carregando viveiros...</p>
+            </div>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
   return (
     <Layout>
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-        <div className="container mx-auto px-4 py-8">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-emerald-50/20">
+        <div className="space-y-6">
           {/* Header */}
-          <div className="flex items-center gap-4 mb-8">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => navigate('/manejos')}
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
+          <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Alimentação</h1>
-              <p className="text-gray-600">Registre e acompanhe a alimentação dos seus viveiros</p>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => navigate('/manejos')}
+                className="mb-2 bg-gradient-to-r from-slate-50 to-slate-100 hover:from-primary/10 hover:to-accent/10 border border-slate-200 hover:border-primary/20 text-slate-700 hover:text-primary transition-all duration-300"
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Voltar para Manejos
+              </Button>
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 bg-gradient-to-r from-green-600 to-green-700 rounded-lg">
+                  <Utensils className="w-6 h-6 text-white" />
+                </div>
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-900 via-blue-800 to-slate-700 bg-clip-text text-transparent">
+                  Alimentação
+                </h1>
+              </div>
+              <p className="text-slate-600">
+                Registre e acompanhe a alimentação diária dos viveiros
+              </p>
             </div>
           </div>
 
-          {/* Tabs */}
-          <Tabs defaultValue="registro" className="w-full">
+          {/* Content */}
+          <Tabs defaultValue="registro" className="space-y-6">
             <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="registro">Registro por Viveiro</TabsTrigger>
-              <TabsTrigger value="historico">Histórico</TabsTrigger>
+              <TabsTrigger value="registro" className="flex items-center gap-2">
+                <Utensils className="w-4 h-4" />
+                Registro por Viveiro
+              </TabsTrigger>
+              <TabsTrigger value="historico" className="flex items-center gap-2">
+                <History className="w-4 h-4" />
+                Histórico
+              </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="registro" className="space-y-6">
-              {pondsLoading ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {Array.from({ length: 6 }).map((_, i) => (
-                    <FeedingPondCard 
-                      key={i}
-                      pond={{} as any}
-                      onFeedPond={() => {}}
-                      loading={true}
-                    />
-                  ))}
-                </div>
-              ) : ponds.length === 0 ? (
-                <Card>
-                  <CardContent className="text-center py-8">
-                    <div className="mx-auto h-12 w-12 text-gray-400 mb-4 flex items-center justify-center">
-                      🐟
-                    </div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">
+            <TabsContent value="registro" className="space-y-4">
+              {ponds.length === 0 ? (
+                <Card className="backdrop-blur-sm bg-white/80 border-white/20 shadow-xl">
+                  <CardContent className="flex flex-col items-center justify-center h-64">
+                    <Utensils className="w-12 h-12 text-muted-foreground mb-4" />
+                    <h3 className="text-lg font-semibold text-muted-foreground mb-2">
                       Nenhum viveiro ativo encontrado
                     </h3>
-                    <p className="text-gray-500">
-                      Para registrar alimentação, é necessário ter viveiros com lotes ativos.
+                    <p className="text-sm text-muted-foreground text-center">
+                      Adicione camarões aos viveiros para começar a registrar alimentação
                     </p>
                   </CardContent>
                 </Card>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {ponds.map((pond) => (
-                    <FeedingPondCard 
-                      key={pond.id}
-                      pond={pond}
-                      onFeedPond={handleOpenDialog}
-                    />
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {ponds.map(pond => (
+                    <Card key={pond.id} className="backdrop-blur-sm bg-white/80 border-white/20 shadow-xl hover:shadow-2xl transition-all duration-300">
+                      <CardHeader className="pb-3">
+                        <div className="flex items-center justify-between">
+                          <CardTitle className="text-lg font-semibold">{pond.name}</CardTitle>
+                          <Badge variant="secondary">
+                            {pond.current_batch?.batch_name}
+                          </Badge>
+                        </div>
+                        <div className="text-sm text-muted-foreground space-y-1">
+                          <div>População: {pond.current_batch?.current_population?.toLocaleString()} camarões</div>
+                          <div>Área: {pond.area}m²</div>
+                        </div>
+                      </CardHeader>
+                      
+                      <CardContent className="space-y-4">
+                        {/* Feeding Configuration Summary */}
+                        {pond.current_batch?.latest_feeding && (
+                          <div className="space-y-3">
+                            <div className="bg-slate-50 rounded-lg p-3 space-y-2">
+                              <div className="flex justify-between text-sm">
+                                <span className="text-muted-foreground">Taxa de alimentação:</span>
+                                <span className="font-medium">{pond.current_batch.latest_feeding.feeding_percentage.toFixed(1)}%</span>
+                              </div>
+                              <div className="flex justify-between text-sm">
+                                <span className="text-muted-foreground">Por refeição (planejado):</span>
+                                <span className="font-medium">{(pond.current_batch.latest_feeding.planned_per_meal / 1000).toFixed(1)} kg</span>
+                              </div>
+                              <div className="flex justify-between text-sm">
+                                <span className="text-muted-foreground">Total diário (planejado):</span>
+                                <span className="font-medium">{(pond.current_batch.latest_feeding.planned_total_daily / 1000).toFixed(1)} kg</span>
+                              </div>
+                            </div>
+                            
+                            {/* Daily Progress */}
+                            <div className="space-y-2">
+                              <div className="flex justify-between text-sm">
+                                <span>Refeições Hoje</span>
+                                <span>
+                                  {pond.current_batch.latest_feeding.meals_completed}/
+                                  {pond.current_batch.latest_feeding.meals_per_day}
+                                </span>
+                              </div>
+                              <Progress 
+                                value={(pond.current_batch.latest_feeding.meals_completed / pond.current_batch.latest_feeding.meals_per_day) * 100} 
+                                className="h-2" 
+                              />
+                              <div className="flex justify-between text-xs text-muted-foreground">
+                                <span>Alimentado: {(pond.current_batch.latest_feeding.total_daily / 1000).toFixed(1)} kg</span>
+                                <span>Restante: {((pond.current_batch.latest_feeding.planned_total_daily - pond.current_batch.latest_feeding.total_daily) / 1000).toFixed(1)} kg</span>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                        
+                        <Button 
+                          onClick={() => handleOpenDialog(pond)}
+                          className="w-full"
+                          size="sm"
+                        >
+                          <Utensils className="w-4 h-4 mr-2" />
+                          Registrar Alimentação
+                        </Button>
+                      </CardContent>
+                    </Card>
                   ))}
                 </div>
               )}
             </TabsContent>
 
-            <TabsContent value="historico">
-              <Card>
+            <TabsContent value="historico" className="space-y-4">
+              <Card className="backdrop-blur-sm bg-white/80 border-white/20 shadow-xl">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <History className="h-5 w-5" />
+                    <History className="w-5 h-5" />
                     Histórico de Alimentação
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   {historyLoading ? (
-                    <div className="space-y-2">
-                      {Array.from({ length: 5 }).map((_, i) => (
-                        <div key={i} className="animate-pulse h-12 bg-gray-200 rounded"></div>
-                      ))}
+                    <div className="flex items-center justify-center h-32">
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
                     </div>
                   ) : feedingHistory.length === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <History className="mx-auto h-12 w-12 mb-4 opacity-50" />
-                      <p>Nenhum registro de alimentação encontrado</p>
+                    <div className="text-center py-8">
+                      <Utensils className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                      <p className="text-muted-foreground">Nenhum registro de alimentação encontrado</p>
                     </div>
                   ) : (
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Data</TableHead>
-                          <TableHead>Hora</TableHead>
-                          <TableHead>Viveiro</TableHead>
-                          <TableHead>Lote</TableHead>
-                          <TableHead>Quantidade</TableHead>
-                          <TableHead>Observações</TableHead>
-                          <TableHead>Ações</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {feedingHistory.map((record) => (
-                          <TableRow key={record.id}>
-                            <TableCell>{formatDateForDisplay(record.feeding_date)}</TableCell>
-                            <TableCell>{record.feeding_time}</TableCell>
-                            <TableCell>{record.pond_name}</TableCell>
-                            <TableCell>{record.batch_name}</TableCell>
-                            <TableCell>
-                              {(record.actual_amount / 1000).toFixed(2)} kg
-                            </TableCell>
-                            <TableCell className="max-w-xs truncate">
-                              {record.notes || '-'}
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex gap-2">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => handleEditFeeding(record)}
-                                  disabled={submitting}
-                                >
-                                  <Edit2 className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => handleDeleteFeeding(record.id)}
-                                  disabled={submitting}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                     <div className="overflow-x-auto">
+                       <Table>
+                         <TableHeader>
+                           <TableRow>
+                             <TableHead>Data</TableHead>
+                             <TableHead>Horário</TableHead>
+                             <TableHead>Viveiro</TableHead>
+                             <TableHead>Lote</TableHead>
+                             <TableHead>Quantidade</TableHead>
+                             <TableHead>Observações</TableHead>
+                             <TableHead className="text-center">Ações</TableHead>
+                           </TableRow>
+                         </TableHeader>
+                         <TableBody>
+                           {feedingHistory.map(record => (
+                             <TableRow key={record.id}>
+                               <TableCell>{formatDateForDisplay(record.feeding_date)}</TableCell>
+                               <TableCell>{record.feeding_time.slice(0, 5)}</TableCell>
+                               <TableCell>{record.pond_name}</TableCell>
+                               <TableCell>{record.batch_name}</TableCell>
+                               <TableCell>{(record.actual_amount / 1000).toFixed(1)} kg</TableCell>
+                               <TableCell className="max-w-xs truncate">{record.notes || '-'}</TableCell>
+                               <TableCell className="text-center">
+                                 <div className="flex items-center justify-center gap-2">
+                                   <Button
+                                     variant="ghost"
+                                     size="sm"
+                                     onClick={() => handleEditFeeding(record)}
+                                     className="h-8 w-8 p-0"
+                                   >
+                                     <Edit2 className="w-4 h-4" />
+                                   </Button>
+                                   <Button
+                                     variant="ghost"
+                                     size="sm"
+                                     onClick={() => handleDeleteFeeding(record.id)}
+                                     className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                                   >
+                                     <Trash2 className="w-4 h-4" />
+                                   </Button>
+                                 </div>
+                               </TableCell>
+                             </TableRow>
+                           ))}
+                         </TableBody>
+                       </Table>
+                     </div>
                   )}
                 </CardContent>
               </Card>
             </TabsContent>
           </Tabs>
 
-          {/* Dialog for feeding registration */}
+          {/* Dialog for Adding Feeding */}
           <Dialog open={showDialog} onOpenChange={setShowDialog}>
-            <DialogContent>
+            <DialogContent className="sm:max-w-md">
               <DialogHeader>
-                <DialogTitle>
+                <DialogTitle className="flex items-center gap-2">
+                  <Utensils className="w-5 h-5 text-green-600" />
                   {isEditing ? 'Editar Alimentação' : 'Registrar Alimentação'}
-                  {selectedPond && ` - ${selectedPond.name}`}
                 </DialogTitle>
+                <p className="text-sm text-muted-foreground">
+                  {selectedPond?.name} - {selectedPond?.current_batch?.batch_name}
+                </p>
               </DialogHeader>
-
+              
               <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="feeding_date">Data</Label>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="date">Data</Label>
                     <Input
-                      id="feeding_date"
+                      id="date"
                       type="date"
                       value={feedingData.feeding_date}
-                      onChange={(e) => setFeedingData({ ...feedingData, feeding_date: e.target.value })}
+                      onChange={(e) => setFeedingData(prev => ({ ...prev, feeding_date: e.target.value }))}
                     />
                   </div>
-                  <div>
-                    <Label htmlFor="feeding_time">Hora</Label>
+                  <div className="space-y-2">
+                    <Label htmlFor="time">Horário</Label>
                     <Input
-                      id="feeding_time"
+                      id="time"
                       type="time"
                       value={feedingData.feeding_time}
-                      onChange={(e) => setFeedingData({ ...feedingData, feeding_time: e.target.value })}
+                      onChange={(e) => setFeedingData(prev => ({ ...prev, feeding_time: e.target.value }))}
                     />
                   </div>
                 </div>
 
-                {!isEditing && (
-                  <div>
-                    <Label htmlFor="feed_type">Tipo de Ração</Label>
-                    <Select value={selectedFeedType} onValueChange={setSelectedFeedType} disabled={feedsLoading}>
-                      <SelectTrigger>
-                        <SelectValue placeholder={feedsLoading ? "Carregando rações..." : "Selecione a ração"} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {availableFeeds.map((feed) => (
-                          <SelectItem key={feed.id} value={feed.id}>
-                            {feed.name} (Estoque: {feed.quantity.toFixed(1)} kg)
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="planned_amount">Quantidade Planejada (g)</Label>
-                    <Input
-                      id="planned_amount"
-                      type="number"
-                      value={feedingData.planned_amount}
-                      onChange={(e) => setFeedingData({ ...feedingData, planned_amount: parseInt(e.target.value) || 0 })}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="actual_amount">Quantidade Real (g)</Label>
-                    <Input
-                      id="actual_amount"
-                      type="number"
-                      value={feedingData.actual_amount}
-                      onChange={(e) => setFeedingData({ ...feedingData, actual_amount: parseInt(e.target.value) || 0 })}
-                    />
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="feed-type">Tipo de Ração</Label>
+                  <Select value={selectedFeedType} onValueChange={(value) => {
+                    setSelectedFeedType(value);
+                    const selectedFeed = availableFeeds.find(feed => feed.id === value);
+                    setFeedingData(prev => ({
+                      ...prev,
+                      feed_type_id: value,
+                      feed_type_name: selectedFeed?.name || ''
+                    }));
+                  }}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o tipo de ração" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-background border border-border z-50">
+                      {availableFeeds.map(feed => (
+                        <SelectItem key={feed.id} value={feed.id}>
+                          <div className="flex justify-between items-center w-full">
+                            <span>{feed.name}</span>
+                            <span className="text-muted-foreground ml-2">
+                              ({feed.quantity.toFixed(1)} kg disponível)
+                            </span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {availableFeeds.length === 0 && (
+                    <p className="text-sm text-destructive">
+                      Nenhuma ração disponível no estoque
+                    </p>
+                  )}
                 </div>
 
-                <div>
+                <div className="space-y-2">
+                  <Label htmlFor="quantity">Quantidade (kg)</Label>
+                  <Input
+                    id="quantity"
+                    type="number"
+                    step="0.1"
+                    value={QuantityUtils.gramsToKg(feedingData.actual_amount)}
+                    onChange={(e) => {
+                      const gramsValue = QuantityUtils.parseInputToGrams(e.target.value);
+                      setFeedingData(prev => ({ 
+                        ...prev, 
+                        actual_amount: gramsValue,
+                        planned_amount: gramsValue // Keep both values in sync
+                      }));
+                    }}
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    Recomendado: {QuantityUtils.formatKg(feedingData.planned_amount)} kg
+                  </p>
+                </div>
+
+                <div className="space-y-2">
                   <Label htmlFor="notes">Observações (opcional)</Label>
                   <Input
                     id="notes"
+                    placeholder="Ex: Ração bem aceita, apetite normal"
                     value={feedingData.notes}
-                    onChange={(e) => setFeedingData({ ...feedingData, notes: e.target.value })}
-                    placeholder="Digite observações sobre a alimentação..."
+                    onChange={(e) => setFeedingData(prev => ({ ...prev, notes: e.target.value }))}
                   />
                 </div>
 
-                <div className="flex gap-2 justify-end">
-                  <Button variant="outline" onClick={() => setShowDialog(false)}>
+                <div className="flex gap-2 pt-4">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      setShowDialog(false);
+                      setIsEditing(false);
+                      setEditingRecord(null);
+                    }} 
+                    className="flex-1"
+                  >
                     Cancelar
                   </Button>
-                  <Button onClick={submitting ? undefined : (isEditing ? handleUpdateFeeding : handleSubmitFeeding)} disabled={submitting || feedsLoading}>
-                    {submitting ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Salvando...
-                      </>
-                    ) : isEditing ? 'Atualizar' : 'Salvar'}
+                  <Button 
+                    onClick={isEditing ? handleUpdateFeeding : handleSubmitFeeding}
+                    disabled={submitting || feedingData.actual_amount <= 0 || !selectedFeedType || availableFeeds.length === 0}
+                    className="flex-1"
+                  >
+                    {submitting ? 'Salvando...' : (isEditing ? 'Atualizar' : 'Salvar')}
                   </Button>
                 </div>
               </div>

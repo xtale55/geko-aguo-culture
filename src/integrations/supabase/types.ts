@@ -923,16 +923,6 @@ export type Database = {
         Args: { profile_user_id: string }
         Returns: boolean
       }
-      get_feed_items_optimized: {
-        Args: { farm_id_param: string }
-        Returns: {
-          category: string
-          id: string
-          name: string
-          quantity: number
-          unit_price: number
-        }[]
-      }
       sanitize_phone: {
         Args: { phone_input: string }
         Returns: string

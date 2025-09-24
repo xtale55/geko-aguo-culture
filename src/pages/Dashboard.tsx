@@ -78,7 +78,7 @@ export default function Dashboard() {
         {/* Critical Alerts Row - First Row Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Critical Alerts Card - Clickable */}
-          <Card className={`h-full cursor-pointer transition-all hover:shadow-lg ${alerts.length > 0 ? 'bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20 border-red-200 dark:border-red-800 hover:border-red-300 dark:hover:border-red-700' : 'bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 border-green-200 dark:border-green-800 hover:border-green-300 dark:hover:border-green-700'}`} onClick={() => setAlertsModalOpen(true)}>
+          <Card className={`h-full cursor-pointer transition-all hover:shadow-lg ${alerts.length > 0 ? 'bg-gradient-to-br from-destructive/10 to-destructive/20 border-destructive/30 hover:border-destructive/50' : 'bg-gradient-to-br from-primary/10 to-primary/20 border-primary/30 hover:border-primary/50'}`} onClick={() => setAlertsModalOpen(true)}>
             <CardContent className="p-4">
               <div className="flex items-center justify-between mb-3">
                 <h3 className={`text-sm font-medium ${alerts.length > 0 ? 'text-red-700 dark:text-red-300' : 'text-green-700 dark:text-green-300'}`}>

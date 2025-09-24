@@ -12,6 +12,7 @@ import { useRecentManagementData } from '@/hooks/useRecentManagementData';
 import { useAlertsData } from '@/hooks/useAlertsData';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { useRealtimeFeedingUpdates } from '@/hooks/useRealtimeFeedingUpdates';
 
 // New dashboard components
 import { WeatherCard } from '@/components/dashboard/WeatherCard';
@@ -43,6 +44,9 @@ export default function Dashboard() {
   const stats = useDashboardStats(pondsData, inventoryData, waterQualityData);
   const alerts = useAlertsData(pondsData, waterQualityData, inventoryData);
   const recentData = useRecentManagementData(firstFarm?.id);
+  
+  // Setup realtime updates para dados de alimentação
+  useRealtimeFeedingUpdates(firstFarm?.id);
   const recentActivities = recentData.recentBiometrics.map(bio => ({
     description: `Biometria registrada - ${bio.average_weight}g`,
     date: bio.created_at

@@ -1,5 +1,6 @@
 import { useSupabaseQuery } from './useSupabaseQuery';
 import { useAuth } from './useAuth';
+import { supabase } from '@/integrations/supabase/client';
 import { getCurrentDateForInput } from '@/lib/utils';
 
 interface PondWithBatch {
@@ -66,7 +67,7 @@ export function useActivePondsWithFeeding() {
       const farmId = farms[0].id;
       const today = getCurrentDateForInput();
 
-      // Query única otimizada com JOINs para carregar tudo
+      // Query otimizada para carregar viveiros com dados básicos
       const { data: pondsData, error } = await supabase
         .from('ponds')
         .select(`
@@ -79,98 +80,97 @@ export function useActivePondsWithFeeding() {
             current_population,
             stocking_date,
             cycle_status,
-            batches!inner(name),
-            feeding_records!left(
-              actual_amount,
-              feeding_date
-            ),
-            biometrics!left(
-              average_weight,
-              measurement_date
-            ),
-            feeding_rates!left(
-              feeding_percentage,
-              meals_per_day,
-              weight_range_min,
-              weight_range_max,
-              farm_id
-            )
+            batches!inner(name)
           )
         `)
         .eq('farm_id', farmId)
         .eq('status', 'in_use')
         .eq('pond_batches.cycle_status', 'active')
         .gt('pond_batches.current_population', 0)
-        .eq('pond_batches.feeding_records.feeding_date', today)
         .order('name');
 
       if (error) return { data: null, error };
 
-      // Processar dados otimizado
-      const formattedPonds: PondWithBatch[] = pondsData?.map(pond => {
-        const activeBatch = pond.pond_batches[0];
-        
-        if (!activeBatch) {
-          return {
+      // Processar dados e carregar informações de alimentação separadamente
+      const formattedPonds: PondWithBatch[] = [];
+      
+      if (pondsData) {
+        for (const pond of pondsData) {
+          const activeBatch = pond.pond_batches[0];
+          
+          if (!activeBatch) continue;
+
+          // Carregar dados específicos para cada viveiro
+          const [feedingRecords, biometry, feedingRates] = await Promise.all([
+            // Alimentação de hoje
+            supabase
+              .from('feeding_records')
+              .select('actual_amount')
+              .eq('pond_batch_id', activeBatch.id)
+              .eq('feeding_date', today),
+            
+            // Biometria mais recente
+            supabase
+              .from('biometrics')
+              .select('average_weight')
+              .eq('pond_batch_id', activeBatch.id)
+              .order('measurement_date', { ascending: false })
+              .limit(1),
+            
+            // Taxas de alimentação da fazenda
+            supabase
+              .from('feeding_rates')
+              .select('feeding_percentage, meals_per_day, weight_range_min, weight_range_max')
+              .eq('farm_id', farmId)
+          ]);
+
+          const avgWeight = biometry.data?.[0]?.average_weight || 1;
+          
+          // Encontrar taxa de alimentação apropriada
+          const feedingRate = feedingRates.data?.find(rate => 
+            rate.weight_range_min <= avgWeight && 
+            rate.weight_range_max >= avgWeight
+          );
+
+          // Calcular resumo de alimentação
+          const todayFeeding = feedingRecords.data || [];
+          const totalDaily = todayFeeding.reduce((sum, record) => sum + record.actual_amount, 0);
+          const mealsCompleted = todayFeeding.length;
+          const mealsPerDay = feedingRate?.meals_per_day || 3;
+
+          // Calcular quantidades planejadas
+          let plannedTotalDaily = 0;
+          let plannedPerMeal = 0;
+          
+          if (feedingRate && activeBatch) {
+            const biomass = (activeBatch.current_population * avgWeight) / 1000;
+            plannedTotalDaily = (biomass * feedingRate.feeding_percentage / 100) * 1000;
+            plannedPerMeal = Math.round(plannedTotalDaily / feedingRate.meals_per_day);
+          }
+
+          formattedPonds.push({
             id: pond.id,
             name: pond.name,
             area: pond.area,
-            status: pond.status
-          };
-        }
-
-        // Buscar biometria mais recente
-        const latestBio = activeBatch.biometrics
-          ?.sort((a, b) => new Date(b.measurement_date).getTime() - new Date(a.measurement_date).getTime())[0];
-        
-        const avgWeight = latestBio?.average_weight || 1;
-
-        // Buscar taxa de alimentação apropriada
-        const feedingRate = activeBatch.feeding_rates
-          ?.find(rate => 
-            rate.weight_range_min <= avgWeight && 
-            rate.weight_range_max >= avgWeight &&
-            rate.farm_id === farmId
-          );
-
-        // Calcular resumo de alimentação de hoje
-        const todayFeeding = activeBatch.feeding_records || [];
-        const totalDaily = todayFeeding.reduce((sum, record) => sum + record.actual_amount, 0);
-        const mealsCompleted = todayFeeding.length;
-        const mealsPerDay = feedingRate?.meals_per_day || 3;
-
-        // Calcular quantidades planejadas
-        let plannedTotalDaily = 0;
-        let plannedPerMeal = 0;
-        
-        if (feedingRate) {
-          const biomass = (activeBatch.current_population * avgWeight) / 1000;
-          plannedTotalDaily = (biomass * feedingRate.feeding_percentage / 100) * 1000;
-          plannedPerMeal = Math.round(plannedTotalDaily / feedingRate.meals_per_day);
-        }
-
-        return {
-          id: pond.id,
-          name: pond.name,
-          area: pond.area,
-          status: pond.status,
-          current_batch: {
-            id: activeBatch.id,
-            batch_name: activeBatch.batches.name,
-            stocking_date: activeBatch.stocking_date,
-            current_population: activeBatch.current_population,
-            latest_feeding: {
-              feeding_date: today,
-              total_daily: totalDaily,
-              meals_completed: mealsCompleted,
-              meals_per_day: mealsPerDay,
-              planned_total_daily: plannedTotalDaily,
-              planned_per_meal: plannedPerMeal,
-              feeding_percentage: feedingRate?.feeding_percentage || 0
+            status: pond.status,
+            current_batch: {
+              id: activeBatch.id,
+              batch_name: activeBatch.batches.name,
+              stocking_date: activeBatch.stocking_date,
+              current_population: activeBatch.current_population,
+              latest_feeding: {
+                feeding_date: today,
+                total_daily: totalDaily,
+                meals_completed: mealsCompleted,
+                meals_per_day: mealsPerDay,
+                planned_total_daily: plannedTotalDaily,
+                planned_per_meal: plannedPerMeal,
+                feeding_percentage: feedingRate?.feeding_percentage || 0
+              }
             }
-          }
-        };
-      }) || [];
+          });
+        }
+      }
 
       return { data: formattedPonds, error: null };
     },
@@ -201,7 +201,7 @@ export function useFeedingHistory() {
         return { data: [], error: farmError };
       }
 
-      // Query única otimizada com JOINs
+      // Query otimizada com JOIN único
       const { data: historyData, error } = await supabase
         .from('feeding_records')
         .select(`
@@ -211,30 +211,47 @@ export function useFeedingHistory() {
           actual_amount,
           planned_amount,
           notes,
-          pond_batch_id,
-          pond_batches!inner(
-            ponds!inner(name, farm_id),
-            batches!inner(name)
-          )
+          pond_batch_id
         `)
-        .eq('pond_batches.ponds.farm_id', farms[0].id)
         .order('feeding_date', { ascending: false })
         .order('feeding_time', { ascending: false })
         .limit(50);
 
       if (error) return { data: null, error };
 
-      const formattedHistory: FeedingRecord[] = historyData?.map(record => ({
-        id: record.id,
-        feeding_date: record.feeding_date,
-        feeding_time: record.feeding_time,
-        actual_amount: record.actual_amount,
-        planned_amount: record.planned_amount,
-        notes: record.notes,
-        pond_name: record.pond_batches.ponds.name,
-        batch_name: record.pond_batches.batches.name,
-        pond_batch_id: record.pond_batch_id
-      })) || [];
+      // Buscar informações de viveiro e lote para cada registro
+      const formattedHistory: FeedingRecord[] = [];
+      
+      if (historyData) {
+        for (const record of historyData) {
+          const { data: pondBatchData } = await supabase
+            .from('pond_batches')
+            .select(`
+              ponds!inner(name, farm_id),
+              batches!inner(name)
+            `)
+            .eq('id', record.pond_batch_id)
+            .eq('ponds.farm_id', farms[0].id)
+            .single();
+
+          if (pondBatchData && !pondBatchData.ponds) continue;
+          if (pondBatchData && !pondBatchData.batches) continue;
+
+          if (pondBatchData) {
+            formattedHistory.push({
+              id: record.id,
+              feeding_date: record.feeding_date,
+              feeding_time: record.feeding_time,
+              actual_amount: record.actual_amount,
+              planned_amount: record.planned_amount,
+              notes: record.notes,
+              pond_name: pondBatchData.ponds.name,
+              batch_name: pondBatchData.batches.name,
+              pond_batch_id: record.pond_batch_id
+            });
+          }
+        }
+      }
 
       return { data: formattedHistory, error: null };
     },

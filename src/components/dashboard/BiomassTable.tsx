@@ -3,7 +3,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useBiomassByWeight } from "@/hooks/useBiomassByWeight";
 import { Badge } from "@/components/ui/badge";
 import { StandardCard } from "@/components/StandardCard";
-import { Fish } from "@phosphor-icons/react";
+import { Shrimp } from "@phosphor-icons/react";
 
 interface BiomassTableProps {
   farmId?: string;
@@ -17,7 +17,7 @@ export function BiomassTable({ farmId }: BiomassTableProps) {
       <StandardCard
         title="Biomassa por Faixa de Peso"
         value="-"
-        icon={<Fish />}
+        icon={<Shrimp />}
         subtitle="Nenhum dado de biomassa disponível"
         colorClass="text-muted-foreground"
       >
@@ -33,7 +33,7 @@ export function BiomassTable({ farmId }: BiomassTableProps) {
       <CardHeader>
         <CardTitle className="text-lg flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Fish className="h-5 w-5 text-primary" />
+            <Shrimp className="h-5 w-5 text-primary" />
             Biomassa por Faixa de Peso
           </div>
           <Badge variant="outline" className="text-base font-medium">

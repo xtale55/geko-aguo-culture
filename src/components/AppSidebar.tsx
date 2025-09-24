@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Fish, SignOut, House, Waves, ForkKnife, Package, ChartBar, CurrencyDollar, Truck } from '@phosphor-icons/react';
+import { Shrimp, SignOut, House, Waves, ForkKnife, Package, ChartBar, CurrencyDollar, Truck } from '@phosphor-icons/react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter } from '@/components/ui/sidebar';
@@ -14,7 +14,7 @@ const navigationItems = [{
   label: 'Fazenda'
 }, {
   path: '/manejos',
-  icon: Fish,
+  icon: Shrimp,
   label: 'Manejos'
 }, {
   path: '/despesca',

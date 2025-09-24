@@ -5,7 +5,7 @@ import { LoadingScreen } from '@/components/LoadingScreen';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { StandardCard } from '@/components/StandardCard';
-import { Warning, Plus, Fish, ChartBar, ForkKnife, Package, Gear, CurrencyDollar } from '@phosphor-icons/react';
+import { Warning, Plus, Shrimp, ChartBar, ForkKnife, Package, Gear, CurrencyDollar } from '@phosphor-icons/react';
 import { useFarmsQuery, useActivePondsQuery, useInventoryQuery, useWaterQualityQuery } from '@/hooks/useSupabaseQuery';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
 import { useRecentManagementData } from '@/hooks/useRecentManagementData';
@@ -113,7 +113,7 @@ export default function Dashboard() {
               {[{
               label: 'Manejos',
               path: '/manejos',
-              icon: Fish,
+              icon: Shrimp,
               color: 'text-blue-600'
             }, {
               label: 'Registrar Ração',

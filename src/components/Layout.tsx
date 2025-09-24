@@ -1,7 +1,7 @@
 import { memo, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { Fish, SignOut, Gear, House, Waves, Scales, Skull, ForkKnife, Drop, Package, ChartBar, CurrencyDollar, DotsThree } from '@phosphor-icons/react';
+import { Shrimp, SignOut, Gear, House, Waves, Scales, Skull, ForkKnife, Drop, Package, ChartBar, CurrencyDollar, DotsThree } from '@phosphor-icons/react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
@@ -34,7 +34,7 @@ export const Layout = memo(function Layout({
           <div className="container mx-auto px-4 h-16 flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-emerald-500 rounded-full flex items-center justify-center">
-                <Fish className="w-6 h-6 text-white" />
+                <Shrimp className="w-6 h-6 text-white" />
               </div>
               <div>
                 <h1 className="text-xl font-bold text-primary">
@@ -66,7 +66,7 @@ export const Layout = memo(function Layout({
             label: 'Dashboard'
           }, {
             path: '/manejos',
-            icon: Fish,
+            icon: Shrimp,
             label: 'Manejos'
           }, {
             path: '/inventory',
@@ -106,7 +106,7 @@ export const Layout = memo(function Layout({
                   color: 'from-blue-500 to-cyan-500'
                 }, {
                   path: '/despesca',
-                  icon: Fish,
+                  icon: Shrimp,
                   label: 'Despesca',
                   color: 'from-orange-500 to-orange-600'
                 }, {

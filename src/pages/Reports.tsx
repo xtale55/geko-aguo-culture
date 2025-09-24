@@ -15,6 +15,7 @@ import { Shrimp } from '@phosphor-icons/react';
 import { useToast } from "@/hooks/use-toast";
 import { FeedingHistoryPanel } from "@/components/FeedingHistoryPanel";
 import { GrowthAnalysis } from "@/components/GrowthAnalysis";
+import { PerformanceHistoryTab } from "@/components/PerformanceHistoryTab";
 
 import { QuantityUtils } from "@/lib/quantityUtils";
 import { DashboardSkeleton } from "@/components/DashboardSkeleton";
@@ -96,6 +97,7 @@ export default function Reports() {
   const [selectedPeriod, setSelectedPeriod] = useState('last_30_days');
   const [activeTab, setActiveTab] = useState('overview');
   const [operationalCosts, setOperationalCosts] = useState<number>(0);
+  const [farmIds, setFarmIds] = useState<string[]>([]);
   const [materialsConsumed, setMaterialsConsumed] = useState<number>(0);
   const [priceTable, setPriceTable] = useState<number>(19); // Default table price for 10g shrimp
   const { user } = useAuth();
@@ -126,6 +128,7 @@ export default function Reports() {
       const farmIds = farms.map(f => f.id);
       const currentFarmArea = farms.reduce((sum, farm) => sum + (farm.total_area || 0), 0) || 1;
       setFarmArea(currentFarmArea);
+      setFarmIds(farmIds);
 
       // Get ponds first
       const { data: ponds, error: pondsError } = await supabase
@@ -637,8 +640,9 @@ export default function Reports() {
 
         {/* Detailed Analysis */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="overview" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm font-medium text-foreground/80 data-[state=active]:font-semibold transition-all">Visão Geral</TabsTrigger>
+            <TabsTrigger value="performance" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm font-medium text-foreground/80 data-[state=active]:font-semibold transition-all">Performance</TabsTrigger>
             <TabsTrigger value="financial" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm font-medium text-foreground/80 data-[state=active]:font-semibold transition-all">Análise Financeira</TabsTrigger>
           </TabsList>
 
@@ -789,6 +793,9 @@ export default function Reports() {
             </Card>
           </TabsContent>
 
+          <TabsContent value="performance" className="space-y-4">
+            <PerformanceHistoryTab farmIds={farmIds} />
+          </TabsContent>
 
           <TabsContent value="financial" className="space-y-4">
             <div className="space-y-6">

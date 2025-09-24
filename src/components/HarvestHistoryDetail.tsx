@@ -423,32 +423,15 @@ const HarvestHistoryDetail = ({ harvestId, open, onOpenChange }: HarvestHistoryD
     weeklyGrowth = weeksDiff > 0 ? (lastBiometry.average_weight - firstBiometry.average_weight) / weeksDiff : 0;
   }
   
-  // Performance score calculation
+  // Performance score calculation based on profit margin
   const getPerformanceScore = () => {
-    let score = 0;
+    if (profitMargin === null) return { label: 'Sem dados', color: 'bg-gray-500' };
     
-     // Survival rate (40% weight)
-    if (cumulativeSurvivalRate >= 90) score += 40;
-    else if (cumulativeSurvivalRate >= 80) score += 30;
-    else if (cumulativeSurvivalRate >= 70) score += 20;
-    else score += 10;
+    const margin = profitMargin;
     
-    // FCR (30% weight)
-    if (fca <= 1.3) score += 30;
-    else if (fca <= 1.5) score += 20;
-    else if (fca <= 1.8) score += 15;
-    else score += 5;
-    
-    // Growth rate (30% weight)
-    if (weeklyGrowth >= 1.5) score += 30;
-    else if (weeklyGrowth >= 1.0) score += 20;
-    else if (weeklyGrowth >= 0.5) score += 15;
-    else score += 5;
-    
-    if (score >= 90) return { label: 'Excelente', color: 'bg-green-500' };
-    if (score >= 75) return { label: 'Bom', color: 'bg-blue-500' };
-    if (score >= 60) return { label: 'Médio', color: 'bg-yellow-500' };
-    return { label: 'Ruim', color: 'bg-red-500' };
+    if (margin < 5) return { label: 'Ruim', color: 'bg-red-500' };
+    if (margin >= 5 && margin < 25) return { label: 'Moderada', color: 'bg-yellow-500' };
+    return { label: 'Boa', color: 'bg-green-500' };
   };
   
   const performanceScore = getPerformanceScore();

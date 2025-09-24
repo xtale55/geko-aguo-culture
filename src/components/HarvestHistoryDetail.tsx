@@ -680,44 +680,44 @@ const HarvestHistoryDetail = ({ harvestId, open, onOpenChange }: HarvestHistoryD
               <div className="grid grid-cols-2 md:grid-cols-6 gap-6">
                 <div className="space-y-2">
                   <p className="text-sm text-muted-foreground">DOC (Dias)</p>
-                  <p className="text-2xl font-bold text-purple-600">
+                  <p className="text-2xl font-bold text-slate-700">
                     {docDays}
                   </p>
                 </div>
                 <div className="space-y-2">
                   <p className="text-sm text-muted-foreground">Peso Médio (g)</p>
-                  <p className="text-2xl font-bold text-orange-600">
+                  <p className="text-2xl font-bold text-slate-700">
                     {harvestData.average_weight_at_harvest?.toFixed(1) || 'N/A'}
                   </p>
                 </div>
                 <div className="space-y-2">
                   <p className="text-sm text-muted-foreground">Biomassa Despescada (kg)</p>
-                  <p className="text-2xl font-bold text-blue-600">
+                  <p className="text-2xl font-bold text-slate-700">
                     {harvestData.biomass_harvested.toFixed(1)}
                   </p>
                 </div>
                 <div className="space-y-2">
                   <p className="text-sm text-muted-foreground">FCA</p>
-                  <p className="text-2xl font-bold text-blue-600">
+                  <p className="text-2xl font-bold text-slate-700">
                     {fca.toFixed(2)}
                   </p>
                 </div>
                 <div className="space-y-2">
                   <p className="text-sm text-muted-foreground">Custo/KG</p>
-                  <p className="text-2xl font-bold text-orange-600">
+                  <p className="text-2xl font-bold text-slate-700">
                     {formatCurrency(costPerKg)}
                   </p>
                 </div>
                 <div className="space-y-2">
                   <p className="text-sm text-muted-foreground">Crescimento Semanal (g)</p>
-                  <p className="text-2xl font-bold text-indigo-600">
+                  <p className="text-2xl font-bold text-slate-700">
                     {weeklyGrowth.toFixed(1)}
                   </p>
                 </div>
                 {harvestData.harvest_type === 'total' && (
                   <div className="space-y-2">
                     <p className="text-sm text-muted-foreground">Taxa de Sobrevivência (%)</p>
-                    <p className="text-2xl font-bold text-emerald-600">
+                    <p className="text-2xl font-bold text-slate-700">
                       {cumulativeSurvivalRate.toFixed(1)}%
                     </p>
                   </div>
@@ -735,13 +735,13 @@ const HarvestHistoryDetail = ({ harvestId, open, onOpenChange }: HarvestHistoryD
               <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
                 <div className="space-y-2">
                   <p className="text-sm text-muted-foreground">PL</p>
-                  <p className="text-xl font-bold text-blue-600">
+                  <p className="text-xl font-bold text-slate-700">
                     {formatCurrency(allocatedPlCost)}
                   </p>
                 </div>
                 <div className="space-y-2">
                   <p className="text-sm text-muted-foreground">Preparação</p>
-                  <p className="text-xl font-bold text-green-600">
+                  <p className="text-xl font-bold text-slate-700">
                     {formatCurrency(allocatedPrepCost)}
                   </p>
                 </div>
@@ -749,7 +749,7 @@ const HarvestHistoryDetail = ({ harvestId, open, onOpenChange }: HarvestHistoryD
                   <p className="text-sm text-muted-foreground">
                     Ração {harvestData.harvest_type === 'partial' ? '(Proporcional)' : ''}
                   </p>
-                  <p className="text-xl font-bold text-orange-600">
+                  <p className="text-xl font-bold text-slate-700">
                     {formatCurrency(allocatedFeedCost)}
                   </p>
                 </div>
@@ -757,7 +757,7 @@ const HarvestHistoryDetail = ({ harvestId, open, onOpenChange }: HarvestHistoryD
                   <p className="text-sm text-muted-foreground">
                     Insumos {harvestData.harvest_type === 'partial' ? '(Proporcional)' : ''}
                   </p>
-                  <p className="text-xl font-bold text-purple-600">
+                  <p className="text-xl font-bold text-slate-700">
                     {formatCurrency(allocatedInputCost)}
                   </p>
                 </div>
@@ -781,13 +781,13 @@ const HarvestHistoryDetail = ({ harvestId, open, onOpenChange }: HarvestHistoryD
               <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
                 <div className="space-y-2">
                   <p className="text-sm text-muted-foreground">Preço por KG</p>
-                  <p className="text-xl font-bold text-blue-600">
+                  <p className="text-xl font-bold text-slate-700">
                     {harvestData.price_per_kg ? formatCurrency(harvestData.price_per_kg) : 'N/A'}
                   </p>
                 </div>
                 <div className="space-y-2">
                   <p className="text-sm text-muted-foreground">Receita</p>
-                  <p className="text-xl font-bold text-green-600">
+                  <p className="text-xl font-bold text-slate-700">
                     {formatCurrency(revenue)}
                   </p>
                 </div>

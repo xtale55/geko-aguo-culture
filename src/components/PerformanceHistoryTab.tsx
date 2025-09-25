@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { QuantityUtils } from "@/lib/quantityUtils";
 import { CycleManagementHistory } from "@/components/CycleManagementHistory";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
 
 interface HistoricalCycleData {
   pond_batch_id: string;
@@ -34,6 +35,13 @@ interface HistoricalCycleData {
   
   // Revenue
   total_revenue: number;
+  
+  // Dados de crescimento
+  initial_weight: number;
+  final_weight: number;
+  weekly_growth: number;
+  daily_growth_rate: number;
+  stocking_density: number;
   
   // Histórico de despescas
   harvest_history: {
@@ -121,10 +129,18 @@ export function PerformanceHistoryTab({ farmIds }: PerformanceHistoryTabProps) {
         .select('*')
         .in('pond_batch_id', batchIds);
 
+      // Get biometry data for growth calculations
+      const { data: biometryData } = await supabase
+        .from('biometrics')
+        .select('*')
+        .in('pond_batch_id', batchIds)
+        .order('measurement_date', { ascending: true });
+
       const processedCycles: HistoricalCycleData[] = completedBatches.map(batch => {
         const batchHarvests = harvestRecords?.filter(hr => hr.pond_batch_id === batch.id) || [];
         const batchFeeding = feedingRecords?.filter(fr => fr.pond_batch_id === batch.id) || [];
         const batchInputs = inputApplications?.filter(ia => ia.pond_batch_id === batch.id) || [];
+        const batchBiometry = biometryData?.filter(bio => bio.pond_batch_id === batch.id) || [];
 
         // Calculate totals from harvests
         const totalBiomassHarvested = batchHarvests.reduce((sum, hr) => sum + hr.biomass_harvested, 0);
@@ -167,6 +183,20 @@ export function PerformanceHistoryTab({ farmIds }: PerformanceHistoryTabProps) {
         const endDate = completionDate ? new Date(completionDate) : new Date();
         const doc = Math.ceil((endDate.getTime() - stockingDate.getTime()) / (1000 * 60 * 60 * 24));
 
+        // Calculate growth metrics
+        const initialWeight = batchBiometry.length > 0 ? batchBiometry[0].average_weight : 1;
+        const finalWeight = batchBiometry.length > 0 ? batchBiometry[batchBiometry.length - 1].average_weight : initialWeight;
+        
+        // Calculate weekly growth in grams
+        const weeklyGrowth = batchBiometry.length > 1 ? 
+          QuantityUtils.calculateWeeklyGrowth(initialWeight, finalWeight, doc) : 0;
+        
+        // Calculate daily growth rate
+        const dailyGrowthRate = doc > 0 ? (finalWeight - initialWeight) / doc : 0;
+        
+        // Calculate stocking density (assuming pond area from batch context - simplified calculation)
+        const stockingDensity = batch.pl_quantity; // PLs per pond
+
         // Create harvest history
         const harvestHistory = batchHarvests.map(hr => ({
           date: hr.harvest_date,
@@ -203,6 +233,11 @@ export function PerformanceHistoryTab({ farmIds }: PerformanceHistoryTabProps) {
           total_preparation_cost: totalPreparationCost,
           total_cost: totalCost,
           total_revenue: totalRevenue,
+          initial_weight: initialWeight,
+          final_weight: finalWeight,
+          weekly_growth: weeklyGrowth,
+          daily_growth_rate: dailyGrowthRate,
+          stocking_density: stockingDensity,
           harvest_history: harvestHistory,
           performance_rating: performanceRating
         };
@@ -247,6 +282,15 @@ export function PerformanceHistoryTab({ farmIds }: PerformanceHistoryTabProps) {
       default:
         return 'bg-gray-500 text-white';
     }
+  };
+
+  const getCostCompositionData = (cycle: HistoricalCycleData) => {
+    return [
+      { name: 'Ração', value: cycle.total_feed_cost, color: '#2563eb' },
+      { name: 'Insumos', value: cycle.total_input_cost, color: '#16a34a' },
+      { name: 'PLs', value: cycle.total_pl_cost, color: '#dc2626' },
+      { name: 'Preparação', value: cycle.total_preparation_cost, color: '#ea580c' }
+    ].filter(item => item.value > 0);
   };
 
   if (loading) {
@@ -383,34 +427,76 @@ export function PerformanceHistoryTab({ farmIds }: PerformanceHistoryTabProps) {
                         </div>
                       </div>
 
-                      {/* Custos Detalhados */}
+                      {/* Dados de Crescimento */}
+                      <div className="mt-4 p-3 bg-muted/30 rounded-lg">
+                        <h5 className="text-sm font-medium mb-2">Dados de Crescimento</h5>
+                        <div className="grid grid-cols-2 gap-3 text-sm">
+                          <div>
+                            <span className="text-muted-foreground">Peso Inicial:</span>
+                            <span className="ml-2 font-medium">{cycle.initial_weight.toFixed(1)}g</span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">Peso Final:</span>
+                            <span className="ml-2 font-medium">{cycle.final_weight.toFixed(1)}g</span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">Crescimento Semanal:</span>
+                            <span className="ml-2 font-medium">{cycle.weekly_growth.toFixed(1)}g</span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">Crescimento Diário:</span>
+                            <span className="ml-2 font-medium">{cycle.daily_growth_rate.toFixed(2)}g</span>
+                          </div>
+                          <div className="col-span-2">
+                            <span className="text-muted-foreground">Densidade de Estocagem:</span>
+                            <span className="ml-2 font-medium">{cycle.stocking_density.toLocaleString()} PLs</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Composição de Custos - Gráfico */}
                       <div className="mt-4">
-                        <h5 className="text-sm font-medium mb-2">Composição de Custos</h5>
-                        <div className="space-y-2 text-sm">
-                          <div className="flex justify-between">
-                            <span>Ração:</span>
-                            <span>R$ {cycle.total_feed_cost.toFixed(2)}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>Insumos:</span>
-                            <span>R$ {cycle.total_input_cost.toFixed(2)}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>PLs:</span>
-                            <span>R$ {cycle.total_pl_cost.toFixed(2)}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>Preparação:</span>
-                            <span>R$ {cycle.total_preparation_cost.toFixed(2)}</span>
-                          </div>
-                          <hr className="my-2" />
-                          <div className="flex justify-between font-medium">
-                            <span>Total:</span>
+                        <h5 className="text-sm font-medium mb-3">Composição de Custos</h5>
+                        <div className="h-64">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                              <Pie
+                                data={getCostCompositionData(cycle)}
+                                cx="50%"
+                                cy="50%"
+                                innerRadius={40}
+                                outerRadius={80}
+                                paddingAngle={5}
+                                dataKey="value"
+                              >
+                                {getCostCompositionData(cycle).map((entry, index) => (
+                                  <Cell key={`cell-${index}`} fill={entry.color} />
+                                ))}
+                              </Pie>
+                              <Tooltip 
+                                formatter={(value: number) => [`R$ ${value.toFixed(2)}`, '']}
+                                contentStyle={{
+                                  backgroundColor: 'hsl(var(--background))',
+                                  border: '1px solid hsl(var(--border))',
+                                  borderRadius: '6px'
+                                }}
+                              />
+                              <Legend 
+                                verticalAlign="bottom" 
+                                height={36}
+                                formatter={(value, entry) => (
+                                  <span style={{ color: entry.color }}>
+                                    {value}: R$ {entry.payload?.value?.toFixed(2)}
+                                  </span>
+                                )}
+                              />
+                            </PieChart>
+                          </ResponsiveContainer>
+                        </div>
+                        <div className="mt-2 pt-2 border-t">
+                          <div className="flex justify-between font-medium text-sm">
+                            <span>Custo Total:</span>
                             <span>R$ {cycle.total_cost.toFixed(2)}</span>
-                          </div>
-                          <div className="flex justify-between text-green-600">
-                            <span>Receita:</span>
-                            <span>R$ {cycle.total_revenue.toFixed(2)}</span>
                           </div>
                         </div>
                       </div>

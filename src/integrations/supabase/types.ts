@@ -97,6 +97,13 @@ export type Database = {
             foreignKeyName: "biometrics_pond_batch_id_fkey"
             columns: ["pond_batch_id"]
             isOneToOne: false
+            referencedRelation: "active_pond_summary"
+            referencedColumns: ["pond_batch_id"]
+          },
+          {
+            foreignKeyName: "biometrics_pond_batch_id_fkey"
+            columns: ["pond_batch_id"]
+            isOneToOne: false
             referencedRelation: "pond_batches"
             referencedColumns: ["id"]
           },
@@ -315,6 +322,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "harvest_records_pond_batch_id_fkey"
+            columns: ["pond_batch_id"]
+            isOneToOne: false
+            referencedRelation: "active_pond_summary"
+            referencedColumns: ["pond_batch_id"]
+          },
           {
             foreignKeyName: "harvest_records_pond_batch_id_fkey"
             columns: ["pond_batch_id"]
@@ -587,6 +601,13 @@ export type Database = {
             foreignKeyName: "mortality_records_pond_batch_id_fkey"
             columns: ["pond_batch_id"]
             isOneToOne: false
+            referencedRelation: "active_pond_summary"
+            referencedColumns: ["pond_batch_id"]
+          },
+          {
+            foreignKeyName: "mortality_records_pond_batch_id_fkey"
+            columns: ["pond_batch_id"]
+            isOneToOne: false
             referencedRelation: "pond_batches"
             referencedColumns: ["id"]
           },
@@ -687,6 +708,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "batches"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pond_batches_pond_id_fkey"
+            columns: ["pond_id"]
+            isOneToOne: false
+            referencedRelation: "active_pond_summary"
+            referencedColumns: ["pond_id"]
           },
           {
             foreignKeyName: "pond_batches_pond_id_fkey"
@@ -822,6 +850,13 @@ export type Database = {
             foreignKeyName: "survival_adjustments_pond_batch_id_fkey"
             columns: ["pond_batch_id"]
             isOneToOne: false
+            referencedRelation: "active_pond_summary"
+            referencedColumns: ["pond_batch_id"]
+          },
+          {
+            foreignKeyName: "survival_adjustments_pond_batch_id_fkey"
+            columns: ["pond_batch_id"]
+            isOneToOne: false
             referencedRelation: "pond_batches"
             referencedColumns: ["id"]
           },
@@ -916,9 +951,54 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      active_pond_summary: {
+        Row: {
+          batch_name: string | null
+          current_biomass: number | null
+          current_population: number | null
+          cycle_status: string | null
+          doc: number | null
+          farm_id: string | null
+          latest_biometry_date: string | null
+          latest_weight: number | null
+          pl_quantity: number | null
+          pl_size: number | null
+          pond_area: number | null
+          pond_batch_id: string | null
+          pond_id: string | null
+          pond_name: string | null
+          preparation_cost: number | null
+          stocking_date: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ponds_farm_id_fkey"
+            columns: ["farm_id"]
+            isOneToOne: false
+            referencedRelation: "farms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
+      calculate_feeding_metrics: {
+        Args: { calculation_date?: string; farm_id_param: string }
+        Returns: {
+          batch_name: string
+          current_biomass: number
+          current_population: number
+          daily_feed_kg: number
+          doc: number
+          feed_per_meal_g: number
+          feeding_percentage: number
+          latest_weight: number
+          meals_per_day: number
+          pond_batch_id: string
+          pond_name: string
+          total_consumed_kg: number
+        }[]
+      }
       can_access_profile: {
         Args: { profile_user_id: string }
         Returns: boolean

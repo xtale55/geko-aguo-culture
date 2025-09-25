@@ -10,12 +10,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { Scales, ClockCounterClockwise, Trash, FileText, Calendar, FloppyDisk, CheckCircle, Clock } from '@phosphor-icons/react';
+import { Scales, ClockCounterClockwise, Trash, FileText, Calendar, FloppyDisk, CheckCircle, Clock, ChartLine } from '@phosphor-icons/react';
 import { useToast } from '@/hooks/use-toast';
 import { getCurrentDateForInput, formatDateForDisplay } from '@/lib/utils';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format } from 'date-fns';
+import { GrowthChartModal } from '@/components/GrowthChartModal';
 
 interface PondWithBatch {
   id: string;
@@ -85,6 +86,9 @@ export function BiometryTab() {
   const [batchDate, setBatchDate] = useState<Date | undefined>(new Date());
   const [batchRows, setBatchRows] = useState<BatchBiometryRow[]>([]);
   const [isSavingBatch, setIsSavingBatch] = useState(false);
+  const [showGrowthChart, setShowGrowthChart] = useState(false);
+  const [selectedPondForChart, setSelectedPondForChart] = useState<PondWithBatch | null>(null);
+  const [growthData, setGrowthData] = useState<any[]>([]);
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -269,6 +273,30 @@ export function BiometryTab() {
   const openDeleteDialog = (biometry: BiometryRecord) => {
     setRecordToDelete(biometry);
     setShowDeleteDialog(true);
+  };
+
+  const loadGrowthData = async (pond: PondWithBatch) => {
+    if (!pond.current_batch) return;
+
+    try {
+      const { data: biometryData, error } = await supabase
+        .from('biometrics')
+        .select('measurement_date, average_weight')
+        .eq('pond_batch_id', pond.current_batch.id)
+        .order('measurement_date', { ascending: true });
+
+      if (error) throw error;
+
+      setGrowthData(biometryData || []);
+      setSelectedPondForChart(pond);
+      setShowGrowthChart(true);
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: error.message
+      });
+    }
   };
 
   const handleDeleteRecord = async () => {
@@ -475,9 +503,19 @@ export function BiometryTab() {
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-lg">{pond.name}</CardTitle>
-                  <Badge variant="default" className="bg-success">
-                    DOC {doc}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="default" className="bg-success">
+                      DOC {doc}
+                    </Badge>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => loadGrowthData(pond)}
+                      className="h-6 w-6 p-0 hover:bg-primary/10"
+                    >
+                      <ChartLine className="w-4 h-4 text-primary" />
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -864,6 +902,16 @@ export function BiometryTab() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Growth Chart Modal */}
+      <GrowthChartModal
+        open={showGrowthChart}
+        onOpenChange={setShowGrowthChart}
+        pondName={selectedPondForChart?.name || ''}
+        batchName={selectedPondForChart?.current_batch?.batch_name || ''}
+        doc={selectedPondForChart?.current_batch ? calculateDOC(selectedPondForChart.current_batch.stocking_date) : 0}
+        growthData={growthData}
+      />
     </div>
   );
 }

@@ -1,12 +1,13 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ClockCounterClockwise, PencilSimple, Clock } from '@phosphor-icons/react';
+import { ClockCounterClockwise, PencilSimple, Clock, ChartLine } from '@phosphor-icons/react';
 import { FeedingHistoryDialog } from '@/components/FeedingHistoryDialog';
+import { FeedingChartModal } from '@/components/FeedingChartModal';
 import { FeedingSchedule } from '@/components/FeedingSchedule';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -52,11 +53,56 @@ export function FeedingCard({
   isWeightEstimated = false
 }: FeedingCardProps) {
   const [isHistoryDialogOpen, setIsHistoryDialogOpen] = useState(false);
+  const [isChartModalOpen, setIsChartModalOpen] = useState(false);
   const [isEditRateDialogOpen, setIsEditRateDialogOpen] = useState(false);
   const [newFeedingRate, setNewFeedingRate] = useState<string>("");
   const [newMealsPerDay, setNewMealsPerDay] = useState<string>("");
+  const [feedingData, setFeedingData] = useState<Array<{feeding_date: string, cumulative_feed: number}>>([]);
   const { user } = useAuth();
   const { toast } = useToast();
+
+  // Fetch feeding data for chart
+  useEffect(() => {
+    const fetchFeedingData = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('feeding_records')
+          .select('feeding_date, actual_amount')
+          .eq('pond_batch_id', pondBatchId)
+          .order('feeding_date', { ascending: true });
+
+        if (error) throw error;
+
+        // Calculate cumulative feeding
+        let cumulative = 0;
+        const cumulativeData: {[key: string]: number} = {};
+        
+        data?.forEach(record => {
+          const date = record.feeding_date;
+          const amount = (record.actual_amount || 0) / 1000; // Convert grams to kg
+          
+          if (cumulativeData[date]) {
+            cumulativeData[date] += amount;
+          } else {
+            cumulativeData[date] = (cumulativeData[Object.keys(cumulativeData).pop() || ''] || 0) + amount;
+          }
+        });
+
+        const formattedData = Object.entries(cumulativeData).map(([date, amount]) => ({
+          feeding_date: date,
+          cumulative_feed: amount
+        }));
+
+        setFeedingData(formattedData);
+      } catch (error) {
+        console.error('Error fetching feeding data:', error);
+      }
+    };
+
+    if (pondBatchId) {
+      fetchFeedingData();
+    }
+  }, [pondBatchId]);
 
   const handleEditFeedingRate = () => {
     setNewFeedingRate(feedingRate.toString());
@@ -151,9 +197,19 @@ export function FeedingCard({
               <Badge variant="outline" className="text-xs">
                 {batchName}
               </Badge>
-              <Badge variant="secondary" className="text-xs">
-                DOC {doc}
-              </Badge>
+              <div className="flex items-center gap-1">
+                <Badge variant="secondary" className="text-xs">
+                  DOC {doc}
+                </Badge>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsChartModalOpen(true)}
+                  className="h-6 w-6 p-0 hover:bg-primary/10"
+                >
+                  <ChartLine className="w-3 h-3 text-primary" />
+                </Button>
+              </div>
               {isWeightEstimated && (
                 <Badge variant="outline" className="text-xs text-amber-600 border-amber-300">
                   Peso estimado
@@ -237,6 +293,16 @@ export function FeedingCard({
           pondBatchId={pondBatchId}
           pondName={pondName}
           batchName={batchName}
+        />
+
+        {/* Feeding Chart Modal */}
+        <FeedingChartModal
+          open={isChartModalOpen}
+          onOpenChange={setIsChartModalOpen}
+          pondName={pondName}
+          batchName={batchName}
+          doc={doc}
+          feedingData={feedingData}
         />
 
 

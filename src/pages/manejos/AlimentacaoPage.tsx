@@ -11,7 +11,7 @@ import { Progress } from '@/components/ui/progress';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Clock, Utensils, History, Edit2, Trash2 } from 'lucide-react';
+import { ArrowLeft, Clock, Utensils, History, Edit2, Trash2, ChartLine } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -19,6 +19,7 @@ import { format } from 'date-fns';
 import { getCurrentDateForInput, formatDateForDisplay } from '@/lib/utils';
 import { QuantityUtils } from '@/lib/quantityUtils';
 import { getFeedItemsIncludingMixtures } from '@/lib/feedUtils';
+import { FeedingChartModal } from '@/components/FeedingChartModal';
 
 interface PondWithBatch {
   id: string;
@@ -30,6 +31,8 @@ interface PondWithBatch {
     batch_name: string;
     stocking_date: string;
     current_population: number;
+    current_biomass?: number;
+    average_weight?: number;
     latest_feeding?: {
       feeding_date: string;
       total_daily: number;
@@ -88,6 +91,9 @@ export default function AlimentacaoPage() {
   const [selectedFeedType, setSelectedFeedType] = useState<string>('');
   const [editingRecord, setEditingRecord] = useState<FeedingRecord | null>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [isChartModalOpen, setIsChartModalOpen] = useState(false);
+  const [feedingChartData, setFeedingChartData] = useState<Array<{feeding_date: string, cumulative_feed: number}>>([]);
+  const [selectedPondForChart, setSelectedPondForChart] = useState<PondWithBatch | null>(null);
   
   const [feedingData, setFeedingData] = useState<FeedingData>({
     pond_batch_id: '',
@@ -159,6 +165,7 @@ export default function AlimentacaoPage() {
         for (const pond of formattedPonds) {
           if (pond.current_batch) {
             await loadTodayFeedingSummary(pond);
+            await loadBiomassData(pond);
           }
         }
 
@@ -241,6 +248,29 @@ export default function AlimentacaoPage() {
       };
     } catch (error) {
       console.error('Error loading feeding summary:', error);
+    }
+  };
+
+  const loadBiomassData = async (pond: PondWithBatch) => {
+    if (!pond.current_batch) return;
+
+    try {
+      // Get latest biometry for weight calculation
+      const { data: biometry } = await supabase
+        .from('biometrics')
+        .select('average_weight')
+        .eq('pond_batch_id', pond.current_batch.id)
+        .order('measurement_date', { ascending: false })
+        .limit(1);
+
+      const avgWeight = biometry?.[0]?.average_weight || 1; // Default to 1g if no biometry
+      const biomass = (pond.current_batch.current_population * avgWeight) / 1000; // Convert to kg
+
+      // Update pond with biomass data
+      pond.current_batch.current_biomass = biomass;
+      pond.current_batch.average_weight = avgWeight;
+    } catch (error) {
+      console.error('Error loading biomass data:', error);
     }
   };
 
@@ -422,6 +452,70 @@ export default function AlimentacaoPage() {
     }
 
     setShowDialog(true);
+  };
+
+  const handleOpenChartModal = async (pond: PondWithBatch) => {
+    if (!pond.current_batch) return;
+
+    try {
+      // Fetch feeding data for chart
+      const { data, error } = await supabase
+        .from('feeding_records')
+        .select('feeding_date, actual_amount')
+        .eq('pond_batch_id', pond.current_batch.id)
+        .order('feeding_date', { ascending: true });
+
+      if (error) throw error;
+
+      // Calculate cumulative feeding by date
+      let cumulative = 0;
+      const cumulativeData: {[key: string]: number} = {};
+      
+      data?.forEach(record => {
+        const date = record.feeding_date;
+        const amount = (record.actual_amount || 0) / 1000; // Convert grams to kg
+        
+        if (cumulativeData[date]) {
+          cumulativeData[date] += amount;
+        } else {
+          cumulative += amount;
+          cumulativeData[date] = cumulative;
+        }
+      });
+
+      // Ensure cumulative calculation is correct
+      let runningTotal = 0;
+      const formattedData = Object.entries(cumulativeData)
+        .sort(([a], [b]) => new Date(a).getTime() - new Date(b).getTime())
+        .map(([date, dailyTotal]) => {
+          runningTotal = Object.keys(cumulativeData)
+            .filter(d => d <= date)
+            .reduce((sum, d) => sum + (data?.filter(r => r.feeding_date === d).reduce((daySum, r) => daySum + (r.actual_amount || 0), 0) || 0), 0) / 1000;
+          
+          return {
+            feeding_date: date,
+            cumulative_feed: runningTotal
+          };
+        });
+
+      setFeedingChartData(formattedData);
+      setSelectedPondForChart(pond);
+      setIsChartModalOpen(true);
+    } catch (error) {
+      console.error('Error fetching feeding chart data:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao carregar dados do gráfico",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const calculateDOC = (stockingDate: string) => {
+    const today = new Date();
+    const stocking = new Date(stockingDate);
+    const diffTime = Math.abs(today.getTime() - stocking.getTime());
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   };
 
   const handleSubmitFeeding = async () => {
@@ -814,13 +908,28 @@ export default function AlimentacaoPage() {
                       <CardHeader className="pb-3">
                         <div className="flex items-center justify-between">
                           <CardTitle className="text-lg font-semibold">{pond.name}</CardTitle>
-                          <Badge variant="secondary">
+                          <div className="flex items-center gap-1">
+                            <Badge variant="secondary" className="text-xs">
+                              DOC {pond.current_batch ? calculateDOC(pond.current_batch.stocking_date) : 0}
+                            </Badge>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleOpenChartModal(pond)}
+                              className="h-6 w-6 p-0 hover:bg-primary/10"
+                            >
+                              <ChartLine className="w-3 h-3 text-primary" />
+                            </Button>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 mt-1">
+                          <Badge variant="outline" className="text-xs">
                             {pond.current_batch?.batch_name}
                           </Badge>
                         </div>
                         <div className="text-sm text-muted-foreground space-y-1">
                           <div>População: {pond.current_batch?.current_population?.toLocaleString()} camarões</div>
-                          <div>Área: {pond.area}m²</div>
+                          <div>Biomassa: {pond.current_batch?.current_biomass?.toFixed(1) || '0.0'} kg</div>
                         </div>
                       </CardHeader>
                       
@@ -1075,6 +1184,18 @@ export default function AlimentacaoPage() {
             </DialogContent>
           </Dialog>
         </div>
+
+        {/* Feeding Chart Modal */}
+        {selectedPondForChart && (
+          <FeedingChartModal
+            open={isChartModalOpen}
+            onOpenChange={setIsChartModalOpen}
+            pondName={selectedPondForChart.name}
+            batchName={selectedPondForChart.current_batch?.batch_name || ''}
+            doc={selectedPondForChart.current_batch ? calculateDOC(selectedPondForChart.current_batch.stocking_date) : 0}
+            feedingData={feedingChartData}
+          />
+        )}
       </div>
     </Layout>
   );

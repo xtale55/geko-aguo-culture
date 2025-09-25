@@ -28,10 +28,14 @@ export function GrowthChartModal({
   growthData 
 }: GrowthChartModalProps) {
   
-  // Format data for chart with DOC calculation
-  const chartData = growthData.map((item, index) => {
+  // Sort data chronologically and format for chart with DOC calculation
+  const sortedGrowthData = [...growthData].sort((a, b) => 
+    new Date(a.measurement_date).getTime() - new Date(b.measurement_date).getTime()
+  );
+  
+  const chartData = sortedGrowthData.map((item, index) => {
     const measurementDate = new Date(item.measurement_date);
-    const firstDate = new Date(growthData[0]?.measurement_date);
+    const firstDate = new Date(sortedGrowthData[0]?.measurement_date);
     const docAtMeasurement = Math.ceil((measurementDate.getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24));
     
     return {
@@ -44,9 +48,9 @@ export function GrowthChartModal({
 
   // Calculate growth rate
   const calculateGrowthRate = () => {
-    if (growthData.length < 2) return 0;
-    const firstWeight = growthData[growthData.length - 1].average_weight;
-    const lastWeight = growthData[0].average_weight;
+    if (sortedGrowthData.length < 2) return 0;
+    const firstWeight = sortedGrowthData[0].average_weight;
+    const lastWeight = sortedGrowthData[sortedGrowthData.length - 1].average_weight;
     const weightGain = lastWeight - firstWeight;
     return ((weightGain / firstWeight) * 100);
   };
@@ -189,7 +193,7 @@ export function GrowthChartModal({
                       </tr>
                     </thead>
                     <tbody>
-                      {chartData.reverse().map((item, index) => (
+                      {chartData.map((item, index) => (
                         <tr key={index} className="border-b">
                           <td className="p-2">{item.fullDate}</td>
                           <td className="text-right p-2 font-medium">{item.average_weight}g</td>

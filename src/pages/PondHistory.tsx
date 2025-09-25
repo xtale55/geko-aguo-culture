@@ -20,6 +20,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { useToast } from "@/hooks/use-toast";
 import { QuantityUtils } from "@/lib/quantityUtils";
 import { LoadingScreen } from "@/components/LoadingScreen";
+import { CycleManagementHistory } from "@/components/CycleManagementHistory";
 
 interface CostBreakdown {
   pl_cost: number;
@@ -1444,70 +1445,8 @@ export default function PondHistory() {
                         </div>
                       </div>
                     </AccordionTrigger>
-                    <AccordionContent>
-                      <div className="space-y-4 pt-4">
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                          <div>
-                            <p className="text-muted-foreground">Biomassa</p>
-                            <p className="font-medium">{cycle.biomass.toFixed(1)} kg</p>
-                          </div>
-                          <div>
-                            <p className="text-muted-foreground">Peso Final</p>
-                            <p className="font-medium">{cycle.average_weight.toFixed(1)}g</p>
-                          </div>
-                          <div>
-                            <p className="text-muted-foreground">Crescimento</p>
-                            <p className="font-medium">{cycle.weekly_growth.toFixed(1)}g/sem</p>
-                          </div>
-                          <div>
-                            <p className="text-muted-foreground">FCA Final</p>
-                            <p className="font-medium">{cycle.real_fca.toFixed(2)}</p>
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                          <div>
-                            <p className="text-muted-foreground">População Final</p>
-                            <p className="font-medium">{cycle.current_population.toLocaleString('pt-BR')}</p>
-                          </div>
-                          <div>
-                            <p className="text-muted-foreground">Sobrevivência</p>
-                            <p className="font-medium">{cycle.survival_rate.toFixed(1)}%</p>
-                          </div>
-                          <div>
-                            <p className="text-muted-foreground">Custo/kg</p>
-                            <p className="font-medium">R$ {cycle.cost_per_kg.toFixed(2)}</p>
-                          </div>
-                          <div>
-                            <p className="text-muted-foreground">Resultado</p>
-                            <p className={`font-medium ${cycle.pond_result > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                              R$ {cycle.pond_result.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="bg-muted/50 rounded-lg p-3">
-                          <h5 className="font-medium mb-2 text-sm">Resumo Financeiro</h5>
-                          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
-                            <div>
-                              <p className="text-muted-foreground">Receita</p>
-                              <p className="font-medium text-green-600">
-                                R$ {cycle.estimated_revenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                              </p>
-                            </div>
-                            <div>
-                              <p className="text-muted-foreground">Custo Total</p>
-                              <p className="font-medium text-red-600">
-                                R$ {cycle.costs.total_cost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                              </p>
-                            </div>
-                            <div>
-                              <p className="text-muted-foreground">Produtividade</p>
-                              <p className="font-medium">{cycle.productivity_per_ha.toFixed(1)} kg/ha</p>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
+                     <AccordionContent>
+                      <CycleManagementHistory cycleId={cycle.cycle_id} />
                     </AccordionContent>
                   </AccordionItem>
                 ))}

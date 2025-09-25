@@ -33,6 +33,39 @@ export function GrowthChartModal({
     new Date(a.measurement_date).getTime() - new Date(b.measurement_date).getTime()
   );
   
+  // Calculate exponential trend line (only if 3+ data points)
+  const calculateExponentialTrend = () => {
+    if (sortedGrowthData.length < 3) return [];
+    
+    const n = sortedGrowthData.length;
+    const xValues = sortedGrowthData.map((_, index) => index);
+    const yValues = sortedGrowthData.map(item => Math.log(item.average_weight));
+    
+    // Linear regression on log-transformed data: ln(y) = ln(a) + b*x
+    const sumX = xValues.reduce((sum, x) => sum + x, 0);
+    const sumY = yValues.reduce((sum, y) => sum + y, 0);
+    const sumXY = xValues.reduce((sum, x, i) => sum + x * yValues[i], 0);
+    const sumXX = xValues.reduce((sum, x) => sum + x * x, 0);
+    
+    const b = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+    const lnA = (sumY - b * sumX) / n;
+    const a = Math.exp(lnA);
+    
+    // Generate trend points
+    const trendPoints = [];
+    const extendedLength = Math.min(n + 2, n * 1.2); // Extend slightly beyond data
+    
+    for (let i = 0; i < extendedLength; i++) {
+      const trendWeight = a * Math.exp(b * i);
+      trendPoints.push(trendWeight);
+    }
+    
+    return trendPoints;
+  };
+  
+  const trendValues = calculateExponentialTrend();
+  const showTrendLine = sortedGrowthData.length >= 3;
+  
   const chartData = sortedGrowthData.map((item, index) => {
     const measurementDate = new Date(item.measurement_date);
     const firstDate = new Date(sortedGrowthData[0]?.measurement_date);
@@ -42,9 +75,28 @@ export function GrowthChartModal({
       ...item,
       docAtMeasurement,
       formattedDate: format(measurementDate, 'dd/MM', { locale: ptBR }),
-      fullDate: format(measurementDate, 'dd/MM/yyyy', { locale: ptBR })
+      fullDate: format(measurementDate, 'dd/MM/yyyy', { locale: ptBR }),
+      trend_weight: showTrendLine && index < trendValues.length ? trendValues[index] : null
     };
   });
+  
+  // Add projected trend points if available
+  if (showTrendLine && trendValues.length > sortedGrowthData.length) {
+    for (let i = sortedGrowthData.length; i < trendValues.length; i++) {
+      const baseDate = new Date(sortedGrowthData[0]?.measurement_date);
+      const projectedDate = new Date(baseDate);
+      projectedDate.setDate(baseDate.getDate() + (i * 7)); // Assume weekly measurements
+      
+      chartData.push({
+        measurement_date: projectedDate.toISOString(),
+        average_weight: null,
+        docAtMeasurement: Math.ceil((projectedDate.getTime() - baseDate.getTime()) / (1000 * 60 * 60 * 24)),
+        formattedDate: format(projectedDate, 'dd/MM', { locale: ptBR }),
+        fullDate: format(projectedDate, 'dd/MM/yyyy', { locale: ptBR }),
+        trend_weight: trendValues[i]
+      });
+    }
+  }
 
   // Calculate growth rate
   const calculateGrowthRate = () => {
@@ -110,59 +162,97 @@ export function GrowthChartModal({
             </CardHeader>
             <CardContent>
               {chartData.length > 0 ? (
-                <div className="h-96">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart
-                      data={chartData}
-                      margin={{
-                        top: 20,
-                        right: 30,
-                        left: 20,
-                        bottom: 20,
-                      }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                      <XAxis 
-                        dataKey="formattedDate"
-                        tick={{ fontSize: 12 }}
-                        angle={-45}
-                        textAnchor="end"
-                        height={60}
-                      />
-                      <YAxis 
-                        tick={{ fontSize: 12 }}
-                        label={{ value: 'Peso (g)', angle: -90, position: 'insideLeft' }}
-                      />
-                      <Tooltip
-                        content={({ active, payload, label }) => {
-                          if (active && payload && payload.length) {
-                            const data = payload[0].payload;
-                            return (
-                              <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-3">
-                                <p className="font-medium">{data.fullDate}</p>
-                                <p className="text-primary">
-                                  Peso: {data.average_weight}g
-                                </p>
-                                <p className="text-muted-foreground text-sm">
-                                  DOC: {data.docAtMeasurement} dias
-                                </p>
-                              </div>
-                            );
-                          }
-                          return null;
+                <>
+                  <div className="h-96">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart
+                        data={chartData}
+                        margin={{
+                          top: 20,
+                          right: 30,
+                          left: 20,
+                          bottom: 20,
                         }}
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="average_weight"
-                        stroke="hsl(var(--primary))"
-                        strokeWidth={3}
-                        dot={{ fill: 'hsl(var(--primary))', strokeWidth: 2, r: 6 }}
-                        activeDot={{ r: 8, stroke: 'hsl(var(--primary))', strokeWidth: 2 }}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
+                      >
+                        <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                        <XAxis 
+                          dataKey="formattedDate"
+                          tick={{ fontSize: 12 }}
+                          angle={-45}
+                          textAnchor="end"
+                          height={60}
+                        />
+                        <YAxis 
+                          tick={{ fontSize: 12 }}
+                          label={{ value: 'Peso (g)', angle: -90, position: 'insideLeft' }}
+                        />
+                        <Tooltip
+                          content={({ active, payload, label }) => {
+                            if (active && payload && payload.length) {
+                              const data = payload[0].payload;
+                              return (
+                                <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-3">
+                                  <p className="font-medium">{data.fullDate}</p>
+                                  {data.average_weight && (
+                                    <p className="text-primary">
+                                      Peso Real: {data.average_weight}g
+                                    </p>
+                                  )}
+                                  {data.trend_weight && (
+                                    <p className="text-warning">
+                                      Tendência: {Math.round(data.trend_weight)}g
+                                    </p>
+                                  )}
+                                  <p className="text-muted-foreground text-sm">
+                                    DOC: {data.docAtMeasurement} dias
+                                  </p>
+                                </div>
+                              );
+                            }
+                            return null;
+                          }}
+                        />
+                        <Line
+                          type="monotone"
+                          dataKey="average_weight"
+                          stroke="hsl(var(--primary))"
+                          strokeWidth={3}
+                          dot={{ fill: 'hsl(var(--primary))', strokeWidth: 2, r: 6 }}
+                          activeDot={{ r: 8, stroke: 'hsl(var(--primary))', strokeWidth: 2 }}
+                          connectNulls={false}
+                        />
+                        {showTrendLine && (
+                          <Line
+                            type="monotone"
+                            dataKey="trend_weight"
+                            stroke="hsl(var(--warning))"
+                            strokeWidth={2}
+                            strokeDasharray="5 5"
+                            dot={false}
+                            activeDot={{ r: 6, stroke: 'hsl(var(--warning))', strokeWidth: 2 }}
+                            connectNulls={true}
+                          />
+                        )}
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                  
+                  {/* Legend */}
+                  <div className="flex items-center justify-center gap-6 mt-4 text-sm">
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-0.5 bg-primary rounded"></div>
+                      <span className="text-muted-foreground">Dados Reais</span>
+                    </div>
+                    {showTrendLine && (
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-0.5 bg-warning rounded" style={{ 
+                          backgroundImage: 'repeating-linear-gradient(to right, hsl(var(--warning)) 0, hsl(var(--warning)) 3px, transparent 3px, transparent 6px)' 
+                        }}></div>
+                        <span className="text-muted-foreground">Tendência Exponencial</span>
+                      </div>
+                    )}
+                  </div>
+                </>
               ) : (
                 <div className="h-96 flex items-center justify-center">
                   <div className="text-center">
@@ -196,7 +286,9 @@ export function GrowthChartModal({
                       {chartData.map((item, index) => (
                         <tr key={index} className="border-b">
                           <td className="p-2">{item.fullDate}</td>
-                          <td className="text-right p-2 font-medium">{item.average_weight}g</td>
+                          <td className="text-right p-2 font-medium">
+                            {item.average_weight ? `${item.average_weight}g` : '-'}
+                          </td>
                           <td className="text-right p-2 text-muted-foreground">{item.docAtMeasurement}</td>
                         </tr>
                       ))}

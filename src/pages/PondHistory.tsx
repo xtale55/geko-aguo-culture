@@ -21,6 +21,7 @@ import { useToast } from "@/hooks/use-toast";
 import { QuantityUtils } from "@/lib/quantityUtils";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { CycleManagementHistory } from "@/components/CycleManagementHistory";
+import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 
 interface CostBreakdown {
   pl_cost: number;
@@ -132,10 +133,74 @@ export default function PondHistory() {
   const [editingCost, setEditingCost] = useState<{ cycleId: string, costType: string } | null>(null);
   const [newCostValue, setNewCostValue] = useState<string>("");
   const [editingCycleData, setEditingCycleData] = useState<any>(null);
+  const [growthChartData, setGrowthChartData] = useState<{ measurement_date: string; average_weight: number; }[]>([]);
   const { pondId: cycleId } = useParams(); // Actually receiving cycle_id
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  // Função para calcular tendência exponencial
+  const calculateExponentialTrend = (data: any[]) => {
+    if (data.length < 3) return [];
+    
+    const n = data.length;
+    let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
+    
+    data.forEach((point, index) => {
+      const x = index;
+      const y = Math.log(point.average_weight);
+      sumX += x;
+      sumY += y;
+      sumXY += x * y;
+      sumXX += x * x;
+    });
+    
+    const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+    const intercept = (sumY - slope * sumX) / n;
+    
+    const trendData = [];
+    const extendedLength = Math.min(data.length + 2, data.length + Math.floor(data.length * 0.2));
+    
+    for (let i = 0; i < extendedLength; i++) {
+      const docAtMeasurement = data[0] ? Math.floor((new Date().getTime() - new Date(data[0].measurement_date).getTime()) / (1000 * 60 * 60 * 24)) + (i * 7) : i * 7;
+      const trendWeight = Math.exp(intercept + slope * i);
+      
+      trendData.push({
+        docAtMeasurement,
+        formattedDate: i < data.length ? data[i].formattedDate : `Proj. ${i - data.length + 1}`,
+        trend_weight: trendWeight,
+        average_weight: i < data.length ? data[i].average_weight : null
+      });
+    }
+    
+    return trendData;
+  };
+
+  // Carregar dados de biometria para o ciclo ativo
+  useEffect(() => {
+    const loadGrowthData = async () => {
+      const activeCycle = cycles.find(c => c.status === 'active');
+      if (!activeCycle) return;
+
+      try {
+        const { data: biometryData } = await supabase
+          .from('biometrics')
+          .select('measurement_date, average_weight')
+          .eq('pond_batch_id', activeCycle.cycle_id)
+          .order('measurement_date', { ascending: true });
+
+        if (biometryData && biometryData.length > 0) {
+          setGrowthChartData(biometryData);
+        }
+      } catch (error) {
+        console.error('Erro ao carregar dados de biometria:', error);
+      }
+    };
+
+    if (cycles.length > 0) {
+      loadGrowthData();
+    }
+  }, [cycles]);
 
   const handleDeleteCycle = async (cycleId: string) => {
     try {
@@ -971,10 +1036,131 @@ export default function PondHistory() {
           </Card>
         )}
 
+        {/* Gráfico de Crescimento */}
+        {growthChartData.length >= 3 && (
+          <Card className="mt-6">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <TrendingUp className="w-5 h-5" />
+                Evolução de Crescimento - {cycles.find(c => c.status === 'active')?.batch_name || 'Lote Ativo'}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-80 mb-4">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart
+                    data={(() => {
+                      const sortedData = [...growthChartData].sort((a, b) => 
+                        new Date(a.measurement_date).getTime() - new Date(b.measurement_date).getTime()
+                      );
+
+                      const chartData = sortedData.map((item, index) => {
+                        const activeCycle = cycles.find(c => c.status === 'active');
+                        const stockingDate = activeCycle ? new Date(activeCycle.stocking_date) : new Date();
+                        const measurementDate = new Date(item.measurement_date);
+                        const docAtMeasurement = Math.floor((measurementDate.getTime() - stockingDate.getTime()) / (1000 * 60 * 60 * 24));
+                        
+                        return {
+                          ...item,
+                          docAtMeasurement,
+                          formattedDate: measurementDate.toLocaleDateString('pt-BR', { 
+                            day: '2-digit', 
+                            month: '2-digit' 
+                          })
+                        };
+                      });
+
+                      return calculateExponentialTrend(chartData);
+                    })()}
+                    margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis 
+                      dataKey="formattedDate"
+                      stroke="hsl(var(--muted-foreground))"
+                      fontSize={12}
+                    />
+                    <YAxis 
+                      domain={['dataMin - 1', 'dataMax + 1']}
+                      stroke="hsl(var(--muted-foreground))"
+                      fontSize={12}
+                      label={{ 
+                        value: 'Peso Médio (g)', 
+                        angle: -90, 
+                        position: 'insideLeft',
+                        style: { textAnchor: 'middle' }
+                      }}
+                    />
+                    <Tooltip
+                      content={({ active, payload, label }) => {
+                        if (active && payload && payload.length) {
+                          const data = payload[0].payload;
+                          return (
+                            <div className="bg-background border border-border rounded-lg p-3 shadow-lg">
+                              <p className="font-medium">{label}</p>
+                              <p className="text-sm text-muted-foreground">
+                                DOC: {data.docAtMeasurement} dias
+                              </p>
+                              {data.average_weight && (
+                                <p className="text-sm">
+                                  <span className="inline-block w-3 h-3 bg-primary rounded-full mr-2"></span>
+                                  Peso Real: {data.average_weight.toFixed(1)}g
+                                </p>
+                              )}
+                              {data.trend_weight && (
+                                <p className="text-sm">
+                                  <span className="inline-block w-3 h-3 bg-warning rounded-full mr-2"></span>
+                                  Tendência: {data.trend_weight.toFixed(1)}g
+                                </p>
+                              )}
+                            </div>
+                          );
+                        }
+                        return null;
+                      }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="average_weight"
+                      stroke="hsl(var(--primary))"
+                      strokeWidth={2}
+                      dot={{ fill: 'hsl(var(--primary))', strokeWidth: 2, r: 4 }}
+                      connectNulls={false}
+                      name="Peso Real"
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="trend_weight"
+                      stroke="hsl(var(--warning))"
+                      strokeWidth={2}
+                      strokeDasharray="5 5"
+                      dot={false}
+                      connectNulls={true}
+                      name="Tendência Exponencial"
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+              
+              {/* Legenda */}
+              <div className="flex items-center justify-center gap-6 text-sm text-muted-foreground">
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-0.5 bg-primary"></div>
+                  <span>Dados Reais</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-0.5 bg-warning border-dashed border-t-2 border-warning"></div>
+                  <span>Tendência Exponencial</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Performance Records */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {/* Biometry Records */}
-          <Card className="col-span-1">
+           <Card className="col-span-1">
             <CardHeader className="pb-4">
               <CardTitle className="flex items-center gap-2 text-base">
                 <Scale className="w-4 h-4" />

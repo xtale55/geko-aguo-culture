@@ -882,27 +882,28 @@ export default function AlimentacaoPage() {
                       <CardHeader className="pb-3">
                         <div className="flex items-center justify-between">
                           <CardTitle className="text-lg font-semibold">{pond.name}</CardTitle>
-                          <Badge variant="secondary">
+                          <div className="flex items-center gap-1">
+                            <Badge variant="secondary" className="text-xs">
+                              DOC {pond.current_batch ? calculateDOC(pond.current_batch.stocking_date) : 0}
+                            </Badge>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleOpenChartModal(pond)}
+                              className="h-6 w-6 p-0 hover:bg-primary/10"
+                            >
+                              <ChartLine className="w-3 h-3 text-primary" />
+                            </Button>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 mt-1">
+                          <Badge variant="outline" className="text-xs">
                             {pond.current_batch?.batch_name}
                           </Badge>
                         </div>
                         <div className="text-sm text-muted-foreground space-y-1">
                           <div>População: {pond.current_batch?.current_population?.toLocaleString()} camarões</div>
-                          <div className="flex items-center gap-2">
-                            <span>Área: {pond.area}m²</span>
-                            <span>•</span>
-                            <div className="flex items-center gap-1">
-                              <span>DOC: {pond.current_batch ? calculateDOC(pond.current_batch.stocking_date) : 0} dias</span>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleOpenChartModal(pond)}
-                                className="h-5 w-5 p-0 hover:bg-primary/10"
-                              >
-                                <ChartLine className="w-3 h-3 text-primary" />
-                              </Button>
-                            </div>
-                          </div>
+                          <div>Área: {pond.area}m²</div>
                         </div>
                       </CardHeader>
                       

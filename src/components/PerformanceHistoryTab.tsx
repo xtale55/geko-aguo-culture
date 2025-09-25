@@ -488,14 +488,14 @@ export function PerformanceHistoryTab({ farmIds }: PerformanceHistoryTabProps) {
                           </div>
                           
                           {/* Lista Detalhada de Custos */}
-                          <div className="space-y-3">
-                            <h6 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                              Detalhamento
-                            </h6>
-                            {getCostCompositionData(cycle).map((item, index) => {
-                              const percentage = (item.value / cycle.total_cost * 100).toFixed(1);
-                              return (
-                                <div key={index} className="flex items-center justify-between py-2 border-b border-border/30">
+                           <div className="space-y-2">
+                             <h6 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                               Detalhamento
+                             </h6>
+                             {getCostCompositionData(cycle).map((item, index) => {
+                               const percentage = (item.value / cycle.total_cost * 100).toFixed(1);
+                               return (
+                                 <div key={index} className="flex items-center justify-between py-1 border-b border-border/30">
                                   <div className="flex items-center gap-2">
                                     <div 
                                       className="w-3 h-3 rounded-full" 

@@ -197,6 +197,53 @@ export default function Farm() {
     if (!confirm('Tem certeza que deseja excluir este viveiro?')) return;
 
     try {
+      // Buscar pond_batches relacionados ao viveiro
+      const { data: pondBatches, error: pondBatchesError } = await supabase
+        .from('pond_batches')
+        .select('id, cycle_status')
+        .eq('pond_id', pondId);
+
+      if (pondBatchesError) throw pondBatchesError;
+
+      // Verificar se há ciclos ativos
+      const activeCycles = pondBatches?.filter(pb => pb.cycle_status === 'active') || [];
+      if (activeCycles.length > 0) {
+        toast({
+          variant: "destructive",
+          title: "Não é possível excluir",
+          description: "Este viveiro possui ciclos ativos. Finalize-os antes de excluir o viveiro."
+        });
+        return;
+      }
+
+      if (pondBatches && pondBatches.length > 0) {
+        // Para cada pond_batch, deletar registros relacionados
+        for (const pondBatch of pondBatches) {
+          // 1. Deletar harvest_records (primeira devido à FK constraint)
+          await supabase
+            .from('harvest_records')
+            .delete()
+            .eq('pond_batch_id', pondBatch.id);
+
+          // 2. Deletar outros registros dependentes
+          await Promise.all([
+            supabase.from('biometrics').delete().eq('pond_batch_id', pondBatch.id),
+            supabase.from('feeding_records').delete().eq('pond_batch_id', pondBatch.id),
+            supabase.from('input_applications').delete().eq('pond_batch_id', pondBatch.id),
+            supabase.from('mortality_records').delete().eq('pond_batch_id', pondBatch.id),
+            supabase.from('survival_adjustments').delete().eq('pond_batch_id', pondBatch.id),
+            supabase.from('feeding_rates').delete().eq('pond_batch_id', pondBatch.id)
+          ]);
+        }
+
+        // 3. Deletar pond_batches
+        await supabase
+          .from('pond_batches')
+          .delete()
+          .eq('pond_id', pondId);
+      }
+
+      // 4. Finalmente deletar o pond
       const { error } = await supabase
         .from('ponds')
         .delete()
@@ -206,15 +253,16 @@ export default function Farm() {
 
       toast({
         title: "Viveiro excluído",
-        description: "O viveiro foi removido com sucesso."
+        description: "O viveiro e todos os dados relacionados foram removidos com sucesso."
       });
 
       loadFarmData();
     } catch (error: any) {
+      console.error('Erro ao excluir viveiro:', error);
       toast({
         variant: "destructive",
         title: "Erro",
-        description: error.message
+        description: `Erro ao excluir viveiro: ${error.message}`
       });
     }
   };

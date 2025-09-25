@@ -31,6 +31,8 @@ interface PondWithBatch {
     batch_name: string;
     stocking_date: string;
     current_population: number;
+    current_biomass?: number;
+    average_weight?: number;
     latest_feeding?: {
       feeding_date: string;
       total_daily: number;
@@ -163,6 +165,7 @@ export default function AlimentacaoPage() {
         for (const pond of formattedPonds) {
           if (pond.current_batch) {
             await loadTodayFeedingSummary(pond);
+            await loadBiomassData(pond);
           }
         }
 
@@ -245,6 +248,29 @@ export default function AlimentacaoPage() {
       };
     } catch (error) {
       console.error('Error loading feeding summary:', error);
+    }
+  };
+
+  const loadBiomassData = async (pond: PondWithBatch) => {
+    if (!pond.current_batch) return;
+
+    try {
+      // Get latest biometry for weight calculation
+      const { data: biometry } = await supabase
+        .from('biometrics')
+        .select('average_weight')
+        .eq('pond_batch_id', pond.current_batch.id)
+        .order('measurement_date', { ascending: false })
+        .limit(1);
+
+      const avgWeight = biometry?.[0]?.average_weight || 1; // Default to 1g if no biometry
+      const biomass = (pond.current_batch.current_population * avgWeight) / 1000; // Convert to kg
+
+      // Update pond with biomass data
+      pond.current_batch.current_biomass = biomass;
+      pond.current_batch.average_weight = avgWeight;
+    } catch (error) {
+      console.error('Error loading biomass data:', error);
     }
   };
 
@@ -903,9 +929,7 @@ export default function AlimentacaoPage() {
                         </div>
                         <div className="text-sm text-muted-foreground space-y-1">
                           <div>População: {pond.current_batch?.current_population?.toLocaleString()} camarões</div>
-                          <div>Biomassa: {pond.current_batch?.latest_feeding ? 
-                            ((pond.current_batch.current_population * (pond.current_batch.latest_feeding.planned_total_daily / (pond.current_batch.latest_feeding.feeding_percentage || 1) * 100)) / 1000000).toFixed(1) : 
-                            '0.0'} kg</div>
+                          <div>Biomassa: {pond.current_batch?.current_biomass?.toFixed(1) || '0.0'} kg</div>
                         </div>
                       </CardHeader>
                       

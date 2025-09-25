@@ -40,7 +40,7 @@ export function useFarmsQuery() {
         .eq('user_id', user?.id);
       return result;
     },
-    { staleTime: 10 * 60 * 1000 } // Cache farms longer
+    { staleTime: 30 * 60 * 1000 } // Increased cache time for better performance
   );
 }
 
@@ -77,7 +77,10 @@ export function useActivePondsQuery(farmId?: string) {
         .order('name');
       return result;
     },
-    { enabled: !!farmId }
+    { 
+      enabled: !!farmId,
+      staleTime: 15 * 60 * 1000 // Increased cache time
+    }
   );
 }
 

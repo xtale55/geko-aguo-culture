@@ -454,49 +454,70 @@ export function PerformanceHistoryTab({ farmIds }: PerformanceHistoryTabProps) {
                         </div>
                       </div>
 
-                      {/* Composição de Custos - Gráfico */}
+                      {/* Composição de Custos */}
                       <div className="mt-4">
                         <h5 className="text-sm font-medium mb-3">Composição de Custos</h5>
-                        <div className="h-64">
-                          <ResponsiveContainer width="100%" height="100%">
-                            <PieChart>
-                              <Pie
-                                data={getCostCompositionData(cycle)}
-                                cx="50%"
-                                cy="50%"
-                                innerRadius={40}
-                                outerRadius={80}
-                                paddingAngle={5}
-                                dataKey="value"
-                              >
-                                {getCostCompositionData(cycle).map((entry, index) => (
-                                  <Cell key={`cell-${index}`} fill={entry.color} />
-                                ))}
-                              </Pie>
-                              <Tooltip 
-                                formatter={(value: number) => [`R$ ${value.toFixed(2)}`, '']}
-                                contentStyle={{
-                                  backgroundColor: 'hsl(var(--background))',
-                                  border: '1px solid hsl(var(--border))',
-                                  borderRadius: '6px'
-                                }}
-                              />
-                              <Legend 
-                                verticalAlign="bottom" 
-                                height={36}
-                                formatter={(value, entry) => (
-                                  <span style={{ color: entry.color }}>
-                                    {value}: R$ {entry.payload?.value?.toFixed(2)}
-                                  </span>
-                                )}
-                              />
-                            </PieChart>
-                          </ResponsiveContainer>
-                        </div>
-                        <div className="mt-2 pt-2 border-t">
-                          <div className="flex justify-between font-medium text-sm">
-                            <span>Custo Total:</span>
-                            <span>R$ {cycle.total_cost.toFixed(2)}</span>
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                          {/* Gráfico de Pizza */}
+                          <div className="h-64">
+                            <ResponsiveContainer width="100%" height="100%">
+                              <PieChart>
+                                <Pie
+                                  data={getCostCompositionData(cycle)}
+                                  cx="50%"
+                                  cy="50%"
+                                  innerRadius={40}
+                                  outerRadius={80}
+                                  paddingAngle={5}
+                                  dataKey="value"
+                                >
+                                  {getCostCompositionData(cycle).map((entry, index) => (
+                                    <Cell key={`cell-${index}`} fill={entry.color} />
+                                  ))}
+                                </Pie>
+                                <Tooltip 
+                                  formatter={(value: number) => [`R$ ${value.toFixed(2)}`, '']}
+                                  contentStyle={{
+                                    backgroundColor: 'hsl(var(--background))',
+                                    border: '1px solid hsl(var(--border))',
+                                    borderRadius: '6px'
+                                  }}
+                                />
+                              </PieChart>
+                            </ResponsiveContainer>
+                          </div>
+                          
+                          {/* Lista Detalhada de Custos */}
+                          <div className="space-y-3">
+                            <h6 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                              Detalhamento
+                            </h6>
+                            {getCostCompositionData(cycle).map((item, index) => {
+                              const percentage = (item.value / cycle.total_cost * 100).toFixed(1);
+                              return (
+                                <div key={index} className="flex items-center justify-between py-2 border-b border-border/30">
+                                  <div className="flex items-center gap-2">
+                                    <div 
+                                      className="w-3 h-3 rounded-full" 
+                                      style={{ backgroundColor: item.color }}
+                                    />
+                                    <span className="text-sm text-foreground">{item.name}</span>
+                                  </div>
+                                  <div className="text-right">
+                                    <p className="text-sm font-medium text-foreground">
+                                      R$ {item.value.toFixed(2)}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">{percentage}%</p>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                            <div className="flex items-center justify-between pt-3 border-t border-border font-semibold">
+                              <span className="text-foreground">Total</span>
+                              <span className="text-foreground">
+                                R$ {cycle.total_cost.toFixed(2)}
+                              </span>
+                            </div>
                           </div>
                         </div>
                       </div>

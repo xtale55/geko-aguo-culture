@@ -903,7 +903,9 @@ export default function AlimentacaoPage() {
                         </div>
                         <div className="text-sm text-muted-foreground space-y-1">
                           <div>População: {pond.current_batch?.current_population?.toLocaleString()} camarões</div>
-                          <div>Área: {pond.area}m²</div>
+                          <div>Biomassa: {pond.current_batch?.latest_feeding ? 
+                            ((pond.current_batch.current_population * (pond.current_batch.latest_feeding.planned_total_daily / (pond.current_batch.latest_feeding.feeding_percentage || 1) * 100)) / 1000000).toFixed(1) : 
+                            '0.0'} kg</div>
                         </div>
                       </CardHeader>
                       

@@ -2,10 +2,12 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ChevronDown, ChevronUp, Calendar, TrendingUp, DollarSign, Scale, Activity } from "lucide-react";
+import { ChevronDown, ChevronUp, Calendar, TrendingUp, DollarSign, Scale, Activity, History } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { QuantityUtils } from "@/lib/quantityUtils";
+import { CycleManagementHistory } from "@/components/CycleManagementHistory";
 
 interface HistoricalCycleData {
   pond_batch_id: string;
@@ -54,6 +56,7 @@ export function PerformanceHistoryTab({ farmIds }: PerformanceHistoryTabProps) {
   const [historicalCycles, setHistoricalCycles] = useState<HistoricalCycleData[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
+  const [expandedManagementHistory, setExpandedManagementHistory] = useState<Set<string>>(new Set());
   const { user } = useAuth();
 
   useEffect(() => {
@@ -221,6 +224,16 @@ export function PerformanceHistoryTab({ farmIds }: PerformanceHistoryTabProps) {
       newExpanded.add(cardId);
     }
     setExpandedCards(newExpanded);
+  };
+
+  const toggleManagementHistory = (cardId: string) => {
+    const newExpanded = new Set(expandedManagementHistory);
+    if (newExpanded.has(cardId)) {
+      newExpanded.delete(cardId);
+    } else {
+      newExpanded.add(cardId);
+    }
+    setExpandedManagementHistory(newExpanded);
   };
 
   const getPerformanceBadgeColor = (rating: string) => {
@@ -444,6 +457,31 @@ export function PerformanceHistoryTab({ farmIds }: PerformanceHistoryTabProps) {
                         ))}
                       </div>
                     </div>
+                  </div>
+
+                  {/* Botão para Histórico de Manejos */}
+                  <div className="mt-6 pt-4 border-t">
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleManagementHistory(cycle.pond_batch_id);
+                      }}
+                    >
+                      <History className="h-4 w-4 mr-2" />
+                      {expandedManagementHistory.has(cycle.pond_batch_id) 
+                        ? 'Ocultar Histórico de Manejos' 
+                        : 'Ver Histórico de Manejos'
+                      }
+                    </Button>
+
+                    {/* Histórico de Manejos */}
+                    {expandedManagementHistory.has(cycle.pond_batch_id) && (
+                      <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+                        <CycleManagementHistory cycleId={cycle.pond_batch_id} />
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </CollapsibleContent>

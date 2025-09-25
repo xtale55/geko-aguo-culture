@@ -469,14 +469,7 @@ export default function AlimentacaoPage() {
           return {
             feeding_date: date,
             cumulative_feed: runningTotal
-  };
-
-  const calculateDOC = (stockingDate: string) => {
-    const today = new Date();
-    const stocking = new Date(stockingDate);
-    const diffTime = Math.abs(today.getTime() - stocking.getTime());
-    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  };
+          };
         });
 
       setFeedingChartData(formattedData);
@@ -491,6 +484,12 @@ export default function AlimentacaoPage() {
       });
     }
   };
+
+  const calculateDOC = (stockingDate: string) => {
+    const today = new Date();
+    const stocking = new Date(stockingDate);
+    const diffTime = Math.abs(today.getTime() - stocking.getTime());
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   };
 
   const handleSubmitFeeding = async () => {

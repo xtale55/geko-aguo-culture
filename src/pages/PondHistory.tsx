@@ -13,7 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate, useParams } from "react-router-dom";
 import { 
   ArrowLeft, Calendar, DollarSign, Scale, TrendingUp,
-  Package, Droplets, Skull, Edit2, Trash2, History 
+  Package, Droplets, Skull, Edit2, Trash2, History, ChartLine 
 } from "lucide-react";
 import { Shrimp } from '@phosphor-icons/react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -21,6 +21,7 @@ import { useToast } from "@/hooks/use-toast";
 import { QuantityUtils } from "@/lib/quantityUtils";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { CycleManagementHistory } from "@/components/CycleManagementHistory";
+import { GrowthChartModal } from "@/components/GrowthChartModal";
 
 interface CostBreakdown {
   pl_cost: number;
@@ -132,10 +133,42 @@ export default function PondHistory() {
   const [editingCost, setEditingCost] = useState<{ cycleId: string, costType: string } | null>(null);
   const [newCostValue, setNewCostValue] = useState<string>("");
   const [editingCycleData, setEditingCycleData] = useState<any>(null);
+  const [showGrowthChart, setShowGrowthChart] = useState(false);
+  const [growthChartData, setGrowthChartData] = useState<{ measurement_date: string; average_weight: number; }[]>([]);
+  const [selectedCycleForChart, setSelectedCycleForChart] = useState<PondCycleHistory | null>(null);
   const { pondId: cycleId } = useParams(); // Actually receiving cycle_id
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  const handleShowGrowthChart = async (cycle: PondCycleHistory) => {
+    try {
+      // Buscar dados de biometria para o ciclo ativo
+      const { data: biometryData } = await supabase
+        .from('biometrics')
+        .select('measurement_date, average_weight')
+        .eq('pond_batch_id', cycle.cycle_id)
+        .order('measurement_date', { ascending: true });
+
+      if (biometryData && biometryData.length > 0) {
+        setGrowthChartData(biometryData);
+        setSelectedCycleForChart(cycle);
+        setShowGrowthChart(true);
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Aviso",
+          description: "Nenhum dado de biometria encontrado para este ciclo."
+        });
+      }
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: "Erro ao carregar dados de biometria: " + error.message
+      });
+    }
+  };
 
   const handleDeleteCycle = async (cycleId: string) => {
     try {
@@ -974,12 +1007,30 @@ export default function PondHistory() {
         {/* Performance Records */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {/* Biometry Records */}
-          <Card className="col-span-1">
+           <Card className="col-span-1">
             <CardHeader className="pb-4">
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Scale className="w-4 h-4" />
-                Biometrias Recentes
-              </CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Scale className="w-4 h-4" />
+                  Biometrias Recentes
+                </CardTitle>
+                {biometryRecords.length >= 3 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const activeCycle = cycles.find(c => c.status === 'active');
+                      if (activeCycle) {
+                        handleShowGrowthChart(activeCycle);
+                      }
+                    }}
+                    className="gap-2"
+                  >
+                    <ChartLine className="w-4 h-4" />
+                    Gráfico
+                  </Button>
+                )}
+              </div>
             </CardHeader>
             <CardContent>
               <ScrollArea className="h-80">
@@ -1388,6 +1439,16 @@ export default function PondHistory() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Growth Chart Modal */}
+        <GrowthChartModal
+          open={showGrowthChart}
+          onOpenChange={setShowGrowthChart}
+          pondName={pondName}
+          batchName={selectedCycleForChart?.batch_name || ''}
+          doc={selectedCycleForChart?.doc || 0}
+          growthData={growthChartData}
+        />
 
       </div>
     </Layout>

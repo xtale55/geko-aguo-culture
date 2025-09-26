@@ -77,13 +77,9 @@ interface FeedingData {
 }
 
 export default function AlimentacaoPage() {
-  console.log('🚀 AlimentacaoPage component rendering...');
-  
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
-  
-  console.log('👤 Current user:', user?.id ? 'authenticated' : 'not authenticated');
   
   const [ponds, setPonds] = useState<PondWithBatch[]>([]);
   const [feedingHistory, setFeedingHistory] = useState<FeedingRecord[]>([]);

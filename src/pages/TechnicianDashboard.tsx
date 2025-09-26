@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Building, MapPin, Calendar } from '@phosphor-icons/react';
 import { useTechnicianFarms } from '@/hooks/useTechnicianFarms';
 import { LoadingScreen } from '@/components/LoadingScreen';
-import { Layout } from '@/components/Layout';
+import { TechnicianLayout } from '@/components/TechnicianLayout';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -18,7 +18,7 @@ export default function TechnicianDashboard() {
   }
 
   return (
-    <Layout>
+    <TechnicianLayout>
       <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Dashboard Técnico</h1>
@@ -89,6 +89,6 @@ export default function TechnicianDashboard() {
           })}
         </div>
       </div>
-    </Layout>
+    </TechnicianLayout>
   );
 }

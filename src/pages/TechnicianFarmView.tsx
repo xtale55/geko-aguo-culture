@@ -1,7 +1,7 @@
 import { useParams } from 'react-router-dom';
 import { useTechnicianFarmData } from '@/hooks/useTechnicianFarmData';
 import { useTechnicianActivePonds } from '@/hooks/useTechnicianActivePonds';
-import { Layout } from '@/components/Layout';
+import { TechnicianLayout } from '@/components/TechnicianLayout';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { TechnicianFarmHeader } from '@/components/TechnicianFarmHeader';
 import { FarmMetricsCards } from '@/components/FarmMetricsCards';
@@ -21,16 +21,16 @@ export default function TechnicianFarmView() {
 
   if (!farmData) {
     return (
-      <Layout>
+      <TechnicianLayout>
         <div className="flex items-center justify-center h-96">
           <p className="text-muted-foreground">Fazenda não encontrada</p>
         </div>
-      </Layout>
+      </TechnicianLayout>
     );
   }
 
   return (
-    <Layout>
+    <TechnicianLayout>
       <div className="space-y-6">
         <TechnicianFarmHeader farm={farmData} />
         
@@ -58,6 +58,6 @@ export default function TechnicianFarmView() {
           )}
         </div>
       </div>
-    </Layout>
+    </TechnicianLayout>
   );
 }

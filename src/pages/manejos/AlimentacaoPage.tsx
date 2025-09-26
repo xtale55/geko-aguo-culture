@@ -1150,7 +1150,7 @@ export default function AlimentacaoPage() {
                         <div className="grid grid-cols-1 gap-2">
                           <Button 
                             onClick={() => handleOpenDialog(pond)}
-                            className="w-full"
+                            className="w-full h-12"
                             size="sm"
                           >
                             <Utensils className="w-4 h-4 mr-2" />
@@ -1159,7 +1159,7 @@ export default function AlimentacaoPage() {
                           <Button 
                             onClick={() => handleOpenEvaluationModal(pond)}
                             variant="outline"
-                            className="w-full"
+                            className="w-full h-12"
                             size="sm"
                           >
                             <ClipboardList className="w-4 h-4 mr-2" />

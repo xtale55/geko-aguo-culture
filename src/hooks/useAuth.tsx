@@ -28,7 +28,7 @@ export function useAuth() {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signUp = async (email: string, password: string, fullName: string) => {
+  const signUp = async (email: string, password: string, fullName: string, userType: 'farm_owner' | 'technician' = 'farm_owner') => {
     const redirectUrl = `${window.location.origin}/auth/confirm`;
     
     const { error } = await supabase.auth.signUp({
@@ -37,7 +37,8 @@ export function useAuth() {
       options: {
         emailRedirectTo: redirectUrl,
         data: {
-          full_name: fullName
+          full_name: fullName,
+          user_type: userType
         }
       }
     });

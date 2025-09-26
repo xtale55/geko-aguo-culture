@@ -233,25 +233,25 @@ export function TechnicianDashboardContent() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[
               {
-                path: '/tecnico/alimentacao',
+                path: '/manejos/alimentacao',
                 icon: ForkKnife,
                 label: 'Registrar Alimentação',
                 color: 'from-orange-500 to-red-500'
               },
               {
-                path: '/tecnico/biometria',
+                path: '/manejos/biometria',
                 icon: Scales,
                 label: 'Nova Biometria',
                 color: 'from-blue-500 to-purple-500'
               },
               {
-                path: '/tecnico/agua',
+                path: '/manejos/agua',
                 icon: Drop,
                 label: 'Análise de Água',
                 color: 'from-cyan-500 to-blue-500'
               },
               {
-                path: '/tecnico/mortalidade',
+                path: '/manejos/mortalidade',
                 icon: Skull,
                 label: 'Registrar Mortalidade',
                 color: 'from-red-500 to-pink-500'

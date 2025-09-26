@@ -109,6 +109,54 @@ export type Database = {
           },
         ]
       }
+      farm_employees: {
+        Row: {
+          created_at: string
+          department: string
+          email: string | null
+          farm_id: string
+          hire_date: string
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          role: string
+          salary: number | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          department?: string
+          email?: string | null
+          farm_id: string
+          hire_date?: string
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          role: string
+          salary?: number | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          department?: string
+          email?: string | null
+          farm_id?: string
+          hire_date?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          role?: string
+          salary?: number | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       farms: {
         Row: {
           created_at: string | null
@@ -508,6 +556,42 @@ export type Database = {
         }
         Relationships: []
       }
+      invitations: {
+        Row: {
+          created_at: string
+          email: string
+          expires_at: string
+          farm_id: string
+          id: string
+          invited_by: string
+          role: Database["public"]["Enums"]["app_role"]
+          status: string
+          token: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          expires_at?: string
+          farm_id: string
+          id?: string
+          invited_by: string
+          role: Database["public"]["Enums"]["app_role"]
+          status?: string
+          token: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          expires_at?: string
+          farm_id?: string
+          id?: string
+          invited_by?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          status?: string
+          token?: string
+        }
+        Relationships: []
+      }
       mixture_ingredients: {
         Row: {
           created_at: string
@@ -646,6 +730,42 @@ export type Database = {
           id?: string
           pond_batch_id?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      organization_members: {
+        Row: {
+          created_at: string
+          farm_id: string
+          id: string
+          invited_by: string | null
+          joined_at: string
+          role: Database["public"]["Enums"]["app_role"]
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          farm_id: string
+          id?: string
+          invited_by?: string | null
+          joined_at?: string
+          role: Database["public"]["Enums"]["app_role"]
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          farm_id?: string
+          id?: string
+          invited_by?: string | null
+          joined_at?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          status?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -1003,6 +1123,10 @@ export type Database = {
         Args: { profile_user_id: string }
         Returns: boolean
       }
+      delete_user_by_email: {
+        Args: { user_email: string }
+        Returns: string
+      }
       get_feed_items_optimized: {
         Args: { farm_id_param: string }
         Returns: {
@@ -1013,13 +1137,25 @@ export type Database = {
           unit_price: number
         }[]
       }
+      get_user_role_in_farm: {
+        Args: { farm_id_param: string; user_id_param: string }
+        Returns: Database["public"]["Enums"]["app_role"]
+      }
+      process_invitation: {
+        Args: { invitation_token: string }
+        Returns: {
+          farm_id: string
+          farm_name: string
+          role: Database["public"]["Enums"]["app_role"]
+        }[]
+      }
       sanitize_phone: {
         Args: { phone_input: string }
         Returns: string
       }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "tecnico" | "operador"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1146,6 +1282,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "tecnico", "operador"],
+    },
   },
 } as const

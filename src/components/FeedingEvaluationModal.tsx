@@ -44,24 +44,16 @@ const consumptionOptions = [
     bgColor: 'bg-blue-50 border-blue-200',
   },
   {
-    value: 'partial_consumption',
-    label: 'Consumo Parcial',
-    description: 'Consumiram cerca de 50-80% da ração oferecida',
-    icon: TrendingDown,
-    color: 'text-yellow-600',
-    bgColor: 'bg-yellow-50 border-yellow-200',
-  },
-  {
     value: 'excess_leftover',
-    label: 'Muita Sobra',
-    description: 'Sobrou mais de 20% da ração oferecida',
+    label: 'Sobrou Bastante',
+    description: 'Sobrou uma quantidade considerável (mais de 15%)',
     icon: XCircle,
     color: 'text-orange-600',
     bgColor: 'bg-orange-50 border-orange-200',
   },
   {
     value: 'no_consumption',
-    label: 'Não Consumiu',
+    label: 'Não Comeu',
     description: 'Animais não se alimentaram ou consumo insignificante',
     icon: AlertTriangle,
     color: 'text-red-600',
@@ -89,8 +81,7 @@ export function FeedingEvaluationModal({
     const percentageMap: Record<string, number> = {
       'consumed_all': 0,
       'left_little': 5,
-      'partial_consumption': 30,
-      'excess_leftover': 25,
+      'excess_leftover': 20,
       'no_consumption': 100,
     };
     

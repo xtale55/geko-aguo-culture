@@ -17,7 +17,8 @@ import {
   Package, 
   ChartBar,
   SignOut,
-  ArrowLeft 
+  ArrowLeft,
+  Farm
 } from '@phosphor-icons/react';
 import { NavLink, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
@@ -74,8 +75,8 @@ export function TechnicianSidebar() {
                     to="/" 
                     className={({ isActive }) => isActive && !isFarmContext ? 'bg-accent' : ''}
                   >
-                    <House className="mr-2 h-4 w-4" />
-                    Dashboard
+                    <Farm className="mr-2 h-4 w-4" />
+                    Fazendas
                   </NavLink>
                 </SidebarMenuButton>
               </SidebarMenuItem>

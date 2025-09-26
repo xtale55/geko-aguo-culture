@@ -22,8 +22,7 @@ import { cn } from "@/lib/utils";
 
 const employeeSchema = z.object({
   name: z.string().min(1, "Nome é obrigatório"),
-  role: z.string().min(1, "Cargo é obrigatório"),
-  department: z.string().min(1, "Departamento é obrigatório"),
+  role: z.enum(["Operador", "Técnico"], { required_error: "Tipo de funcionário é obrigatório" }),
   phone: z.string().optional(),
   email: z.string().email("Email inválido").optional().or(z.literal("")),
   hire_date: z.date(),
@@ -62,8 +61,7 @@ export function FarmEmployees({ farmId }: FarmEmployeesProps) {
     resolver: zodResolver(employeeSchema),
     defaultValues: {
       name: "",
-      role: "",
-      department: "produção",
+      role: "Operador",
       phone: "",
       email: "",
       hire_date: new Date(),
@@ -96,7 +94,7 @@ export function FarmEmployees({ farmId }: FarmEmployeesProps) {
         .insert({
           name: employeeData.name,
           role: employeeData.role,
-          department: employeeData.department,
+          department: "produção", // Default value for database compatibility
           farm_id: farmId,
           hire_date: employeeData.hire_date.toISOString().split('T')[0],
           status: employeeData.status,
@@ -137,7 +135,7 @@ export function FarmEmployees({ farmId }: FarmEmployeesProps) {
         .update({
           name: employeeData.name,
           role: employeeData.role,
-          department: employeeData.department,
+          department: "produção", // Default value for database compatibility
           hire_date: employeeData.hire_date.toISOString().split('T')[0],
           status: employeeData.status,
           email: employeeData.email || null,
@@ -209,8 +207,7 @@ export function FarmEmployees({ farmId }: FarmEmployeesProps) {
     setEditingEmployee(employee);
     form.reset({
       name: employee.name,
-      role: employee.role,
-      department: employee.department,
+      role: employee.role as "Operador" | "Técnico",
       phone: employee.phone || "",
       email: employee.email || "",
       hire_date: new Date(employee.hire_date),
@@ -228,10 +225,8 @@ export function FarmEmployees({ farmId }: FarmEmployeesProps) {
   };
 
   const activeEmployees = employees.filter(emp => emp.status === "ativo");
-  const departmentCounts = employees.reduce((acc, emp) => {
-    acc[emp.department] = (acc[emp.department] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
+  const operatorCount = employees.filter(emp => emp.role === "Operador").length;
+  const technicianCount = employees.filter(emp => emp.role === "Técnico").length;
 
   if (isLoading) {
     return <div>Carregando funcionários...</div>;
@@ -240,7 +235,7 @@ export function FarmEmployees({ farmId }: FarmEmployeesProps) {
   return (
     <div className="space-y-6">
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total de Funcionários</CardTitle>
@@ -263,11 +258,21 @@ export function FarmEmployees({ farmId }: FarmEmployeesProps) {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Departamentos</CardTitle>
+            <CardTitle className="text-sm font-medium">Operadores</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{Object.keys(departmentCounts).length}</div>
+            <div className="text-2xl font-bold">{operatorCount}</div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Técnicos</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{technicianCount}</div>
           </CardContent>
         </Card>
       </div>
@@ -309,33 +314,16 @@ export function FarmEmployees({ farmId }: FarmEmployeesProps) {
                   name="role"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Cargo</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="department"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Departamento</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormLabel>Tipo de Funcionário</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="produção">Produção</SelectItem>
-                          <SelectItem value="técnico">Técnico</SelectItem>
-                          <SelectItem value="administrativo">Administrativo</SelectItem>
-                          <SelectItem value="manutenção">Manutenção</SelectItem>
-                          <SelectItem value="qualidade">Qualidade</SelectItem>
+                          <SelectItem value="Operador">Operador</SelectItem>
+                          <SelectItem value="Técnico">Técnico</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -517,8 +505,8 @@ export function FarmEmployees({ farmId }: FarmEmployeesProps) {
               <CardContent className="pt-0">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                   <div>
-                    <p className="font-medium">Departamento</p>
-                    <p className="text-muted-foreground">{employee.department}</p>
+                    <p className="font-medium">Tipo</p>
+                    <p className="text-muted-foreground">{employee.role}</p>
                   </div>
                   {employee.phone && (
                     <div>

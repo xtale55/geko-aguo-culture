@@ -11,7 +11,7 @@ import { Progress } from '@/components/ui/progress';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Clock, Utensils, History, Edit2, Trash2, ChartLine } from 'lucide-react';
+import { ArrowLeft, Clock, Utensils, History, Edit2, Trash2, ChartLine, ClipboardList } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -21,6 +21,7 @@ import { QuantityUtils } from '@/lib/quantityUtils';
 import { getFeedItemsIncludingMixtures } from '@/lib/feedUtils';
 import { FeedingChartModal } from '@/components/FeedingChartModal';
 import { FeedingEvaluationNotifications } from '@/components/FeedingEvaluationNotifications';
+import { FeedingEvaluationModal } from '@/components/FeedingEvaluationModal';
 
 interface PondWithBatch {
   id: string;
@@ -97,6 +98,9 @@ export default function AlimentacaoPage() {
   const [isChartModalOpen, setIsChartModalOpen] = useState(false);
   const [feedingChartData, setFeedingChartData] = useState<Array<{feeding_date: string, cumulative_feed: number}>>([]);
   const [selectedPondForChart, setSelectedPondForChart] = useState<PondWithBatch | null>(null);
+  const [isEvaluationModalOpen, setIsEvaluationModalOpen] = useState(false);
+  const [latestFeedingRecord, setLatestFeedingRecord] = useState<any>(null);
+  const [selectedPondForEvaluation, setSelectedPondForEvaluation] = useState<PondWithBatch | null>(null);
   
   const [feedingData, setFeedingData] = useState<FeedingData>({
     pond_batch_id: '',
@@ -533,6 +537,54 @@ export default function AlimentacaoPage() {
         variant: "destructive"
       });
     }
+  };
+
+  const handleOpenEvaluationModal = async (pond: PondWithBatch) => {
+    if (!pond.current_batch) return;
+
+    try {
+      // Fetch the latest feeding record for this pond batch
+      const { data, error } = await supabase
+        .from('feeding_records')
+        .select('*')
+        .eq('pond_batch_id', pond.current_batch.id)
+        .order('feeding_date', { ascending: false })
+        .order('feeding_time', { ascending: false })
+        .limit(1);
+
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+        setLatestFeedingRecord({
+          ...data[0],
+          pond_name: pond.name,
+          batch_name: pond.current_batch.batch_name
+        });
+        setSelectedPondForEvaluation(pond);
+        setIsEvaluationModalOpen(true);
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Aviso",
+          description: "Nenhum registro de alimentação encontrado para avaliar"
+        });
+      }
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: error.message
+      });
+    }
+  };
+
+  const handleEvaluationComplete = () => {
+    setIsEvaluationModalOpen(false);
+    setLatestFeedingRecord(null);
+    setSelectedPondForEvaluation(null);
+    // Refresh data
+    loadActivePonds();
+    loadFeedingHistory();
   };
 
   const calculateDOC = (stockingDate: string) => {
@@ -1053,14 +1105,25 @@ export default function AlimentacaoPage() {
                           </div>
                         )}
                         
-                        <Button 
-                          onClick={() => handleOpenDialog(pond)}
-                          className="w-full"
-                          size="sm"
-                        >
-                          <Utensils className="w-4 h-4 mr-2" />
-                          Registrar Alimentação
-                        </Button>
+                        <div className="grid grid-cols-1 gap-2">
+                          <Button 
+                            onClick={() => handleOpenDialog(pond)}
+                            className="w-full"
+                            size="sm"
+                          >
+                            <Utensils className="w-4 h-4 mr-2" />
+                            Registrar Alimentação
+                          </Button>
+                          <Button 
+                            onClick={() => handleOpenEvaluationModal(pond)}
+                            variant="outline"
+                            className="w-full"
+                            size="sm"
+                          >
+                            <ClipboardList className="w-4 h-4 mr-2" />
+                            Avaliar Consumo
+                          </Button>
+                        </div>
                       </CardContent>
                     </Card>
                   ))}
@@ -1274,6 +1337,16 @@ export default function AlimentacaoPage() {
             batchName={selectedPondForChart.current_batch?.batch_name || ''}
             doc={selectedPondForChart.current_batch ? calculateDOC(selectedPondForChart.current_batch.stocking_date) : 0}
             feedingData={feedingChartData}
+          />
+        )}
+
+        {/* Feeding Evaluation Modal */}
+        {latestFeedingRecord && (
+          <FeedingEvaluationModal
+            open={isEvaluationModalOpen}
+            onOpenChange={setIsEvaluationModalOpen}
+            feedingRecord={latestFeedingRecord}
+            onEvaluationComplete={handleEvaluationComplete}
           />
         )}
       </div>

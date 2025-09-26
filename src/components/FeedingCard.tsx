@@ -5,10 +5,11 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ClockCounterClockwise, PencilSimple, Clock, ChartLine, TrendUp } from '@phosphor-icons/react';
+import { ClockCounterClockwise, PencilSimple, Clock, ChartLine, TrendUp, ClipboardText } from '@phosphor-icons/react';
 import { FeedingHistoryDialog } from '@/components/FeedingHistoryDialog';
 import { FeedingChartModal } from '@/components/FeedingChartModal';
 import { FeedingAdjustmentChartModal } from '@/components/FeedingAdjustmentChartModal';
+import { FeedingEvaluationModal } from '@/components/FeedingEvaluationModal';
 import { FeedingSchedule } from '@/components/FeedingSchedule';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -57,9 +58,11 @@ export function FeedingCard({
   const [isChartModalOpen, setIsChartModalOpen] = useState(false);
   const [isAdjustmentChartOpen, setIsAdjustmentChartOpen] = useState(false);
   const [isEditRateDialogOpen, setIsEditRateDialogOpen] = useState(false);
+  const [isEvaluationModalOpen, setIsEvaluationModalOpen] = useState(false);
   const [newFeedingRate, setNewFeedingRate] = useState<string>("");
   const [newMealsPerDay, setNewMealsPerDay] = useState<string>("");
   const [feedingData, setFeedingData] = useState<Array<{feeding_date: string, cumulative_feed: number}>>([]);
+  const [latestFeedingRecord, setLatestFeedingRecord] = useState<any>(null);
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -188,6 +191,48 @@ export function FeedingCard({
     }
   };
 
+  const handleOpenEvaluationModal = async () => {
+    try {
+      // Fetch the latest feeding record for this pond batch
+      const { data, error } = await supabase
+        .from('feeding_records')
+        .select('*')
+        .eq('pond_batch_id', pondBatchId)
+        .order('feeding_date', { ascending: false })
+        .order('feeding_time', { ascending: false })
+        .limit(1);
+
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+        setLatestFeedingRecord({
+          ...data[0],
+          pond_name: pondName,
+          batch_name: batchName
+        });
+        setIsEvaluationModalOpen(true);
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Aviso",
+          description: "Nenhum registro de alimentação encontrado para avaliar"
+        });
+      }
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: error.message
+      });
+    }
+  };
+
+  const handleEvaluationComplete = () => {
+    setIsEvaluationModalOpen(false);
+    setLatestFeedingRecord(null);
+    onFeedingUpdate(); // Refresh data
+  };
+
   return (
     <Card className="relative overflow-hidden bg-gradient-to-br from-white via-blue-50/30 to-emerald-50/20 border border-slate-200 hover:border-primary/30 transition-all duration-300 hover:shadow-lg">
       {/* Header */}
@@ -280,6 +325,15 @@ export function FeedingCard({
         {/* Action Buttons */}
         <div className="grid grid-cols-1 gap-2 mt-4">
           <Button
+            variant="default"
+            size="default"
+            onClick={handleOpenEvaluationModal}
+            className="w-full bg-primary hover:bg-primary/90"
+          >
+            <ClipboardText className="w-4 h-4 mr-2" />
+            Avaliar Consumo
+          </Button>
+          <Button
             variant="outline"
             size="default"
             onClick={() => setIsHistoryDialogOpen(true)}
@@ -330,6 +384,15 @@ export function FeedingCard({
           mealsPerDay={mealsPerDay}
         />
 
+        {/* Feeding Evaluation Modal */}
+        {latestFeedingRecord && (
+          <FeedingEvaluationModal
+            open={isEvaluationModalOpen}
+            onOpenChange={setIsEvaluationModalOpen}
+            feedingRecord={latestFeedingRecord}
+            onEvaluationComplete={handleEvaluationComplete}
+          />
+        )}
 
         {/* Edit Rate Dialog */}
         <Dialog open={isEditRateDialogOpen} onOpenChange={setIsEditRateDialogOpen}>

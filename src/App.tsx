@@ -24,6 +24,7 @@ import Reports from "./pages/Reports";
 import Financial from "./pages/Financial";
 import PondHistory from "./pages/PondHistory";
 import OperationalCostsPage from "./pages/OperationalCosts";
+import TechnicianFarmView from "./pages/TechnicianFarmView";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -56,6 +57,15 @@ const App = () => (
           <Route path="/financial" element={<Financial />} />
           <Route path="/operational-costs" element={<OperationalCostsPage />} />
           <Route path="/pond-history/:pondId" element={<PondHistory />} />
+          
+          {/* Rotas do Técnico */}
+          <Route path="/technician/farm/:farmId" element={<TechnicianFarmView />} />
+          <Route path="/technician/farm/:farmId/feeding" element={<Feeding />} />
+          <Route path="/technician/farm/:farmId/reports" element={<Reports />} />
+          <Route path="/technician/farm/:farmId/stocking" element={<Stocking />} />
+          <Route path="/technician/farm/:farmId/manejos" element={<Manejos />} />
+          <Route path="/technician/farm/:farmId/inventory" element={<Inventory />} />
+          
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

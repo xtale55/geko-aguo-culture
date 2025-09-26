@@ -10,11 +10,45 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 export default function TechnicianDashboard() {
-  const { data: technicianFarms, isLoading } = useTechnicianFarms();
+  const { data: technicianFarms, isLoading, error } = useTechnicianFarms();
   const navigate = useNavigate();
+
+  // Debug logs
+  console.log('🔍 TechnicianDashboard - Debug info:', {
+    isLoading,
+    error,
+    technicianFarms,
+    farmCount: technicianFarms?.length
+  });
 
   if (isLoading) {
     return <LoadingScreen />;
+  }
+
+  if (error) {
+    console.error('❌ TechnicianDashboard - Error:', error);
+    return (
+      <TechnicianLayout>
+        <div className="space-y-6">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Dashboard Técnico</h1>
+            <p className="text-muted-foreground">Gerencie as fazendas onde você atua como técnico</p>
+          </div>
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-12">
+              <Building className="h-12 w-12 text-destructive mb-4" />
+              <h3 className="text-lg font-semibold mb-2">Erro ao carregar fazendas</h3>
+              <p className="text-muted-foreground text-center mb-4">
+                Ocorreu um erro ao buscar suas fazendas: {error?.message || 'Erro desconhecido'}
+              </p>
+              <Button onClick={() => window.location.reload()}>
+                Tentar novamente
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </TechnicianLayout>
+    );
   }
 
   return (

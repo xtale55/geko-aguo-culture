@@ -155,15 +155,7 @@ export type Database = {
           status?: string
           updated_at?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "farm_employees_farm_id_fkey"
-            columns: ["farm_id"]
-            isOneToOne: false
-            referencedRelation: "farms"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       farms: {
         Row: {
@@ -902,7 +894,6 @@ export type Database = {
           phone: string | null
           updated_at: string | null
           user_id: string
-          user_type: Database["public"]["Enums"]["user_type"]
         }
         Insert: {
           created_at?: string | null
@@ -911,7 +902,6 @@ export type Database = {
           phone?: string | null
           updated_at?: string | null
           user_id: string
-          user_type?: Database["public"]["Enums"]["user_type"]
         }
         Update: {
           created_at?: string | null
@@ -920,7 +910,6 @@ export type Database = {
           phone?: string | null
           updated_at?: string | null
           user_id?: string
-          user_type?: Database["public"]["Enums"]["user_type"]
         }
         Relationships: []
       }
@@ -1167,7 +1156,6 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "tecnico" | "operador"
-      user_type: "farm_owner" | "technician"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1296,7 +1284,6 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "tecnico", "operador"],
-      user_type: ["farm_owner", "technician"],
     },
   },
 } as const

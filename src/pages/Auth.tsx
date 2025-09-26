@@ -10,7 +10,6 @@ import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { PasswordStrengthIndicator } from '@/components/auth/PasswordStrengthIndicator';
 import { ForgotPasswordModal } from '@/components/auth/ForgotPasswordModal';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Waves, Shrimp, Eye, EyeSlash } from '@phosphor-icons/react';
 export default function Auth() {
   const [isLoading, setIsLoading] = useState(false);
@@ -18,7 +17,6 @@ export default function Auth() {
   const [showSignupPassword, setShowSignupPassword] = useState(false);
   const [signupPassword, setSignupPassword] = useState('');
   const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
-  const [userType, setUserType] = useState<'farm_owner' | 'technician'>('farm_owner');
   const {
     signIn,
     signUp
@@ -56,7 +54,7 @@ export default function Auth() {
     const fullName = formData.get('fullName') as string;
     const {
       error
-    } = await signUp(email, password, fullName, userType);
+    } = await signUp(email, password, fullName);
     if (error) {
       toast({
         variant: "destructive",
@@ -143,25 +141,6 @@ export default function Auth() {
                   </div>
                   <PasswordStrengthIndicator password={signupPassword} />
                 </div>
-                
-                <div className="space-y-3">
-                  <Label>Tipo de Conta</Label>
-                  <RadioGroup value={userType} onValueChange={(value) => setUserType(value as 'farm_owner' | 'technician')} className="flex flex-col space-y-2">
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="farm_owner" id="farm_owner" />
-                      <Label htmlFor="farm_owner" className="text-sm font-normal">
-                        Proprietário de Fazenda
-                      </Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="technician" id="technician" />
-                      <Label htmlFor="technician" className="text-sm font-normal">
-                        Técnico
-                      </Label>
-                    </div>
-                  </RadioGroup>
-                </div>
-                
                 <Button type="submit" className="w-full bg-gradient-to-r from-accent to-accent-hover hover:from-accent-hover hover:to-accent" disabled={isLoading}>
                   {isLoading ? <Waves className="w-4 h-4 animate-pulse" /> : 'Criar Conta'}
                 </Button>

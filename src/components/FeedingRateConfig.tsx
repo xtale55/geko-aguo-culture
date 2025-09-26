@@ -5,11 +5,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
-import { Settings, Edit2, Plus } from 'lucide-react';
+import { Settings, Edit2, Plus, Brain } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { getFeedItemsIncludingMixtures } from '@/lib/feedUtils';
+import { FeedingSensitivityConfig } from './FeedingSensitivityConfig';
 
 interface FeedingRate {
   id?: string;
@@ -237,11 +239,32 @@ export function FeedingRateConfig({ farmId, onRateUpdate }: FeedingRateConfigPro
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <Settings className="w-4 h-4" />
-              Padrões da Fazenda
-            </CardTitle>
+        <div className="flex items-center space-x-2">
+          <Settings className="h-5 w-5 text-primary" />
+          <CardTitle>Configurações de Alimentação</CardTitle>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <Tabs defaultValue="rates" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="rates" className="flex items-center space-x-2">
+              <Settings className="h-4 w-4" />
+              <span>Taxas de Alimentação</span>
+            </TabsTrigger>
+            <TabsTrigger value="sensitivity" className="flex items-center space-x-2">
+              <Brain className="h-4 w-4" />
+              <span>Sensibilidade Automática</span>
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="rates" className="mt-6">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <Settings className="w-4 h-4" />
+                    Padrões da Fazenda
+                  </CardTitle>
           <Dialog>
             <DialogTrigger asChild>
               <Button variant="outline" size="sm" onClick={handleCreateRate}>
@@ -345,8 +368,8 @@ export function FeedingRateConfig({ farmId, onRateUpdate }: FeedingRateConfigPro
             </DialogContent>
           </Dialog>
         </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
+              </CardHeader>
+              <CardContent className="space-y-4">
         {/* Description */}
         <div className="bg-muted/50 rounded-lg p-3">
           <p className="text-sm text-muted-foreground">
@@ -472,6 +495,14 @@ export function FeedingRateConfig({ farmId, onRateUpdate }: FeedingRateConfigPro
             </div>
           </div>
         )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="sensitivity" className="mt-6">
+            <FeedingSensitivityConfig farmId={farmId} />
+          </TabsContent>
+        </Tabs>
       </CardContent>
     </Card>
   );

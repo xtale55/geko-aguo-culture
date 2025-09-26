@@ -102,13 +102,20 @@ export function FarmEmployees({ farmId }: FarmEmployeesProps) {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["farm-employees", farmId] });
       setIsDialogOpen(false);
       form.reset();
+      
+      let description = "Funcionário adicionado com sucesso!";
+      if (variables.role === "Técnico" && variables.email) {
+        description += " IMPORTANTE: O técnico deve fazer login usando exatamente este email: " + variables.email;
+      }
+      
       toast({
         title: "Sucesso",
-        description: "Funcionário adicionado com sucesso!",
+        description,
+        duration: 8000, // Mensagem mais longa para técnicos
       });
     },
     onError: (error) => {
@@ -344,6 +351,11 @@ export function FarmEmployees({ farmId }: FarmEmployeesProps) {
                         <FormControl>
                           <Input {...field} type="email" />
                         </FormControl>
+                        {form.watch("role") === "Técnico" && (
+                          <p className="text-xs text-muted-foreground">
+                            ⚠️ O técnico deve ter uma conta com este email exato para acessar o sistema
+                          </p>
+                        )}
                         <FormMessage />
                       </FormItem>
                     )}

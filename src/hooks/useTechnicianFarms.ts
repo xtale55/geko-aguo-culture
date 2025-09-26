@@ -10,25 +10,34 @@ export function useTechnicianFarms() {
     queryFn: async () => {
       if (!user?.email) return [];
 
-      const { data, error } = await supabase
+      // First get farm_employees for this technician
+      const { data: employeeData, error: employeeError } = await supabase
         .from('farm_employees')
-        .select(`
-          farm_id,
-          role,
-          farms!farm_employees_farm_id_fkey (
-            id,
-            name,
-            location,
-            total_area,
-            created_at
-          )
-        `)
+        .select('farm_id, role')
         .eq('email', user.email)
         .eq('role', 'Técnico')
         .eq('status', 'ativo');
 
-      if (error) throw error;
-      return data;
+      if (employeeError) throw employeeError;
+      if (!employeeData || employeeData.length === 0) return [];
+
+      // Get farm IDs
+      const farmIds = employeeData.map(emp => emp.farm_id);
+
+      // Then get farm details
+      const { data: farmsData, error: farmsError } = await supabase
+        .from('farms')
+        .select('id, name, location, total_area, created_at')
+        .in('id', farmIds);
+
+      if (farmsError) throw farmsError;
+
+      // Combine the data
+      return employeeData.map(emp => ({
+        farm_id: emp.farm_id,
+        role: emp.role,
+        farms: farmsData?.find(farm => farm.id === emp.farm_id) || null
+      }));
     },
     enabled: !!user?.email,
   });

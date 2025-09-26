@@ -62,7 +62,8 @@ export function FeedingAdjustmentChartModal({
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
       const startDate = thirtyDaysAgo.toISOString().split('T')[0];
 
-      const { data: feedingRecords, error } = await supabase
+      // Buscar registros de alimentação
+      const { data: feedingRecords, error: feedingError } = await supabase
         .from('feeding_records')
         .select(`
           feeding_date,
@@ -71,20 +72,122 @@ export function FeedingAdjustmentChartModal({
           actual_amount,
           consumption_evaluation,
           adjustment_reason,
-          next_feeding_adjustment
+          next_feeding_adjustment,
+          feeding_rate_percentage
         `)
         .eq('pond_batch_id', pondBatchId)
         .gte('feeding_date', startDate)
         .order('feeding_date', { ascending: true })
         .order('feeding_time', { ascending: true });
 
-      if (error) throw error;
+      if (feedingError) throw feedingError;
+
+      // Buscar dados de biometria históricos
+      const { data: biometrics, error: biometricsError } = await supabase
+        .from('biometrics')
+        .select('measurement_date, average_weight')
+        .eq('pond_batch_id', pondBatchId)
+        .gte('measurement_date', startDate)
+        .order('measurement_date', { ascending: true });
+
+      if (biometricsError) throw biometricsError;
+
+      // Buscar dados do pond_batch para população atual
+      const { data: pondBatch, error: pondError } = await supabase
+        .from('pond_batches')
+        .select('current_population, pl_quantity, stocking_date')
+        .eq('id', pondBatchId)
+        .single();
+
+      if (pondError) throw pondError;
+
+      // Buscar configurações de feeding_rates históricas
+      const { data: feedingRates, error: ratesError } = await supabase
+        .from('feeding_rates')
+        .select('weight_range_min, weight_range_max, feeding_percentage, meals_per_day, created_at')
+        .or(`pond_batch_id.eq.${pondBatchId},farm_id.eq.(SELECT farm_id FROM ponds WHERE id = (SELECT pond_id FROM pond_batches WHERE id = '${pondBatchId}'))`)
+        .order('created_at', { ascending: false });
+
+      if (ratesError) throw ratesError;
 
       const processedData: FeedingAdjustmentData[] = [];
-      
-      feedingRecords?.forEach((record, index) => {
-        // Calcular quantidade padrão (baseada na taxa de arraçoamento)
-        const standardAmount = (currentBiomass * feedingRate / 100) / mealsPerDay * 1000; // em gramas
+
+      // Função para obter biomassa histórica para uma data específica
+      const getHistoricalBiomass = (date: string): number => {
+        const targetDate = new Date(date);
+        
+        // Encontrar a biometria mais próxima (anterior ou igual)
+        let closestBiometry = null;
+        let closestDistance = Infinity;
+
+        biometrics?.forEach(bio => {
+          const bioDate = new Date(bio.measurement_date);
+          const distance = targetDate.getTime() - bioDate.getTime();
+          
+          if (distance >= 0 && distance < closestDistance) {
+            closestDistance = distance;
+            closestBiometry = bio;
+          }
+        });
+
+        if (closestBiometry) {
+          // Usar peso médio da biometria e população atual para calcular biomassa
+          return (pondBatch.current_population * closestBiometry.average_weight) / 1000; // kg
+        }
+
+        // Fallback: usar biomassa atual
+        return currentBiomass;
+      };
+
+      // Função para obter taxa de alimentação histórica baseada no peso
+      const getHistoricalFeedingRate = (date: string, averageWeight: number): { rate: number; meals: number } => {
+        // Usar taxa específica registrada no feeding_records se disponível
+        const currentRecord = feedingRecords?.find(fr => fr.feeding_date === date);
+        if (currentRecord?.feeding_rate_percentage) {
+          return { 
+            rate: currentRecord.feeding_rate_percentage, 
+            meals: mealsPerDay // Usar atual como fallback
+          };
+        }
+
+        // Encontrar a configuração mais apropriada baseada no peso
+        const applicableRate = feedingRates?.find(fr => 
+          averageWeight >= (fr.weight_range_min || 0) && 
+          averageWeight <= (fr.weight_range_max || 999)
+        );
+
+        if (applicableRate) {
+          return {
+            rate: applicableRate.feeding_percentage,
+            meals: applicableRate.meals_per_day
+          };
+        }
+
+        // Fallback: usar configuração padrão baseada no peso
+        if (averageWeight < 1) return { rate: 10, meals: 5 };
+        if (averageWeight < 3) return { rate: 8, meals: 4 };
+        if (averageWeight < 5) return { rate: 6, meals: 4 };
+        if (averageWeight < 10) return { rate: 4, meals: 3 };
+        if (averageWeight < 15) return { rate: 2.5, meals: 2 };
+        return { rate: 2, meals: 2 };
+      };
+
+      feedingRecords?.forEach((record) => {
+        // Obter biomassa histórica para esta data
+        const historicalBiomass = getHistoricalBiomass(record.feeding_date);
+        
+        // Obter peso médio histórico para determinar a taxa
+        const closestBio = biometrics?.find(bio => 
+          new Date(bio.measurement_date) <= new Date(record.feeding_date)
+        ) || biometrics?.[biometrics.length - 1];
+        
+        const averageWeight = closestBio?.average_weight || 1;
+        
+        // Obter taxa de alimentação histórica
+        const { rate: historicalRate, meals: historicalMeals } = getHistoricalFeedingRate(record.feeding_date, averageWeight);
+        
+        // Calcular quantidade padrão usando dados históricos reais
+        const standardAmount = (historicalBiomass * historicalRate / 100) / historicalMeals * 1000; // em gramas
         
         // Calcular quantidade ajustada
         const adjustment = record.next_feeding_adjustment || 0;

@@ -77,15 +77,20 @@ interface FeedingData {
 }
 
 export default function AlimentacaoPage() {
+  console.log('🚀 AlimentacaoPage component rendering...');
+  
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
+  
+  console.log('👤 Current user:', user?.id ? 'authenticated' : 'not authenticated');
   
   const [ponds, setPonds] = useState<PondWithBatch[]>([]);
   const [feedingHistory, setFeedingHistory] = useState<FeedingRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [farmId, setFarmId] = useState<string>('');
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [showDialog, setShowDialog] = useState(false);
   const [selectedPond, setSelectedPond] = useState<PondWithBatch | null>(null);
@@ -107,24 +112,39 @@ export default function AlimentacaoPage() {
   });
 
   useEffect(() => {
+    console.log('📊 AlimentacaoPage useEffect triggered, user:', user?.id);
     if (user) {
+      setError(null);
       loadActivePonds();
       loadFeedingHistory();
       loadAvailableFeeds();
+    } else {
+      console.log('⚠️ No user found, waiting for authentication...');
     }
   }, [user]);
 
   const loadActivePonds = async () => {
+    console.log('🏊 Loading active ponds...');
     try {
+      if (!user?.id) {
+        console.log('❌ No user ID available');
+        return;
+      }
+
       // Load farms first
       const { data: farmsData, error: farmsError } = await supabase
         .from('farms')
         .select('id')
-        .eq('user_id', user?.id);
+        .eq('user_id', user.id);
 
-      if (farmsError) throw farmsError;
+      console.log('🏠 Farms data:', farmsData);
+      if (farmsError) {
+        console.error('❌ Farms error:', farmsError);
+        throw farmsError;
+      }
 
       if (farmsData && farmsData.length > 0) {
+        console.log('✅ Setting farmId:', farmsData[0].id);
         setFarmId(farmsData[0].id);
         // Load active ponds with active batch data
         const { data: pondsData, error: pondsError } = await supabase
@@ -172,10 +192,15 @@ export default function AlimentacaoPage() {
           }
         }
 
+        console.log('🏊 Formatted ponds:', formattedPonds);
         setPonds(formattedPonds);
+      } else {
+        console.log('⚠️ No farms found for user');
+        setError('Nenhuma fazenda encontrada. Por favor, crie uma fazenda primeiro.');
       }
     } catch (error) {
-      console.error('Error loading ponds:', error);
+      console.error('❌ Error loading ponds:', error);
+      setError(`Erro ao carregar viveiros: ${error.message}`);
       toast({
         title: "Erro",
         description: "Erro ao carregar viveiros",
@@ -833,7 +858,10 @@ export default function AlimentacaoPage() {
     }
   };
 
+  console.log('📱 AlimentacaoPage render - Loading:', loading, 'Error:', error, 'User:', user?.id, 'FarmId:', farmId);
+
   if (loading) {
+    console.log('⏳ Showing loading state');
     return (
       <Layout>
         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-emerald-50/20">
@@ -847,6 +875,48 @@ export default function AlimentacaoPage() {
       </Layout>
     );
   }
+
+  if (error) {
+    console.log('❌ Showing error state:', error);
+    return (
+      <Layout>
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-emerald-50/20">
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                <h3 className="text-red-800 font-medium mb-2">Erro ao carregar página</h3>
+                <p className="text-red-600 mb-4">{error}</p>
+                <Button onClick={() => {
+                  setError(null);
+                  setLoading(true);
+                  loadActivePonds();
+                }}>
+                  Tentar novamente
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (!user) {
+    console.log('👤 No user, showing login message');
+    return (
+      <Layout>
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-emerald-50/20">
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <p className="text-muted-foreground">Por favor, faça login para acessar esta página.</p>
+            </div>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  console.log('✅ Rendering main content');
 
   return (
     <Layout>
@@ -879,7 +949,15 @@ export default function AlimentacaoPage() {
           </div>
 
           {/* Feeding Evaluation Notifications */}
-          {farmId && <FeedingEvaluationNotifications farmId={farmId} />}
+          {farmId ? (
+            <div>
+              <FeedingEvaluationNotifications farmId={farmId} />
+            </div>
+          ) : (
+            <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <p className="text-yellow-800">Aguardando dados da fazenda...</p>
+            </div>
+          )}
 
           {/* Content */}
           <Tabs defaultValue="registro" className="space-y-6">

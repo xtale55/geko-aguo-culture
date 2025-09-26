@@ -20,6 +20,7 @@ import { getCurrentDateForInput, formatDateForDisplay } from '@/lib/utils';
 import { QuantityUtils } from '@/lib/quantityUtils';
 import { getFeedItemsIncludingMixtures } from '@/lib/feedUtils';
 import { FeedingChartModal } from '@/components/FeedingChartModal';
+import { FeedingEvaluationNotifications } from '@/components/FeedingEvaluationNotifications';
 
 interface PondWithBatch {
   id: string;
@@ -83,6 +84,7 @@ export default function AlimentacaoPage() {
   const [ponds, setPonds] = useState<PondWithBatch[]>([]);
   const [feedingHistory, setFeedingHistory] = useState<FeedingRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [farmId, setFarmId] = useState<string>('');
   const [historyLoading, setHistoryLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [showDialog, setShowDialog] = useState(false);
@@ -123,6 +125,7 @@ export default function AlimentacaoPage() {
       if (farmsError) throw farmsError;
 
       if (farmsData && farmsData.length > 0) {
+        setFarmId(farmsData[0].id);
         // Load active ponds with active batch data
         const { data: pondsData, error: pondsError } = await supabase
           .from('ponds')
@@ -874,6 +877,9 @@ export default function AlimentacaoPage() {
               </p>
             </div>
           </div>
+
+          {/* Feeding Evaluation Notifications */}
+          {farmId && <FeedingEvaluationNotifications farmId={farmId} />}
 
           {/* Content */}
           <Tabs defaultValue="registro" className="space-y-6">

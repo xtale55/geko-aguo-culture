@@ -25,6 +25,7 @@ import Financial from "./pages/Financial";
 import PondHistory from "./pages/PondHistory";
 import OperationalCostsPage from "./pages/OperationalCosts";
 import NotFound from "./pages/NotFound";
+import TechnicianDashboard from "./pages/TechnicianDashboard";
 
 const queryClient = new QueryClient();
 
@@ -39,6 +40,8 @@ const App = () => (
           <Route path="/auth" element={<Auth />} />
           <Route path="/auth/confirm" element={<AuthConfirm />} />
           <Route path="/reset-password" element={<ResetPassword />} />
+          
+          {/* Rotas para Proprietários de Fazenda */}
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/farm" element={<Farm />} />
           <Route path="/stocking" element={<Stocking />} />
@@ -48,7 +51,6 @@ const App = () => (
           <Route path="/manejos/agua" element={<AguaPage />} />
           <Route path="/manejos/mortalidade" element={<MortalidadePage />} />
           <Route path="/despesca" element={<DespescaPage />} />
-          
           <Route path="/manejos/alimentacao" element={<AlimentacaoPage />} />
           <Route path="/feeding" element={<Feeding />} />
           <Route path="/inventory" element={<Inventory />} />
@@ -56,6 +58,10 @@ const App = () => (
           <Route path="/financial" element={<Financial />} />
           <Route path="/operational-costs" element={<OperationalCostsPage />} />
           <Route path="/pond-history/:pondId" element={<PondHistory />} />
+          
+          {/* Rotas para Técnicos */}
+          <Route path="/tecnico" element={<TechnicianDashboard />} />
+          
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

@@ -6,6 +6,7 @@ import { ArrowLeft, Scales, Drop, Skull, TestTube, Shrimp, CurrencyDollar, Caret
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useFarmsQuery } from '@/hooks/useSupabaseQuery';
 import { useRecentManagementData } from '@/hooks/useRecentManagementData';
+import { FeedingEvaluationNotifications } from '@/components/FeedingEvaluationNotifications';
 
 export default function Manejos() {
   const navigate = useNavigate();
@@ -87,6 +88,9 @@ export default function Manejos() {
             </p>
           </div>
         </div>
+
+        {/* Feeding Evaluation Notifications */}
+        <FeedingEvaluationNotifications farmId={farmId} />
 
         {/* Management Cards Grid */}
         <div className={`${!isMobile ? 'grid grid-cols-2 gap-4' : 'space-y-4'}`}>

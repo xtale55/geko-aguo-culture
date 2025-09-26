@@ -254,11 +254,32 @@ export default function AlimentacaoPage() {
       const mealsCompleted = feedingRecords?.length || 0;
       const mealsPerDay = feedingRate?.meals_per_day || 3;
       
-      // Calculate planned amounts
+      // Calculate planned amounts with adjustment logic
       let plannedTotalDaily = 0;
       let plannedPerMeal = 0;
+
+      // Get last feeding record to check for adjustments
+      const { data: lastFeeding } = await supabase
+        .from('feeding_records')
+        .select('actual_amount, consumption_evaluation, next_feeding_adjustment')
+        .eq('pond_batch_id', pond.current_batch.id)
+        .order('feeding_date', { ascending: false })
+        .order('feeding_time', { ascending: false })
+        .limit(1)
+        .maybeSingle();
       
-      if (feedingRate && pond.current_batch) {
+      if (lastFeeding) {
+        if (lastFeeding.consumption_evaluation) {
+          // Has evaluation: apply adjustment over actual_amount
+          const adjustmentPercent = lastFeeding.next_feeding_adjustment || 0;
+          plannedPerMeal = Math.round(lastFeeding.actual_amount * (1 + adjustmentPercent / 100));
+        } else {
+          // No evaluation: maintain actual_amount
+          plannedPerMeal = lastFeeding.actual_amount;
+        }
+        plannedTotalDaily = plannedPerMeal * mealsPerDay;
+      } else if (feedingRate && pond.current_batch) {
+        // No history: use standard calculation
         const biomass = (pond.current_batch.current_population * avgWeight) / 1000; // kg
         plannedTotalDaily = (biomass * feedingRate.feeding_percentage / 100) * 1000; // grams
         plannedPerMeal = Math.round(plannedTotalDaily / feedingRate.meals_per_day);
@@ -409,7 +430,7 @@ export default function AlimentacaoPage() {
 
     setSelectedPond(pond);
     
-    // Calculate planned amount based on feeding rate
+    // Calculate planned amount based on feeding rate and history
     try {
       // Get latest biometry for weight calculation
       const { data: biometry } = await supabase
@@ -437,8 +458,29 @@ export default function AlimentacaoPage() {
         .gte('weight_range_max', avgWeight)
         .maybeSingle();
 
+      // Get last feeding record to check for adjustments
+      const { data: lastFeeding } = await supabase
+        .from('feeding_records')
+        .select('actual_amount, consumption_evaluation, next_feeding_adjustment')
+        .eq('pond_batch_id', pond.current_batch.id)
+        .order('feeding_date', { ascending: false })
+        .order('feeding_time', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
       let plannedAmount = 0;
-      if (feedingRate && pond.current_batch) {
+      
+      if (lastFeeding) {
+        if (lastFeeding.consumption_evaluation) {
+          // Has evaluation: apply adjustment over actual_amount
+          const adjustmentPercent = lastFeeding.next_feeding_adjustment || 0;
+          plannedAmount = Math.round(lastFeeding.actual_amount * (1 + adjustmentPercent / 100));
+        } else {
+          // No evaluation: maintain actual_amount
+          plannedAmount = lastFeeding.actual_amount;
+        }
+      } else if (feedingRate && pond.current_batch) {
+        // No history: use standard calculation
         const biomass = (pond.current_batch.current_population * avgWeight) / 1000; // kg
         const dailyFeed = (biomass * feedingRate.feeding_percentage / 100) * 1000; // grams
         plannedAmount = Math.round(dailyFeed / feedingRate.meals_per_day);

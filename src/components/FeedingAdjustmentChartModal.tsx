@@ -455,23 +455,26 @@ export function FeedingAdjustmentChartModal({
             </div>
 
             {/* Gráfico */}
-            {chartData.length > 0 ? (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Evolução das Quantidades de Ração</CardTitle>
-                  <div className="flex flex-wrap gap-2">
-                    <Badge variant="outline" className="text-green-600 border-green-200">
-                      Padrão: Baseado na curva de crescimento
-                    </Badge>
-                    <Badge variant="outline" className="text-blue-600 border-blue-200">
-                      Ajustado: {chartData.some(d => d.adjusted !== d.standard) ? 'Com avaliações' : 'Sem avaliações'}
-                    </Badge>
-                    <Badge variant="outline" className="text-orange-600 border-orange-200">
-                      Real: {chartData.some(d => d.actual > 0) ? 'Com registros' : 'Sem registros'}
-                    </Badge>
-                  </div>
-                </CardHeader>
-                <CardContent>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Evolução das Quantidades de Ração</CardTitle>
+                <div className="flex flex-wrap gap-2">
+                  <Badge variant="outline" className="text-green-600 border-green-200">
+                    Padrão: Baseado na curva de crescimento
+                  </Badge>
+                  <Badge variant="outline" className="text-blue-600 border-blue-200">
+                    Ajustado: {chartData.some(d => d.adjusted !== d.standard) ? 'Com avaliações' : 'Sem avaliações'}
+                  </Badge>
+                  <Badge variant="outline" className="text-orange-600 border-orange-200">
+                    Real: {chartData.some(d => d.actual > 0) ? 'Com registros' : 'Sem registros'}
+                  </Badge>
+                </div>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Debug: {chartData.length} pontos de dados | Biomassa: {currentBiomass}kg | Taxa: {feedingRate}%
+                </p>
+              </CardHeader>
+              <CardContent>
+                {chartData.length > 0 ? (
                   <div className="h-[400px]">
                     <ResponsiveContainer width="100%" height="100%">
                       <LineChart data={chartData}>
@@ -490,7 +493,7 @@ export function FeedingAdjustmentChartModal({
                         <Line
                           type="monotone"
                           dataKey="standard"
-                          stroke="hsl(var(--emerald-500))"
+                          stroke="#22c55e"
                           strokeWidth={2}
                           name="Padrão"
                           dot={{ r: 4 }}
@@ -498,7 +501,7 @@ export function FeedingAdjustmentChartModal({
                         <Line
                           type="monotone"
                           dataKey="adjusted"
-                          stroke="hsl(var(--blue-500))"
+                          stroke="#3b82f6"
                           strokeWidth={2}
                           name="Ajustado"
                           dot={{ r: 4 }}
@@ -508,7 +511,7 @@ export function FeedingAdjustmentChartModal({
                         <Line
                           type="monotone"
                           dataKey="actual"
-                          stroke="hsl(var(--orange-500))"
+                          stroke="#f97316"
                           strokeWidth={3}
                           name="Real"
                           dot={{ r: 5 }}
@@ -516,15 +519,17 @@ export function FeedingAdjustmentChartModal({
                       </LineChart>
                     </ResponsiveContainer>
                   </div>
-                </CardContent>
-              </Card>
-            ) : (
-              <Card>
-                <CardContent className="flex items-center justify-center h-32">
-                  <p className="text-muted-foreground">Nenhum dado de alimentação encontrado para o período</p>
-                </CardContent>
-              </Card>
-            )}
+                ) : (
+                  <div className="flex items-center justify-center h-64">
+                    <div className="text-center">
+                      <p className="text-muted-foreground mb-2">Nenhum dado encontrado</p>
+                      <p className="text-sm text-muted-foreground">Pond Batch ID: {pondBatchId}</p>
+                      <p className="text-sm text-muted-foreground">Biomassa: {currentBiomass}kg</p>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
 
             {/* Explicação das Linhas */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">

@@ -102,10 +102,25 @@ export function FeedingAdjustmentChartModal({
       if (pondError) throw pondError;
 
       // Buscar configurações de feeding_rates históricas
+      // Primeiro buscar o farm_id
+      const { data: pondInfo, error: pondInfoError } = await supabase
+        .from('pond_batches')
+        .select(`
+          pond_id,
+          ponds!inner(farm_id)
+        `)
+        .eq('id', pondBatchId)
+        .single();
+
+      if (pondInfoError) throw pondInfoError;
+
+      const farmId = pondInfo?.ponds?.farm_id;
+
+      // Buscar feeding_rates específicos do pond_batch e da farm
       const { data: feedingRates, error: ratesError } = await supabase
         .from('feeding_rates')
-        .select('weight_range_min, weight_range_max, feeding_percentage, meals_per_day, created_at')
-        .or(`pond_batch_id.eq.${pondBatchId},farm_id.eq.(SELECT farm_id FROM ponds WHERE id = (SELECT pond_id FROM pond_batches WHERE id = '${pondBatchId}'))`)
+        .select('weight_range_min, weight_range_max, feeding_percentage, meals_per_day, created_at, pond_batch_id, farm_id')
+        .or(`pond_batch_id.eq.${pondBatchId},farm_id.eq.${farmId}`)
         .order('created_at', { ascending: false });
 
       if (ratesError) throw ratesError;

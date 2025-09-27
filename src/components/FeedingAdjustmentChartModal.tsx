@@ -57,12 +57,21 @@ export function FeedingAdjustmentChartModal({
   const fetchAdjustmentData = async () => {
     setLoading(true);
     try {
-      // Buscar registros dos últimos 60 dias para melhor análise de tendência
-      const sixtyDaysAgo = new Date();
-      sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
-      const startDate = sixtyDaysAgo.toISOString().split('T')[0];
+      // Buscar dados do pond_batch primeiro
+      const { data: pondBatch, error: pondError } = await supabase
+        .from('pond_batches')
+        .select('current_population, pl_quantity, stocking_date')
+        .eq('id', pondBatchId)
+        .single();
 
-      // Buscar registros de alimentação
+      if (pondError) throw pondError;
+
+      // Usar data de povoamento como início e hoje como fim
+      const stockingDate = new Date(pondBatch.stocking_date);
+      const today = new Date();
+      const startDate = pondBatch.stocking_date;
+
+      // Buscar TODOS os registros de alimentação desde o povoamento
       const { data: feedingRecords, error: feedingError } = await supabase
         .from('feeding_records')
         .select(`
@@ -82,7 +91,7 @@ export function FeedingAdjustmentChartModal({
 
       if (feedingError) throw feedingError;
 
-      // Buscar dados de biometria históricos
+      // Buscar dados de biometria históricos desde o povoamento
       const { data: biometrics, error: biometricsError } = await supabase
         .from('biometrics')
         .select('measurement_date, average_weight')
@@ -91,15 +100,6 @@ export function FeedingAdjustmentChartModal({
         .order('measurement_date', { ascending: true });
 
       if (biometricsError) throw biometricsError;
-
-      // Buscar dados do pond_batch para população e data de povoamento
-      const { data: pondBatch, error: pondError } = await supabase
-        .from('pond_batches')
-        .select('current_population, pl_quantity, stocking_date')
-        .eq('id', pondBatchId)
-        .single();
-
-      if (pondError) throw pondError;
 
       // Buscar configurações de feeding_rates históricas
       // Primeiro buscar o farm_id
@@ -457,16 +457,16 @@ export function FeedingAdjustmentChartModal({
             {/* Gráfico */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Evolução das Quantidades de Ração</CardTitle>
+                <CardTitle className="text-lg">Ração Acumulada (kg) - Desde Povoamento</CardTitle>
                 <div className="flex flex-wrap gap-2">
                   <Badge variant="outline" className="text-green-600 border-green-200">
-                    Padrão: Baseado na curva de crescimento
+                    Padrão Acumulado: Total baseado na curva de crescimento
                   </Badge>
                   <Badge variant="outline" className="text-blue-600 border-blue-200">
-                    Ajustado: {chartData.some(d => d.adjusted !== d.standard) ? 'Com avaliações' : 'Sem avaliações'}
+                    Ajustado Acumulado: Total com ajustes de consumo
                   </Badge>
                   <Badge variant="outline" className="text-orange-600 border-orange-200">
-                    Real: {chartData.some(d => d.actual > 0) ? 'Com registros' : 'Sem registros'}
+                    Real Acumulado: Total efetivamente fornecido
                   </Badge>
                 </div>
                 <p className="text-sm text-muted-foreground mt-2">
@@ -486,7 +486,7 @@ export function FeedingAdjustmentChartModal({
                         />
                         <YAxis 
                           className="text-xs"
-                          label={{ value: 'Quantidade (g)', angle: -90, position: 'insideLeft' }}
+                          label={{ value: 'Quantidade Acumulada (kg)', angle: -90, position: 'insideLeft' }}
                         />
                         <Tooltip content={<CustomTooltip />} />
                         <Legend />
@@ -495,26 +495,25 @@ export function FeedingAdjustmentChartModal({
                           dataKey="standard"
                           stroke="#22c55e"
                           strokeWidth={2}
-                          name="Padrão"
-                          dot={{ r: 4 }}
+                          name="Padrão Acumulado"
+                          dot={false}
                         />
                         <Line
                           type="monotone"
                           dataKey="adjusted"
                           stroke="#3b82f6"
                           strokeWidth={2}
-                          name="Ajustado"
-                          dot={{ r: 4 }}
+                          name="Ajustado Acumulado"
+                          dot={false}
                           strokeDasharray="5 5"
-                          hide={!chartData.some(d => d.adjusted !== d.standard)}
                         />
                         <Line
                           type="monotone"
                           dataKey="actual"
                           stroke="#f97316"
                           strokeWidth={3}
-                          name="Real"
-                          dot={{ r: 5 }}
+                          name="Real Acumulado"
+                          dot={false}
                         />
                       </LineChart>
                     </ResponsiveContainer>
@@ -536,30 +535,30 @@ export function FeedingAdjustmentChartModal({
               <div className="p-3 bg-green-50 rounded-lg border border-green-200">
                 <div className="flex items-center gap-2 mb-2">
                   <div className="w-4 h-0.5 bg-green-500"></div>
-                  <span className="font-medium text-green-800">Linha Padrão</span>
+                  <span className="font-medium text-green-800">Padrão Acumulado</span>
                 </div>
                 <p className="text-green-700">
-                  Quantidade calculada baseada na curva de crescimento projetada e taxa de alimentação. Mostra a tendência esperada mesmo com registros esparsos.
+                  Total de ração que deveria ter sido fornecida desde o povoamento, baseado na curva de crescimento projetada.
                 </p>
               </div>
               
               <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
                 <div className="flex items-center gap-2 mb-2">
                   <div className="w-4 h-0.5 bg-blue-500 border-dashed border-t-2"></div>
-                  <span className="font-medium text-blue-800">Linha Ajustada</span>
+                  <span className="font-medium text-blue-800">Ajustado Acumulado</span>
                 </div>
                 <p className="text-blue-700">
-                  Sugestão do sistema baseada na avaliação de consumo. {chartData.some(d => d.adjusted !== d.standard) ? 'Visível quando há avaliações de consumo.' : 'Coincide com padrão quando não há avaliações.'}
+                  Total considerando ajustes baseados em avaliações de consumo. Mostra o acumulado das quantidades otimizadas.
                 </p>
               </div>
               
               <div className="p-3 bg-orange-50 rounded-lg border border-orange-200">
                 <div className="flex items-center gap-2 mb-2">
                   <div className="w-4 h-1 bg-orange-500"></div>
-                  <span className="font-medium text-orange-800">Linha Real</span>
+                  <span className="font-medium text-orange-800">Real Acumulado</span>
                 </div>
                 <p className="text-orange-700">
-                  Quantidade realmente fornecida. {chartData.some(d => d.actual > 0) ? 'Compare com a tendência padrão para identificar padrões.' : 'Aparecerá quando houver registros de alimentação.'}
+                  Total de ração efetivamente fornecida desde o início do cultivo. Mostra o consumo real acumulado.
                 </p>
               </div>
             </div>

@@ -208,6 +208,7 @@ export function FeedingAdjustmentChartModal({
 
       // Criar dados mesmo sem registros, para mostrar as linhas padrão e projetada
       if (!feedingRecords || feedingRecords.length === 0) {
+        console.log('No feeding records found, generating default data for chart');
         // Gerar dados para os últimos 30 dias com base na curva de crescimento
         const today = new Date();
         for (let i = 29; i >= 0; i--) {
@@ -221,6 +222,8 @@ export function FeedingAdjustmentChartModal({
           
           const standardAmount = (projectedBiomass * rate / 100) / meals * 1000; // em gramas
           
+          console.log(`Generated data for ${dateStr}: weight=${interpolatedWeight}g, biomass=${projectedBiomass}kg, rate=${rate}%, standard=${standardAmount}g`);
+          
           processedData.push({
             date: dateStr,
             feeding_time: '08:00:00', // Horário padrão para visualização
@@ -231,6 +234,7 @@ export function FeedingAdjustmentChartModal({
             adjustment_reason: undefined
           });
         }
+        console.log('Generated processedData:', processedData);
       } else {
         // Processar registros existentes
         feedingRecords.forEach((record) => {
@@ -271,6 +275,8 @@ export function FeedingAdjustmentChartModal({
       }
 
       setData(processedData);
+      console.log('Processed data for chart:', processedData);
+      console.log('Chart data length:', processedData.length);
       calculateStats(processedData);
     } catch (error) {
       console.error('Error fetching adjustment data:', error);
@@ -313,6 +319,13 @@ export function FeedingAdjustmentChartModal({
   };
 
   const formatChartData = () => {
+    console.log('Formatting chart data from:', data);
+    
+    if (!data || data.length === 0) {
+      console.log('No data to format for chart');
+      return [];
+    }
+
     const grouped = data.reduce((acc, item) => {
       const key = `${item.date} ${item.feeding_time}`;
       if (!acc[key]) {
@@ -332,15 +345,20 @@ export function FeedingAdjustmentChartModal({
       return acc;
     }, {} as any);
 
-    return Object.values(grouped).map((item: any) => ({
+    const result = Object.values(grouped).map((item: any) => ({
       ...item,
       standard: Math.round(item.standard / item.count),
       adjusted: Math.round(item.adjusted / item.count),
       actual: Math.round(item.actual / item.count)
     }));
+    
+    console.log('Formatted chart data:', result);
+    return result;
   };
 
   const chartData = formatChartData();
+  console.log('Final chartData for rendering:', chartData);
+  console.log('Chart data has actual values:', chartData.some(d => d.actual > 0));
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
@@ -443,13 +461,13 @@ export function FeedingAdjustmentChartModal({
                   <CardTitle className="text-lg">Evolução das Quantidades de Ração</CardTitle>
                   <div className="flex flex-wrap gap-2">
                     <Badge variant="outline" className="text-green-600 border-green-200">
-                      Padrão: {feedingRate}% da biomassa
+                      Padrão: Baseado na curva de crescimento
                     </Badge>
                     <Badge variant="outline" className="text-blue-600 border-blue-200">
-                      Ajustado: Sugestão do sistema
+                      Ajustado: {chartData.some(d => d.adjusted !== d.standard) ? 'Com avaliações' : 'Sem avaliações'}
                     </Badge>
                     <Badge variant="outline" className="text-orange-600 border-orange-200">
-                      Real: Quantidade fornecida
+                      Real: {chartData.some(d => d.actual > 0) ? 'Com registros' : 'Sem registros'}
                     </Badge>
                   </div>
                 </CardHeader>

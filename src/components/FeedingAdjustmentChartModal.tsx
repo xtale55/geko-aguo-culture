@@ -57,10 +57,10 @@ export function FeedingAdjustmentChartModal({
   const fetchAdjustmentData = async () => {
     setLoading(true);
     try {
-      // Buscar registros dos últimos 30 dias
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      const startDate = thirtyDaysAgo.toISOString().split('T')[0];
+      // Buscar registros dos últimos 60 dias para melhor análise de tendência
+      const sixtyDaysAgo = new Date();
+      sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
+      const startDate = sixtyDaysAgo.toISOString().split('T')[0];
 
       // Buscar registros de alimentação
       const { data: feedingRecords, error: feedingError } = await supabase
@@ -92,7 +92,7 @@ export function FeedingAdjustmentChartModal({
 
       if (biometricsError) throw biometricsError;
 
-      // Buscar dados do pond_batch para população atual
+      // Buscar dados do pond_batch para população e data de povoamento
       const { data: pondBatch, error: pondError } = await supabase
         .from('pond_batches')
         .select('current_population, pl_quantity, stocking_date')
@@ -112,48 +112,67 @@ export function FeedingAdjustmentChartModal({
 
       const processedData: FeedingAdjustmentData[] = [];
 
-      // Função para obter biomassa histórica para uma data específica
-      const getHistoricalBiomass = (date: string): number => {
+      // Função para interpolar peso médio entre biometrias
+      const interpolateWeight = (date: string): number => {
         const targetDate = new Date(date);
         
-        // Encontrar a biometria mais próxima (anterior ou igual)
-        let closestBiometry = null;
-        let closestDistance = Infinity;
-
-        biometrics?.forEach(bio => {
-          const bioDate = new Date(bio.measurement_date);
-          const distance = targetDate.getTime() - bioDate.getTime();
-          
-          if (distance >= 0 && distance < closestDistance) {
-            closestDistance = distance;
-            closestBiometry = bio;
-          }
-        });
-
-        if (closestBiometry) {
-          // Usar peso médio da biometria e população atual para calcular biomassa
-          return (pondBatch.current_population * closestBiometry.average_weight) / 1000; // kg
+        if (!biometrics || biometrics.length === 0) {
+          return 1; // Peso padrão inicial
         }
 
-        // Fallback: usar biomassa atual
-        return currentBiomass;
+        // Se só tem uma biometria, usar ela
+        if (biometrics.length === 1) {
+          return biometrics[0].average_weight;
+        }
+
+        // Encontrar biometrias antes e depois da data
+        let beforeBio = null;
+        let afterBio = null;
+
+        for (const bio of biometrics) {
+          const bioDate = new Date(bio.measurement_date);
+          if (bioDate <= targetDate) {
+            beforeBio = bio;
+          } else if (!afterBio && bioDate > targetDate) {
+            afterBio = bio;
+            break;
+          }
+        }
+
+        // Se tem biometria antes e depois, interpolar
+        if (beforeBio && afterBio) {
+          const beforeDate = new Date(beforeBio.measurement_date).getTime();
+          const afterDate = new Date(afterBio.measurement_date).getTime();
+          const targetTime = targetDate.getTime();
+          
+          const ratio = (targetTime - beforeDate) / (afterDate - beforeDate);
+          return beforeBio.average_weight + (afterBio.average_weight - beforeBio.average_weight) * ratio;
+        }
+
+        // Se só tem antes, usar a mais recente
+        if (beforeBio) {
+          return beforeBio.average_weight;
+        }
+
+        // Se só tem depois, usar a primeira
+        if (afterBio) {
+          return afterBio.average_weight;
+        }
+
+        return 1; // Fallback
       };
 
-      // Função para obter taxa de alimentação histórica baseada no peso
-      const getHistoricalFeedingRate = (date: string, averageWeight: number): { rate: number; meals: number } => {
-        // Usar taxa específica registrada no feeding_records se disponível
-        const currentRecord = feedingRecords?.find(fr => fr.feeding_date === date);
-        if (currentRecord?.feeding_rate_percentage) {
-          return { 
-            rate: currentRecord.feeding_rate_percentage, 
-            meals: mealsPerDay // Usar atual como fallback
-          };
-        }
+      // Função para calcular biomassa projetada baseada no crescimento
+      const getProjectedBiomass = (date: string, interpolatedWeight: number): number => {
+        return (pondBatch.current_population * interpolatedWeight) / 1000; // kg
+      };
 
+      // Função para obter taxa de alimentação baseada no peso interpolado
+      const getFeedingRateByWeight = (weight: number): { rate: number; meals: number } => {
         // Encontrar a configuração mais apropriada baseada no peso
         const applicableRate = feedingRates?.find(fr => 
-          averageWeight >= (fr.weight_range_min || 0) && 
-          averageWeight <= (fr.weight_range_max || 999)
+          weight >= (fr.weight_range_min || 0) && 
+          weight <= (fr.weight_range_max || 999)
         );
 
         if (applicableRate) {
@@ -164,47 +183,77 @@ export function FeedingAdjustmentChartModal({
         }
 
         // Fallback: usar configuração padrão baseada no peso
-        if (averageWeight < 1) return { rate: 10, meals: 5 };
-        if (averageWeight < 3) return { rate: 8, meals: 4 };
-        if (averageWeight < 5) return { rate: 6, meals: 4 };
-        if (averageWeight < 10) return { rate: 4, meals: 3 };
-        if (averageWeight < 15) return { rate: 2.5, meals: 2 };
+        if (weight < 1) return { rate: 10, meals: 5 };
+        if (weight < 3) return { rate: 8, meals: 4 };
+        if (weight < 5) return { rate: 6, meals: 4 };
+        if (weight < 10) return { rate: 4, meals: 3 };
+        if (weight < 15) return { rate: 2.5, meals: 2 };
         return { rate: 2, meals: 2 };
       };
 
-      feedingRecords?.forEach((record) => {
-        // Obter biomassa histórica para esta data
-        const historicalBiomass = getHistoricalBiomass(record.feeding_date);
-        
-        // Obter peso médio histórico para determinar a taxa
-        const closestBio = biometrics?.find(bio => 
-          new Date(bio.measurement_date) <= new Date(record.feeding_date)
-        ) || biometrics?.[biometrics.length - 1];
-        
-        const averageWeight = closestBio?.average_weight || 1;
-        
-        // Obter taxa de alimentação histórica
-        const { rate: historicalRate, meals: historicalMeals } = getHistoricalFeedingRate(record.feeding_date, averageWeight);
-        
-        // Calcular quantidade padrão usando dados históricos reais
-        const standardAmount = (historicalBiomass * historicalRate / 100) / historicalMeals * 1000; // em gramas
-        
-        // Calcular quantidade ajustada
-        const adjustment = record.next_feeding_adjustment || 0;
-        const adjustedAmount = standardAmount * (1 + adjustment / 100);
-        
-        const actualAmount = record.actual_amount || 0;
+      // Criar dados mesmo sem registros, para mostrar as linhas padrão e projetada
+      if (!feedingRecords || feedingRecords.length === 0) {
+        // Gerar dados para os últimos 30 dias com base na curva de crescimento
+        const today = new Date();
+        for (let i = 29; i >= 0; i--) {
+          const date = new Date(today);
+          date.setDate(date.getDate() - i);
+          const dateStr = date.toISOString().split('T')[0];
+          
+          const interpolatedWeight = interpolateWeight(dateStr);
+          const projectedBiomass = getProjectedBiomass(dateStr, interpolatedWeight);
+          const { rate, meals } = getFeedingRateByWeight(interpolatedWeight);
+          
+          const standardAmount = (projectedBiomass * rate / 100) / meals * 1000; // em gramas
+          
+          processedData.push({
+            date: dateStr,
+            feeding_time: '08:00:00', // Horário padrão para visualização
+            standard: Math.round(standardAmount),
+            adjusted: Math.round(standardAmount), // Sem ajuste se não há avaliação
+            actual: 0, // Não há registro real
+            consumption_evaluation: undefined,
+            adjustment_reason: undefined
+          });
+        }
+      } else {
+        // Processar registros existentes
+        feedingRecords.forEach((record) => {
+          const interpolatedWeight = interpolateWeight(record.feeding_date);
+          const projectedBiomass = getProjectedBiomass(record.feeding_date, interpolatedWeight);
+          
+          // Usar taxa específica do registro se disponível, senão calcular baseada no peso
+          let feedingRate = record.feeding_rate_percentage;
+          let mealsCount = mealsPerDay;
+          
+          if (!feedingRate) {
+            const { rate, meals } = getFeedingRateByWeight(interpolatedWeight);
+            feedingRate = rate;
+            mealsCount = meals;
+          }
+          
+          // Calcular quantidade padrão usando curva de crescimento projetada
+          const standardAmount = (projectedBiomass * feedingRate / 100) / mealsCount * 1000; // em gramas
+          
+          // Calcular quantidade ajustada (só se houver ajuste)
+          const adjustment = record.next_feeding_adjustment || 0;
+          const adjustedAmount = record.consumption_evaluation ? 
+            standardAmount * (1 + adjustment / 100) : 
+            standardAmount; // Se não há avaliação, ajustado = padrão
+          
+          const actualAmount = record.actual_amount || 0;
 
-        processedData.push({
-          date: record.feeding_date,
-          feeding_time: record.feeding_time,
-          standard: Math.round(standardAmount),
-          adjusted: Math.round(adjustedAmount),
-          actual: actualAmount,
-          consumption_evaluation: record.consumption_evaluation,
-          adjustment_reason: record.adjustment_reason
+          processedData.push({
+            date: record.feeding_date,
+            feeding_time: record.feeding_time,
+            standard: Math.round(standardAmount),
+            adjusted: Math.round(adjustedAmount),
+            actual: actualAmount,
+            consumption_evaluation: record.consumption_evaluation,
+            adjustment_reason: record.adjustment_reason
+          });
         });
-      });
+      }
 
       setData(processedData);
       calculateStats(processedData);
@@ -421,6 +470,7 @@ export function FeedingAdjustmentChartModal({
                           name="Ajustado"
                           dot={{ r: 4 }}
                           strokeDasharray="5 5"
+                          hide={!chartData.some(d => d.adjusted !== d.standard)}
                         />
                         <Line
                           type="monotone"
@@ -451,7 +501,7 @@ export function FeedingAdjustmentChartModal({
                   <span className="font-medium text-green-800">Linha Padrão</span>
                 </div>
                 <p className="text-green-700">
-                  Quantidade calculada pela taxa de arraçoamento ({feedingRate}% da biomassa)
+                  Quantidade calculada baseada na curva de crescimento projetada e taxa de alimentação. Mostra a tendência esperada mesmo com registros esparsos.
                 </p>
               </div>
               
@@ -461,7 +511,7 @@ export function FeedingAdjustmentChartModal({
                   <span className="font-medium text-blue-800">Linha Ajustada</span>
                 </div>
                 <p className="text-blue-700">
-                  Quantidade sugerida pelo sistema baseada no consumo anterior
+                  Sugestão do sistema baseada na avaliação de consumo. {chartData.some(d => d.adjusted !== d.standard) ? 'Visível quando há avaliações de consumo.' : 'Coincide com padrão quando não há avaliações.'}
                 </p>
               </div>
               
@@ -471,7 +521,7 @@ export function FeedingAdjustmentChartModal({
                   <span className="font-medium text-orange-800">Linha Real</span>
                 </div>
                 <p className="text-orange-700">
-                  Quantidade efetivamente fornecida aos animais
+                  Quantidade realmente fornecida. {chartData.some(d => d.actual > 0) ? 'Compare com a tendência padrão para identificar padrões.' : 'Aparecerá quando houver registros de alimentação.'}
                 </p>
               </div>
             </div>

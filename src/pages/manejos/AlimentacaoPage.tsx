@@ -211,6 +211,90 @@ export default function AlimentacaoPage() {
     }
   };
 
+  const getFeedingRate = async (pondBatchId: string, weight: number, farmId: string): Promise<number> => {
+    try {
+      // First check for pond-specific rates
+      const { data: pondSpecific } = await supabase
+        .from('feeding_rates')
+        .select('feeding_percentage')
+        .eq('pond_batch_id', pondBatchId)
+        .lte('weight_range_min', weight)
+        .gte('weight_range_max', weight)
+        .order('weight_range_min', { ascending: false })
+        .limit(1);
+
+      if (pondSpecific && pondSpecific.length > 0) {
+        return pondSpecific[0].feeding_percentage;
+      }
+
+      // Then check for farm templates
+      const { data: farmTemplate } = await supabase
+        .from('feeding_rates')
+        .select('feeding_percentage')
+        .eq('farm_id', farmId)
+        .is('pond_batch_id', null)
+        .lte('weight_range_min', weight)
+        .gte('weight_range_max', weight)
+        .order('weight_range_min', { ascending: false })
+        .limit(1);
+
+      if (farmTemplate && farmTemplate.length > 0) {
+        return farmTemplate[0].feeding_percentage;
+      }
+    } catch (error) {
+      console.error('Error getting feeding rate:', error);
+    }
+
+    // Default feeding rate based on weight
+    if (weight < 1) return 10;
+    if (weight < 3) return 8;
+    if (weight < 5) return 6;
+    if (weight < 10) return 4;
+    if (weight < 15) return 2.5;
+    return 2;
+  };
+
+  const getMealsPerDay = async (pondBatchId: string, weight: number, farmId: string): Promise<number> => {
+    try {
+      // First check for pond-specific rates
+      const { data: pondSpecific } = await supabase
+        .from('feeding_rates')
+        .select('meals_per_day')
+        .eq('pond_batch_id', pondBatchId)
+        .lte('weight_range_min', weight)
+        .gte('weight_range_max', weight)
+        .order('weight_range_min', { ascending: false })
+        .limit(1);
+
+      if (pondSpecific && pondSpecific.length > 0) {
+        return pondSpecific[0].meals_per_day;
+      }
+
+      // Then check for farm templates
+      const { data: farmTemplate } = await supabase
+        .from('feeding_rates')
+        .select('meals_per_day')
+        .eq('farm_id', farmId)
+        .is('pond_batch_id', null)
+        .lte('weight_range_min', weight)
+        .gte('weight_range_max', weight)
+        .order('weight_range_min', { ascending: false })
+        .limit(1);
+
+      if (farmTemplate && farmTemplate.length > 0) {
+        return farmTemplate[0].meals_per_day;
+      }
+    } catch (error) {
+      console.error('Error getting meals per day:', error);
+    }
+
+    // Default meals per day based on weight
+    if (weight < 1) return 5;
+    if (weight < 3) return 4;
+    if (weight < 10) return 3;
+    return 2;
+  };
+
   const loadTodayFeedingSummary = async (pond: PondWithBatch) => {
     if (!pond.current_batch) return;
 
@@ -241,18 +325,12 @@ export default function AlimentacaoPage() {
 
       const avgWeight = biometry?.[0]?.average_weight || 1; // Default to 1g if no biometry
 
-      // Get feeding rate configuration based on weight range and farm_id
-      const { data: feedingRate } = await supabase
-        .from('feeding_rates')
-        .select('feeding_percentage, meals_per_day, weight_range_min, weight_range_max')
-        .eq('farm_id', pondData?.farm_id)
-        .lte('weight_range_min', avgWeight)
-        .gte('weight_range_max', avgWeight)
-        .maybeSingle();
+      // Use fallback system for feeding rates
+      const feedingPercentage = await getFeedingRate(pond.current_batch.id, avgWeight, pondData?.farm_id || '');
+      const mealsPerDay = await getMealsPerDay(pond.current_batch.id, avgWeight, pondData?.farm_id || '');
 
       const totalDaily = feedingRecords?.reduce((sum, record) => sum + record.actual_amount, 0) || 0;
       const mealsCompleted = feedingRecords?.length || 0;
-      const mealsPerDay = feedingRate?.meals_per_day || 3;
       
       // Calculate planned amounts with adjustment logic
       let plannedTotalDaily = 0;
@@ -278,11 +356,11 @@ export default function AlimentacaoPage() {
           plannedPerMeal = lastFeeding.actual_amount;
         }
         plannedTotalDaily = plannedPerMeal * mealsPerDay;
-      } else if (feedingRate && pond.current_batch) {
-        // No history: use standard calculation
+      } else if (pond.current_batch) {
+        // No history: use standard calculation with fallback system
         const biomass = (pond.current_batch.current_population * avgWeight) / 1000; // kg
-        plannedTotalDaily = (biomass * feedingRate.feeding_percentage / 100) * 1000; // grams
-        plannedPerMeal = Math.round(plannedTotalDaily / feedingRate.meals_per_day);
+        plannedTotalDaily = (biomass * feedingPercentage / 100) * 1000; // grams
+        plannedPerMeal = Math.round(plannedTotalDaily / mealsPerDay);
       }
 
       // Update pond with feeding summary
@@ -293,7 +371,7 @@ export default function AlimentacaoPage() {
         meals_per_day: mealsPerDay,
         planned_total_daily: plannedTotalDaily,
         planned_per_meal: plannedPerMeal,
-        feeding_percentage: feedingRate?.feeding_percentage || 0
+        feeding_percentage: feedingPercentage
       };
     } catch (error) {
       console.error('Error loading feeding summary:', error);
@@ -449,13 +527,20 @@ export default function AlimentacaoPage() {
 
       const avgWeight = biometry?.[0]?.average_weight || 1; // Default to 1g if no biometry
 
-      // Get feeding rate configuration based on weight range and farm_id
+      // Use fallback system for feeding rates
+      const feedingPercentage = await getFeedingRate(pond.current_batch.id, avgWeight, pondData?.farm_id || '');
+      const mealsPerDay = await getMealsPerDay(pond.current_batch.id, avgWeight, pondData?.farm_id || '');
+
+      // Try to get default feed type from farm template (if exists)
       const { data: feedingRate } = await supabase
         .from('feeding_rates')
-        .select('feeding_percentage, meals_per_day, default_feed_type_id, default_feed_type_name')
+        .select('default_feed_type_id, default_feed_type_name')
         .eq('farm_id', pondData?.farm_id)
+        .is('pond_batch_id', null)
         .lte('weight_range_min', avgWeight)
         .gte('weight_range_max', avgWeight)
+        .order('weight_range_min', { ascending: false })
+        .limit(1)
         .maybeSingle();
 
       // Get last feeding record to check for adjustments
@@ -479,11 +564,11 @@ export default function AlimentacaoPage() {
           // No evaluation: maintain actual_amount
           plannedAmount = lastFeeding.actual_amount;
         }
-      } else if (feedingRate && pond.current_batch) {
-        // No history: use standard calculation
+      } else if (pond.current_batch) {
+        // No history: use standard calculation with fallback system
         const biomass = (pond.current_batch.current_population * avgWeight) / 1000; // kg
-        const dailyFeed = (biomass * feedingRate.feeding_percentage / 100) * 1000; // grams
-        plannedAmount = Math.round(dailyFeed / feedingRate.meals_per_day);
+        const dailyFeed = (biomass * feedingPercentage / 100) * 1000; // grams
+        plannedAmount = Math.round(dailyFeed / mealsPerDay);
       }
 
       // Set default feed type if available

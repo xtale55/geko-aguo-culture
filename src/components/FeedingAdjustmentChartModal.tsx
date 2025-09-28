@@ -255,9 +255,12 @@ export function FeedingAdjustmentChartModal({
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
+      const currentData = data?.find(item => item.doc === label);
+      const dateFormatted = currentData ? format(new Date(currentData.date), 'dd/MM/yyyy', { locale: ptBR }) : '';
+      
       return (
         <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
-          <p className="font-medium mb-2">{label}</p>
+          <p className="font-medium mb-2">DOC {label} - {dateFormatted}</p>
           {payload.map((entry: any, index: number) => (
             <p key={index} style={{ color: entry.color }} className="text-sm">
               {entry.name}: {entry.value}kg
@@ -373,9 +376,11 @@ export function FeedingAdjustmentChartModal({
                       <LineChart data={chartData}>
                         <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200" />
                         <XAxis 
-                          dataKey="date" 
+                          dataKey="doc" 
                           className="text-xs"
-                          interval="preserveStartEnd"
+                          interval={0}
+                          tickFormatter={(value) => value % 5 === 0 || value === 1 ? `${value}` : ''}
+                          label={{ value: 'Dias de Cultivo (DOC)', position: 'insideBottom', offset: -5 }}
                         />
                         <YAxis 
                           className="text-xs"

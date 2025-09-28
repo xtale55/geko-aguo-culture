@@ -75,10 +75,6 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-border p-2">
-        <Button variant="ghost" size="sm" onClick={handleSignOut} className="w-full">
-          <SignOut className="w-4 h-4" />
-        </Button>
-      </SidebarFooter>
+      
     </Sidebar>;
 }

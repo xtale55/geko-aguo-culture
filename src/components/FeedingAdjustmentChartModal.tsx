@@ -226,9 +226,9 @@ export function FeedingAdjustmentChartModal({
       ? ((lastData.cumulative_actual - lastData.cumulative_standard) / lastData.cumulative_standard) * 100 
       : 0;
 
-    // Economia/Desperdício total
+    // Economia/Desperdício total (Standard - Actual = positivo é economia)
     const economyWaste = lastData.cumulative_standard > 0 
-      ? ((lastData.cumulative_actual - lastData.cumulative_standard) / lastData.cumulative_standard) * 100 
+      ? ((lastData.cumulative_standard - lastData.cumulative_actual) / lastData.cumulative_standard) * 100 
       : 0;
 
     setStats({
@@ -327,11 +327,11 @@ export function FeedingAdjustmentChartModal({
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <p className={`text-2xl font-bold ${stats.economyWaste > 0 ? 'text-red-700' : 'text-green-700'}`}>
+                  <p className={`text-2xl font-bold ${stats.economyWaste > 0 ? 'text-green-700' : 'text-red-700'}`}>
                     {stats.economyWaste > 0 ? '+' : ''}{stats.economyWaste}%
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {stats.economyWaste > 0 ? 'Desperdício' : 'Economia'}
+                    {stats.economyWaste > 0 ? 'Economia' : 'Desperdício'}
                   </p>
                 </CardContent>
               </Card>

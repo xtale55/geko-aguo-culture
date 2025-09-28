@@ -10,12 +10,10 @@ import { ptBR } from 'date-fns/locale';
 
 interface FeedingAdjustmentData {
   date: string;
-  feeding_time: string;
-  standard: number; // Quantidade padrão baseada na taxa
-  adjusted: number; // Quantidade ajustada sugerida
-  actual: number; // Quantidade realmente fornecida
-  consumption_evaluation?: string;
-  adjustment_reason?: string;
+  doc: number;
+  cumulative_standard: number; // Ração padrão acumulada (kg)
+  cumulative_adjusted: number; // Ração ajustada acumulada (kg) 
+  cumulative_actual: number; // Ração real acumulada (kg)
 }
 
 interface FeedingAdjustmentChartModalProps {
@@ -66,28 +64,16 @@ export function FeedingAdjustmentChartModal({
 
       if (pondError) throw pondError;
 
-      // Usar data de povoamento como início e hoje como fim
       const stockingDate = new Date(pondBatch.stocking_date);
       const today = new Date();
-      const startDate = pondBatch.stocking_date;
 
       // Buscar TODOS os registros de alimentação desde o povoamento
       const { data: feedingRecords, error: feedingError } = await supabase
         .from('feeding_records')
-        .select(`
-          feeding_date,
-          feeding_time,
-          planned_amount,
-          actual_amount,
-          consumption_evaluation,
-          adjustment_reason,
-          next_feeding_adjustment,
-          feeding_rate_percentage
-        `)
+        .select('feeding_date, planned_amount, actual_amount')
         .eq('pond_batch_id', pondBatchId)
-        .gte('feeding_date', startDate)
-        .order('feeding_date', { ascending: true })
-        .order('feeding_time', { ascending: true });
+        .gte('feeding_date', pondBatch.stocking_date)
+        .order('feeding_date', { ascending: true });
 
       if (feedingError) throw feedingError;
 
@@ -96,95 +82,60 @@ export function FeedingAdjustmentChartModal({
         .from('biometrics')
         .select('measurement_date, average_weight')
         .eq('pond_batch_id', pondBatchId)
-        .gte('measurement_date', startDate)
+        .gte('measurement_date', pondBatch.stocking_date)
         .order('measurement_date', { ascending: true });
 
       if (biometricsError) throw biometricsError;
 
-      // Buscar configurações de feeding_rates históricas
-      // Primeiro buscar o farm_id
+      // Buscar feeding_rates
       const { data: pondInfo, error: pondInfoError } = await supabase
         .from('pond_batches')
-        .select(`
-          pond_id,
-          ponds!inner(farm_id)
-        `)
+        .select('pond_id, ponds!inner(farm_id)')
         .eq('id', pondBatchId)
         .single();
 
       if (pondInfoError) throw pondInfoError;
 
       const farmId = pondInfo?.ponds?.farm_id;
-
-      // Buscar feeding_rates específicos do pond_batch e da farm
       const { data: feedingRates, error: ratesError } = await supabase
         .from('feeding_rates')
-        .select('weight_range_min, weight_range_max, feeding_percentage, meals_per_day, created_at, pond_batch_id, farm_id')
+        .select('weight_range_min, weight_range_max, feeding_percentage, meals_per_day')
         .or(`pond_batch_id.eq.${pondBatchId},farm_id.eq.${farmId}`)
-        .order('created_at', { ascending: false });
+        .order('weight_range_min', { ascending: true });
 
       if (ratesError) throw ratesError;
 
-      const processedData: FeedingAdjustmentData[] = [];
+      // Função para interpolar peso médio
+      const interpolateWeight = (date: Date): number => {
+        if (!biometrics || biometrics.length === 0) return 1;
+        if (biometrics.length === 1) return biometrics[0].average_weight;
 
-      // Função para interpolar peso médio entre biometrias
-      const interpolateWeight = (date: string): number => {
-        const targetDate = new Date(date);
-        
-        if (!biometrics || biometrics.length === 0) {
-          return 1; // Peso padrão inicial
-        }
-
-        // Se só tem uma biometria, usar ela
-        if (biometrics.length === 1) {
-          return biometrics[0].average_weight;
-        }
-
-        // Encontrar biometrias antes e depois da data
         let beforeBio = null;
         let afterBio = null;
 
         for (const bio of biometrics) {
           const bioDate = new Date(bio.measurement_date);
-          if (bioDate <= targetDate) {
+          if (bioDate <= date) {
             beforeBio = bio;
-          } else if (!afterBio && bioDate > targetDate) {
+          } else if (!afterBio && bioDate > date) {
             afterBio = bio;
             break;
           }
         }
 
-        // Se tem biometria antes e depois, interpolar
         if (beforeBio && afterBio) {
           const beforeDate = new Date(beforeBio.measurement_date).getTime();
           const afterDate = new Date(afterBio.measurement_date).getTime();
-          const targetTime = targetDate.getTime();
-          
+          const targetTime = date.getTime();
           const ratio = (targetTime - beforeDate) / (afterDate - beforeDate);
           return beforeBio.average_weight + (afterBio.average_weight - beforeBio.average_weight) * ratio;
         }
 
-        // Se só tem antes, usar a mais recente
-        if (beforeBio) {
-          return beforeBio.average_weight;
-        }
-
-        // Se só tem depois, usar a primeira
-        if (afterBio) {
-          return afterBio.average_weight;
-        }
-
-        return 1; // Fallback
+        return beforeBio?.average_weight || afterBio?.average_weight || 1;
       };
 
-      // Função para calcular biomassa projetada baseada no crescimento
-      const getProjectedBiomass = (date: string, interpolatedWeight: number): number => {
-        return (pondBatch.current_population * interpolatedWeight) / 1000; // kg
-      };
-
-      // Função para obter taxa de alimentação baseada no peso interpolado
-      const getFeedingRateByWeight = (weight: number): { rate: number; meals: number } => {
-        // Encontrar a configuração mais apropriada baseada no peso
+      // Função para obter taxa de alimentação baseada no peso
+      const getFeedingRateByWeight = (weight: number) => {
         const applicableRate = feedingRates?.find(fr => 
           weight >= (fr.weight_range_min || 0) && 
           weight <= (fr.weight_range_max || 999)
@@ -197,7 +148,7 @@ export function FeedingAdjustmentChartModal({
           };
         }
 
-        // Fallback: usar configuração padrão baseada no peso
+        // Fallback baseado no peso
         if (weight < 1) return { rate: 10, meals: 5 };
         if (weight < 3) return { rate: 8, meals: 4 };
         if (weight < 5) return { rate: 6, meals: 4 };
@@ -206,77 +157,49 @@ export function FeedingAdjustmentChartModal({
         return { rate: 2, meals: 2 };
       };
 
-      // Criar dados mesmo sem registros, para mostrar as linhas padrão e projetada
-      if (!feedingRecords || feedingRecords.length === 0) {
-        console.log('No feeding records found, generating default data for chart');
-        // Gerar dados para os últimos 30 dias com base na curva de crescimento
-        const today = new Date();
-        for (let i = 29; i >= 0; i--) {
-          const date = new Date(today);
-          date.setDate(date.getDate() - i);
-          const dateStr = date.toISOString().split('T')[0];
-          
-          const interpolatedWeight = interpolateWeight(dateStr);
-          const projectedBiomass = getProjectedBiomass(dateStr, interpolatedWeight);
-          const { rate, meals } = getFeedingRateByWeight(interpolatedWeight);
-          
-          const standardAmount = (projectedBiomass * rate / 100) / meals * 1000; // em gramas
-          
-          console.log(`Generated data for ${dateStr}: weight=${interpolatedWeight}g, biomass=${projectedBiomass}kg, rate=${rate}%, standard=${standardAmount}g`);
-          
-          processedData.push({
-            date: dateStr,
-            feeding_time: '08:00:00', // Horário padrão para visualização
-            standard: Math.round(standardAmount),
-            adjusted: Math.round(standardAmount), // Sem ajuste se não há avaliação
-            actual: 0, // Não há registro real
-            consumption_evaluation: undefined,
-            adjustment_reason: undefined
-          });
-        }
-        console.log('Generated processedData:', processedData);
-      } else {
-        // Processar registros existentes
-        feedingRecords.forEach((record) => {
-          const interpolatedWeight = interpolateWeight(record.feeding_date);
-          const projectedBiomass = getProjectedBiomass(record.feeding_date, interpolatedWeight);
-          
-          // Usar taxa específica do registro se disponível, senão calcular baseada no peso
-          let feedingRate = record.feeding_rate_percentage;
-          let mealsCount = mealsPerDay;
-          
-          if (!feedingRate) {
-            const { rate, meals } = getFeedingRateByWeight(interpolatedWeight);
-            feedingRate = rate;
-            mealsCount = meals;
-          }
-          
-          // Calcular quantidade padrão usando curva de crescimento projetada
-          const standardAmount = (projectedBiomass * feedingRate / 100) / mealsCount * 1000; // em gramas
-          
-          // Calcular quantidade ajustada (só se houver ajuste)
-          const adjustment = record.next_feeding_adjustment || 0;
-          const adjustedAmount = record.consumption_evaluation ? 
-            standardAmount * (1 + adjustment / 100) : 
-            standardAmount; // Se não há avaliação, ajustado = padrão
-          
-          const actualAmount = record.actual_amount || 0;
+      // Criar timeline diária com cálculos acumulados
+      let cumulativeStandard = 0;
+      let cumulativeAdjusted = 0;
+      let cumulativeActual = 0;
+      
+      const processedData: FeedingAdjustmentData[] = [];
 
-          processedData.push({
-            date: record.feeding_date,
-            feeding_time: record.feeding_time,
-            standard: Math.round(standardAmount),
-            adjusted: Math.round(adjustedAmount),
-            actual: actualAmount,
-            consumption_evaluation: record.consumption_evaluation,
-            adjustment_reason: record.adjustment_reason
-          });
+      for (let d = new Date(stockingDate); d <= today; d.setDate(d.getDate() + 1)) {
+        const dateStr = d.toISOString().split('T')[0];
+        const doc = Math.floor((d.getTime() - stockingDate.getTime()) / (1000 * 60 * 60 * 24));
+        
+        // Calcular ração padrão teórica para este dia
+        const avgWeight = interpolateWeight(d);
+        const biomass = (pondBatch.current_population * avgWeight) / 1000; // kg
+        const { rate } = getFeedingRateByWeight(avgWeight);
+        const dailyStandardAmount = (biomass * rate / 100); // kg por dia
+        
+        // Buscar registros reais para este dia
+        const dayRecords = feedingRecords.filter(r => r.feeding_date === dateStr);
+        
+        let dailyAdjusted = 0;
+        let dailyActual = 0;
+        
+        if (dayRecords.length > 0) {
+          dailyAdjusted = dayRecords.reduce((sum, record) => sum + (record.planned_amount / 1000), 0);
+          dailyActual = dayRecords.reduce((sum, record) => sum + (record.actual_amount / 1000), 0);
+        }
+        
+        // Acumular valores
+        cumulativeStandard += dailyStandardAmount;
+        cumulativeAdjusted += dailyAdjusted;
+        cumulativeActual += dailyActual;
+
+        processedData.push({
+          date: dateStr,
+          doc,
+          cumulative_standard: cumulativeStandard,
+          cumulative_adjusted: cumulativeAdjusted,
+          cumulative_actual: cumulativeActual
         });
       }
 
       setData(processedData);
-      console.log('Processed data for chart:', processedData);
-      console.log('Chart data length:', processedData.length);
       calculateStats(processedData);
     } catch (error) {
       console.error('Error fetching adjustment data:', error);
@@ -291,74 +214,44 @@ export function FeedingAdjustmentChartModal({
       return;
     }
 
-    // Taxa de aderência (quantas vezes seguiu a sugestão ajustada)
-    const adherentFeedings = data.filter(d => 
-      Math.abs(d.actual - d.adjusted) <= (d.adjusted * 0.1) // 10% de tolerância
-    ).length;
-    const adherenceRate = (adherentFeedings / data.length) * 100;
+    const lastData = data[data.length - 1];
+
+    // Taxa de aderência - porcentagem de ajustado vs padrão no total
+    const adherenceRate = lastData.cumulative_standard > 0 
+      ? (lastData.cumulative_adjusted / lastData.cumulative_standard) * 100 
+      : 0;
 
     // Variação média em relação ao padrão
-    const variations = data.map(d => ((d.actual - d.standard) / d.standard) * 100);
-    const avgVariation = variations.reduce((acc, val) => acc + val, 0) / variations.length;
+    const avgVariation = lastData.cumulative_standard > 0 
+      ? ((lastData.cumulative_actual - lastData.cumulative_standard) / lastData.cumulative_standard) * 100 
+      : 0;
 
-    // Economia/Desperdício total (diferença entre padrão e real)
-    const totalStandard = data.reduce((acc, d) => acc + d.standard, 0);
-    const totalActual = data.reduce((acc, d) => acc + d.actual, 0);
-    const economyWaste = ((totalActual - totalStandard) / totalStandard) * 100;
-
-    // Dias únicos
-    const uniqueDates = new Set(data.map(d => d.date));
-    const totalDays = uniqueDates.size;
+    // Economia/Desperdício total
+    const economyWaste = lastData.cumulative_standard > 0 
+      ? ((lastData.cumulative_actual - lastData.cumulative_standard) / lastData.cumulative_standard) * 100 
+      : 0;
 
     setStats({
       adherenceRate: Math.round(adherenceRate),
       avgVariation: Math.round(avgVariation * 100) / 100,
       economyWaste: Math.round(economyWaste * 100) / 100,
-      totalDays
+      totalDays: data.length
     });
   };
 
   const formatChartData = () => {
-    console.log('Formatting chart data from:', data);
-    
-    if (!data || data.length === 0) {
-      console.log('No data to format for chart');
-      return [];
-    }
+    if (!data || data.length === 0) return [];
 
-    const grouped = data.reduce((acc, item) => {
-      const key = `${item.date} ${item.feeding_time}`;
-      if (!acc[key]) {
-        acc[key] = {
-          dateTime: key,
-          displayDate: format(new Date(`${item.date}T${item.feeding_time}`), 'dd/MM HH:mm', { locale: ptBR }),
-          standard: 0,
-          adjusted: 0,
-          actual: 0,
-          count: 0
-        };
-      }
-      acc[key].standard += item.standard;
-      acc[key].adjusted += item.adjusted;
-      acc[key].actual += item.actual;
-      acc[key].count += 1;
-      return acc;
-    }, {} as any);
-
-    const result = Object.values(grouped).map((item: any) => ({
-      ...item,
-      standard: Math.round(item.standard / item.count),
-      adjusted: Math.round(item.adjusted / item.count),
-      actual: Math.round(item.actual / item.count)
+    return data.map(item => ({
+      date: format(new Date(item.date), 'dd/MM', { locale: ptBR }),
+      doc: item.doc,
+      'Padrão': Number(item.cumulative_standard.toFixed(1)),
+      'Ajustado': Number(item.cumulative_adjusted.toFixed(1)),
+      'Real': Number(item.cumulative_actual.toFixed(1))
     }));
-    
-    console.log('Formatted chart data:', result);
-    return result;
   };
 
   const chartData = formatChartData();
-  console.log('Final chartData for rendering:', chartData);
-  console.log('Chart data has actual values:', chartData.some(d => d.actual > 0));
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
@@ -367,7 +260,7 @@ export function FeedingAdjustmentChartModal({
           <p className="font-medium mb-2">{label}</p>
           {payload.map((entry: any, index: number) => (
             <p key={index} style={{ color: entry.color }} className="text-sm">
-              {entry.name}: {entry.value}g
+              {entry.name}: {entry.value}kg
             </p>
           ))}
         </div>
@@ -480,39 +373,39 @@ export function FeedingAdjustmentChartModal({
                       <LineChart data={chartData}>
                         <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200" />
                         <XAxis 
-                          dataKey="displayDate" 
+                          dataKey="date" 
                           className="text-xs"
                           interval="preserveStartEnd"
                         />
                         <YAxis 
                           className="text-xs"
-                          label={{ value: 'Quantidade Acumulada (kg)', angle: -90, position: 'insideLeft' }}
+                          label={{ value: 'Ração Acumulada (kg)', angle: -90, position: 'insideLeft' }}
                         />
                         <Tooltip content={<CustomTooltip />} />
                         <Legend />
                         <Line
                           type="monotone"
-                          dataKey="standard"
+                          dataKey="Padrão"
                           stroke="#22c55e"
                           strokeWidth={2}
-                          name="Padrão Acumulado"
+                          name="Padrão"
                           dot={false}
                         />
                         <Line
                           type="monotone"
-                          dataKey="adjusted"
+                          dataKey="Ajustado"
                           stroke="#3b82f6"
                           strokeWidth={2}
-                          name="Ajustado Acumulado"
+                          name="Ajustado"
                           dot={false}
                           strokeDasharray="5 5"
                         />
                         <Line
                           type="monotone"
-                          dataKey="actual"
+                          dataKey="Real"
                           stroke="#f97316"
                           strokeWidth={3}
-                          name="Real Acumulado"
+                          name="Real"
                           dot={false}
                         />
                       </LineChart>

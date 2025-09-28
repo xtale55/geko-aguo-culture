@@ -352,8 +352,10 @@ export default function AlimentacaoPage() {
           const adjustmentPercent = lastFeeding.next_feeding_adjustment || 0;
           plannedPerMeal = Math.round(lastFeeding.actual_amount * (1 + adjustmentPercent / 100));
         } else {
-          // No evaluation: maintain actual_amount
-          plannedPerMeal = lastFeeding.actual_amount;
+          // No evaluation: recalculate based on current biomass and standard rates
+          const biomass = (pond.current_batch.current_population * avgWeight) / 1000; // kg
+          plannedTotalDaily = (biomass * feedingPercentage / 100) * 1000; // grams
+          plannedPerMeal = Math.round(plannedTotalDaily / mealsPerDay);
         }
         plannedTotalDaily = plannedPerMeal * mealsPerDay;
       } else if (pond.current_batch) {

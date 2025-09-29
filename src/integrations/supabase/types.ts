@@ -252,13 +252,19 @@ export type Database = {
         Row: {
           actual_amount: number
           actual_amount_backup: number | null
+          adjustment_reason: string | null
+          consumption_evaluation: string | null
           created_at: string
+          evaluated_by: string | null
+          evaluation_time: string | null
           feed_type_id: string | null
           feed_type_name: string | null
           feeding_date: string
           feeding_rate_percentage: number
           feeding_time: string
           id: string
+          leftover_percentage: number | null
+          next_feeding_adjustment: number | null
           notes: string | null
           planned_amount: number
           planned_amount_backup: number | null
@@ -269,13 +275,19 @@ export type Database = {
         Insert: {
           actual_amount?: number
           actual_amount_backup?: number | null
+          adjustment_reason?: string | null
+          consumption_evaluation?: string | null
           created_at?: string
+          evaluated_by?: string | null
+          evaluation_time?: string | null
           feed_type_id?: string | null
           feed_type_name?: string | null
           feeding_date: string
           feeding_rate_percentage?: number
           feeding_time: string
           id?: string
+          leftover_percentage?: number | null
+          next_feeding_adjustment?: number | null
           notes?: string | null
           planned_amount?: number
           planned_amount_backup?: number | null
@@ -286,13 +298,19 @@ export type Database = {
         Update: {
           actual_amount?: number
           actual_amount_backup?: number | null
+          adjustment_reason?: string | null
+          consumption_evaluation?: string | null
           created_at?: string
+          evaluated_by?: string | null
+          evaluation_time?: string | null
           feed_type_id?: string | null
           feed_type_name?: string | null
           feeding_date?: string
           feeding_rate_percentage?: number
           feeding_time?: string
           id?: string
+          leftover_percentage?: number | null
+          next_feeding_adjustment?: number | null
           notes?: string | null
           planned_amount?: number
           planned_amount_backup?: number | null
@@ -309,6 +327,57 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      feeding_sensitivity_config: {
+        Row: {
+          auto_adjustment_enabled: boolean | null
+          consumed_all_adjustment: number | null
+          created_at: string
+          created_by: string
+          evaluation_history_count: number | null
+          excess_leftover_adjustment: number | null
+          farm_id: string
+          id: string
+          left_little_adjustment: number | null
+          no_consumption_adjustment: number | null
+          partial_consumption_adjustment: number | null
+          suspension_duration_hours: number | null
+          suspension_threshold: number | null
+          updated_at: string
+        }
+        Insert: {
+          auto_adjustment_enabled?: boolean | null
+          consumed_all_adjustment?: number | null
+          created_at?: string
+          created_by: string
+          evaluation_history_count?: number | null
+          excess_leftover_adjustment?: number | null
+          farm_id: string
+          id?: string
+          left_little_adjustment?: number | null
+          no_consumption_adjustment?: number | null
+          partial_consumption_adjustment?: number | null
+          suspension_duration_hours?: number | null
+          suspension_threshold?: number | null
+          updated_at?: string
+        }
+        Update: {
+          auto_adjustment_enabled?: boolean | null
+          consumed_all_adjustment?: number | null
+          created_at?: string
+          created_by?: string
+          evaluation_history_count?: number | null
+          excess_leftover_adjustment?: number | null
+          farm_id?: string
+          id?: string
+          left_little_adjustment?: number | null
+          no_consumption_adjustment?: number | null
+          partial_consumption_adjustment?: number | null
+          suspension_duration_hours?: number | null
+          suspension_threshold?: number | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       harvest_records: {
         Row: {
@@ -1113,6 +1182,19 @@ export type Database = {
       }
     }
     Functions: {
+      calculate_feeding_adjustment: {
+        Args: {
+          consumption_eval: string
+          current_amount: number
+          pond_batch_id_param: string
+        }
+        Returns: {
+          adjustment_percentage: number
+          reason: string
+          should_suspend: boolean
+          suggested_amount: number
+        }[]
+      }
       calculate_feeding_metrics: {
         Args: { calculation_date?: string; farm_id_param: string }
         Returns: {
@@ -1146,6 +1228,12 @@ export type Database = {
           name: string
           quantity: number
           unit_price: number
+        }[]
+      }
+      get_user_accessible_farm_ids: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          farm_id: string
         }[]
       }
       get_user_role_in_farm: {

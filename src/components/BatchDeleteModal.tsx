@@ -20,7 +20,7 @@ export function BatchDeleteModal({ isOpen, onClose, onSuccess, batch }: BatchDel
   const [isLoading, setIsLoading] = useState(false);
 
   const handleDelete = async () => {
-    if (!batch) return;
+    if (!batch || !batch.pond_allocations) return;
 
     // Verificar se existem viveiros ativos
     const activePonds = batch.pond_allocations.filter(p => p.cycle_status === 'active');
@@ -122,7 +122,7 @@ export function BatchDeleteModal({ isOpen, onClose, onSuccess, batch }: BatchDel
 
   if (!batch) return null;
 
-  const activePonds = batch.pond_allocations.filter(p => p.cycle_status === 'active');
+  const activePonds = batch.pond_allocations?.filter(p => p.cycle_status === 'active') || [];
   const canDelete = activePonds.length === 0;
 
   return (
@@ -142,7 +142,7 @@ export function BatchDeleteModal({ isOpen, onClose, onSuccess, batch }: BatchDel
           <div className="bg-muted p-4 rounded-lg">
             <p className="font-medium">Lote: {batch.name}</p>
             <p className="text-sm text-muted-foreground">
-              {batch.pond_allocations.length} viveiro(s) associado(s)
+              {batch.pond_allocations?.length || 0} viveiro(s) associado(s)
             </p>
           </div>
 

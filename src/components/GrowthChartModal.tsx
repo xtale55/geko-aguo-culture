@@ -248,7 +248,7 @@ export function GrowthChartModal({
                         <div className="w-4 h-0.5 bg-warning rounded" style={{ 
                           backgroundImage: 'repeating-linear-gradient(to right, hsl(var(--warning)) 0, hsl(var(--warning)) 3px, transparent 3px, transparent 6px)' 
                         }}></div>
-                        <span className="text-muted-foreground">Tendência Exponencial</span>
+                        <span className="text-muted-foreground">Tendência de Crescimento</span>
                       </div>
                     )}
                   </div>

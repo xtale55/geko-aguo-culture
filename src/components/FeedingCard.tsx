@@ -5,9 +5,10 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ClockCounterClockwise, PencilSimple, Clock, ChartLine } from '@phosphor-icons/react';
+import { ClockCounterClockwise, PencilSimple, Clock, ChartLine, TrendUp } from '@phosphor-icons/react';
 import { FeedingHistoryDialog } from '@/components/FeedingHistoryDialog';
 import { FeedingChartModal } from '@/components/FeedingChartModal';
+import { FeedingAdjustmentChartModal } from '@/components/FeedingAdjustmentChartModal';
 import { FeedingSchedule } from '@/components/FeedingSchedule';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -54,6 +55,7 @@ export function FeedingCard({
 }: FeedingCardProps) {
   const [isHistoryDialogOpen, setIsHistoryDialogOpen] = useState(false);
   const [isChartModalOpen, setIsChartModalOpen] = useState(false);
+  const [isAdjustmentChartOpen, setIsAdjustmentChartOpen] = useState(false);
   const [isEditRateDialogOpen, setIsEditRateDialogOpen] = useState(false);
   const [newFeedingRate, setNewFeedingRate] = useState<string>("");
   const [newMealsPerDay, setNewMealsPerDay] = useState<string>("");
@@ -275,16 +277,27 @@ export function FeedingCard({
           </div>
         </div>
 
-        {/* History Button */}
-        <Button
-          variant="outline"
-          size="default"
-          onClick={() => setIsHistoryDialogOpen(true)}
-          className="w-full mt-4"
-        >
-          <ClockCounterClockwise className="w-4 h-4 mr-2" />
-          Histórico de Alimentação
-        </Button>
+        {/* Action Buttons */}
+        <div className="grid grid-cols-1 gap-2 mt-4">
+          <Button
+            variant="outline"
+            size="default"
+            onClick={() => setIsHistoryDialogOpen(true)}
+            className="w-full"
+          >
+            <ClockCounterClockwise className="w-4 h-4 mr-2" />
+            Histórico de Alimentação
+          </Button>
+          <Button
+            variant="outline"
+            size="default"
+            onClick={() => setIsAdjustmentChartOpen(true)}
+            className="w-full"
+          >
+            <TrendUp className="w-4 h-4 mr-2" />
+            Gráfico de Ajustes
+          </Button>
+        </div>
 
         {/* Feeding History Dialog */}
         <FeedingHistoryDialog
@@ -305,6 +318,17 @@ export function FeedingCard({
           feedingData={feedingData}
         />
 
+        {/* Feeding Adjustment Chart Modal */}
+        <FeedingAdjustmentChartModal
+          open={isAdjustmentChartOpen}
+          onOpenChange={setIsAdjustmentChartOpen}
+          pondBatchId={pondBatchId}
+          pondName={pondName}
+          batchName={batchName}
+          currentBiomass={biomass}
+          feedingRate={feedingRate}
+          mealsPerDay={mealsPerDay}
+        />
 
         {/* Edit Rate Dialog */}
         <Dialog open={isEditRateDialogOpen} onOpenChange={setIsEditRateDialogOpen}>

@@ -352,7 +352,7 @@ export function FeedingAdjustmentChartModal({
                         <XAxis dataKey="doc" className="text-xs" interval={0} tickFormatter={value => value % 5 === 0 || value === 1 ? `${value}` : ''} label={{
                     value: 'Dias de Cultivo (DOC)',
                     position: 'insideBottom',
-                    offset: 5
+                    offset: -5
                   }} />
                         <YAxis className="text-xs" label={{
                     value: 'Ração Acumulada (kg)',

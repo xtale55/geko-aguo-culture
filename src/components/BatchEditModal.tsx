@@ -80,7 +80,8 @@ export function BatchEditModal({ isOpen, onClose, onSuccess, batch }: BatchEditM
     setIsLoading(true);
 
     try {
-      const { error } = await supabase
+      // Atualizar a tabela batches
+      const { error: batchError } = await supabase
         .from('batches')
         .update({
           name: formData.name.trim(),
@@ -92,7 +93,19 @@ export function BatchEditModal({ isOpen, onClose, onSuccess, batch }: BatchEditM
         })
         .eq('id', batch.id);
 
-      if (error) throw error;
+      if (batchError) throw batchError;
+
+      // Atualizar a data de povoamento nos pond_batches se a data de chegada foi alterada
+      if (formData.arrival_date !== batch.arrival_date) {
+        const { error: pondBatchError } = await supabase
+          .from('pond_batches')
+          .update({
+            stocking_date: formData.arrival_date
+          })
+          .eq('batch_id', batch.id);
+
+        if (pondBatchError) throw pondBatchError;
+      }
 
       toast.success('Lote atualizado com sucesso!');
       onSuccess();

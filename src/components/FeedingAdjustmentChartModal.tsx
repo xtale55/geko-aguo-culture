@@ -325,7 +325,7 @@ export function FeedingAdjustmentChartModal({
                 <CardHeader className="pb-2">
                   <div className="flex items-center gap-2">
                     <TrendUp className="w-4 h-4 text-slate-800" />
-                    <CardTitle className="text-sm">Total Days</CardTitle>
+                    <CardTitle className="text-sm">Dias Totais</CardTitle>
                   </div>
                 </CardHeader>
                 <CardContent>

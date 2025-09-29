@@ -1136,7 +1136,7 @@ export default function PondHistory() {
                       strokeDasharray="5 5"
                       dot={false}
                       connectNulls={true}
-                      name="Tendência Exponencial"
+                      name="Tendência de Crescimento"
                     />
                   </LineChart>
                 </ResponsiveContainer>
@@ -1150,7 +1150,7 @@ export default function PondHistory() {
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-4 h-0.5 bg-warning border-dashed border-t-2 border-warning"></div>
-                  <span>Tendência Exponencial</span>
+                  <span>Tendência de Crescimento</span>
                 </div>
               </div>
             </CardContent>

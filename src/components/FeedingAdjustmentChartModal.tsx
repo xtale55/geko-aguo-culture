@@ -341,7 +341,7 @@ export function FeedingAdjustmentChartModal({
                 <CardTitle className="text-lg">Ração Acumulada (kg) - Desde Povoamento</CardTitle>
                 
                 <p className="text-sm text-muted-foreground mt-2">
-                  Debug: {chartData.length} pontos de dados | Biomassa: {currentBiomass}kg | Taxa: {feedingRate}%
+                  Biomassa: {currentBiomass}kg
                 </p>
               </CardHeader>
               <CardContent>

@@ -281,12 +281,12 @@ export function FeedingAdjustmentChartModal({
               <Card>
                 <CardHeader className="pb-2">
                   <div className="flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 text-green-600" />
+                    <CheckCircle className="w-4 h-4 text-slate-800" />
                     <CardTitle className="text-sm">Aderência aos Ajustes</CardTitle>
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-2xl font-bold text-green-700">{stats.adherenceRate}%</p>
+                  <p className="text-2xl font-bold text-slate-800">{stats.adherenceRate}%</p>
                   <p className="text-xs text-muted-foreground">Seguiu as sugestões</p>
                 </CardContent>
               </Card>
@@ -294,12 +294,12 @@ export function FeedingAdjustmentChartModal({
               <Card>
                 <CardHeader className="pb-2">
                   <div className="flex items-center gap-2">
-                    <Target className="w-4 h-4 text-blue-600" />
+                    <Target className="w-4 h-4 text-slate-800" />
                     <CardTitle className="text-sm">Variação Média</CardTitle>
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-2xl font-bold text-blue-700">{stats.avgVariation > 0 ? '+' : ''}{stats.avgVariation}%</p>
+                  <p className="text-2xl font-bold text-slate-800">{stats.avgVariation > 0 ? '+' : ''}{stats.avgVariation}%</p>
                   <p className="text-xs text-muted-foreground">Em relação ao padrão</p>
                 </CardContent>
               </Card>
@@ -307,12 +307,12 @@ export function FeedingAdjustmentChartModal({
               <Card>
                 <CardHeader className="pb-2">
                   <div className="flex items-center gap-2">
-                    <Warning className="w-4 h-4 text-orange-600" />
+                    <Warning className={`w-4 h-4 ${Math.abs(stats.economyWaste) > 10 ? 'text-orange-600' : 'text-slate-800'}`} />
                     <CardTitle className="text-sm">Economia/Desperdício</CardTitle>
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <p className={`text-2xl font-bold ${stats.economyWaste > 0 ? 'text-red-700' : 'text-green-700'}`}>
+                  <p className={`text-2xl font-bold ${Math.abs(stats.economyWaste) > 10 ? (stats.economyWaste > 0 ? 'text-red-700' : 'text-green-700') : 'text-slate-800'}`}>
                     {stats.economyWaste > 0 ? '+' : ''}{stats.economyWaste}%
                   </p>
                   <p className="text-xs text-muted-foreground">
@@ -324,12 +324,12 @@ export function FeedingAdjustmentChartModal({
               <Card>
                 <CardHeader className="pb-2">
                   <div className="flex items-center gap-2">
-                    <TrendUp className="w-4 h-4 text-purple-600" />
-                    
+                    <TrendUp className="w-4 h-4 text-slate-800" />
+                    <CardTitle className="text-sm">Total Days</CardTitle>
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-2xl font-bold text-purple-700">{stats.totalDays}</p>
+                  <p className="text-2xl font-bold text-slate-800">{stats.totalDays}</p>
                   <p className="text-xs text-muted-foreground">dias com dados</p>
                 </CardContent>
               </Card>

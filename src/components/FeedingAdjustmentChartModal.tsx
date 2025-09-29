@@ -352,7 +352,7 @@ export function FeedingAdjustmentChartModal({
                         <XAxis dataKey="doc" className="text-xs" interval={0} tickFormatter={value => value % 5 === 0 || value === 1 ? `${value}` : ''} label={{
                     value: 'Dias de Cultivo (DOC)',
                     position: 'insideBottom',
-                    offset: -15
+                    offset: 5
                   }} />
                         <YAxis className="text-xs" label={{
                     value: 'Ração Acumulada (kg)',
@@ -360,7 +360,7 @@ export function FeedingAdjustmentChartModal({
                     position: 'insideLeft'
                   }} />
                         <Tooltip content={<CustomTooltip />} />
-                        <Legend />
+                        <Legend wrapperStyle={{ paddingTop: '20px' }} />
                         <Line type="monotone" dataKey="Padrão" stroke="#22c55e" strokeWidth={2} name="Padrão" dot={false} />
                         <Line type="monotone" dataKey="Ajustado" stroke="#3b82f6" strokeWidth={2} name="Ajustado" dot={false} strokeDasharray="5 5" />
                         <Line type="monotone" dataKey="Real" stroke="#f97316" strokeWidth={3} name="Real" dot={false} />

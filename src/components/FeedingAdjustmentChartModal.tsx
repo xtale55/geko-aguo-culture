@@ -325,7 +325,7 @@ export function FeedingAdjustmentChartModal({
                 <CardHeader className="pb-2">
                   <div className="flex items-center gap-2">
                     <TrendUp className="w-4 h-4 text-purple-600" />
-                    <CardTitle className="text-sm">Biomassa: 1800kg </CardTitle>
+                    
                   </div>
                 </CardHeader>
                 <CardContent>

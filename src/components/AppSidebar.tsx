@@ -36,6 +36,11 @@ const managementItems = [
     label: 'Relatórios'
   },
   {
+    path: '/stocking',
+    icon: Shrimp,
+    label: 'Povoamento'
+  },
+  {
     path: '/feeding',
     icon: ForkKnife,
     label: 'Ração'

@@ -92,7 +92,7 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <Separator className="my-2" />
+        <Separator className="my-1" />
 
         {/* Operações Diárias */}
         <SidebarGroup>
@@ -115,7 +115,7 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <Separator className="my-2" />
+        <Separator className="my-1" />
 
         {/* Gestão e Monitoramento */}
         <SidebarGroup>
@@ -138,7 +138,7 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <Separator className="my-2" />
+        <Separator className="my-1" />
 
         {/* Administrativo */}
         <SidebarGroup>

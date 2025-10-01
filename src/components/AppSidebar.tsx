@@ -3,40 +3,57 @@ import { Shrimp, SignOut, House, Waves, ForkKnife, Barn, ChartBar, CurrencyDolla
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter } from '@/components/ui/sidebar';
+import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
-const navigationItems = [{
+const dashboardItem = {
   path: '/dashboard',
   icon: House,
   label: 'Dashboard'
-}, {
-  path: '/farm',
-  icon: Waves,
-  label: 'Fazenda'
-}, {
-  path: '/manejos',
-  icon: Shrimp,
-  label: 'Manejos'
-}, {
-  path: '/despesca',
-  icon: Truck,
-  label: 'Despesca'
-}, {
-  path: '/feeding',
-  icon: ForkKnife,
-  label: 'Ração'
-}, {
-  path: '/inventory',
-  icon: Barn,
-  label: 'Estoque'
-}, {
-  path: '/reports',
-  icon: ChartBar,
-  label: 'Relatórios'
-}, {
-  path: '/financial',
-  icon: CurrencyDollar,
-  label: 'Financeiro'
-}];
+};
+
+const operationsItems = [
+  {
+    path: '/manejos',
+    icon: Shrimp,
+    label: 'Manejos'
+  },
+  {
+    path: '/despesca',
+    icon: Truck,
+    label: 'Despesca'
+  },
+  {
+    path: '/inventory',
+    icon: Barn,
+    label: 'Estoque'
+  }
+];
+
+const managementItems = [
+  {
+    path: '/reports',
+    icon: ChartBar,
+    label: 'Relatórios'
+  },
+  {
+    path: '/feeding',
+    icon: ForkKnife,
+    label: 'Ração'
+  }
+];
+
+const administrativeItems = [
+  {
+    path: '/financial',
+    icon: CurrencyDollar,
+    label: 'Financeiro'
+  },
+  {
+    path: '/farm',
+    icon: Waves,
+    label: 'Fazenda'
+  }
+];
 export function AppSidebar() {
   const {
     user,
@@ -59,17 +76,87 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent className="pt-4">
+        {/* Dashboard */}
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navigationItems.map(item => <SidebarMenuItem key={item.path}>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={isActive(dashboardItem.path)}>
+                  <button onClick={() => navigate(dashboardItem.path)} className={cn("w-full min-w-0 flex items-center justify-start gap-2 px-3 py-2 rounded-md text-sm transition-colors", isActive(dashboardItem.path) ? "bg-primary text-primary-foreground" : "hover:bg-muted")}>
+                    <dashboardItem.icon className="w-4 h-4 shrink-0" />
+                    <span className="flex-1 truncate text-left leading-tight">{dashboardItem.label}</span>
+                  </button>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <Separator className="my-2" />
+
+        {/* Operações Diárias */}
+        <SidebarGroup>
+          <SidebarGroupLabel className="text-xs uppercase text-muted-foreground px-3">
+            Operações
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {operationsItems.map(item => (
+                <SidebarMenuItem key={item.path}>
                   <SidebarMenuButton asChild isActive={isActive(item.path)}>
                     <button onClick={() => navigate(item.path)} className={cn("w-full min-w-0 flex items-center justify-start gap-2 px-3 py-2 rounded-md text-sm transition-colors", isActive(item.path) ? "bg-primary text-primary-foreground" : "hover:bg-muted")}>
                       <item.icon className="w-4 h-4 shrink-0" />
                       <span className="flex-1 truncate text-left leading-tight">{item.label}</span>
                     </button>
                   </SidebarMenuButton>
-                </SidebarMenuItem>)}
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <Separator className="my-2" />
+
+        {/* Gestão e Monitoramento */}
+        <SidebarGroup>
+          <SidebarGroupLabel className="text-xs uppercase text-muted-foreground px-3">
+            Gestão
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {managementItems.map(item => (
+                <SidebarMenuItem key={item.path}>
+                  <SidebarMenuButton asChild isActive={isActive(item.path)}>
+                    <button onClick={() => navigate(item.path)} className={cn("w-full min-w-0 flex items-center justify-start gap-2 px-3 py-2 rounded-md text-sm transition-colors", isActive(item.path) ? "bg-primary text-primary-foreground" : "hover:bg-muted")}>
+                      <item.icon className="w-4 h-4 shrink-0" />
+                      <span className="flex-1 truncate text-left leading-tight">{item.label}</span>
+                    </button>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <Separator className="my-2" />
+
+        {/* Administrativo */}
+        <SidebarGroup>
+          <SidebarGroupLabel className="text-xs uppercase text-muted-foreground px-3">
+            Administrativo
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {administrativeItems.map(item => (
+                <SidebarMenuItem key={item.path}>
+                  <SidebarMenuButton asChild isActive={isActive(item.path)}>
+                    <button onClick={() => navigate(item.path)} className={cn("w-full min-w-0 flex items-center justify-start gap-2 px-3 py-2 rounded-md text-sm transition-colors", isActive(item.path) ? "bg-primary text-primary-foreground" : "hover:bg-muted")}>
+                      <item.icon className="w-4 h-4 shrink-0" />
+                      <span className="flex-1 truncate text-left leading-tight">{item.label}</span>
+                    </button>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

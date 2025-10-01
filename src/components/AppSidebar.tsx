@@ -115,7 +115,7 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <Separator className="my-1" />
+        <Separator className="my-1.5 opacity-100" />
 
         {/* Gestão e Monitoramento */}
         <SidebarGroup>

@@ -13,7 +13,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 // New dashboard components
-import { WeatherCard } from '@/components/dashboard/WeatherCard';
+import { MoonPhaseCard } from '@/components/dashboard/MoonPhaseCard';
 import { FeedingProgressCard } from '@/components/dashboard/FeedingProgressCard';
 import { GrowthRateCard } from '@/components/dashboard/GrowthRateCard';
 import { BiomassTable } from '@/components/dashboard/BiomassTable';
@@ -107,8 +107,8 @@ export default function Dashboard() {
           {/* Weekly Growth Rate */}
           <GrowthRateCard farmId={firstFarm?.id} />
 
-          {/* Weather */}
-          <WeatherCard farmLocation={firstFarm?.location} />
+          {/* Moon Phase */}
+          <MoonPhaseCard />
         </div>
 
         {/* Biomass Table */}

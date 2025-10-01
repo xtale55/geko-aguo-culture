@@ -93,140 +93,46 @@ export const Layout = memo(function Layout({
                   <span className="text-xs leading-none truncate">Mais</span>
                 </Button>
               </SheetTrigger>
-              <SheetContent side="bottom" className="h-auto max-h-[75vh] rounded-t-xl">
-                <SheetHeader className="pb-3">
-                  <SheetTitle className="text-center">Navegação</SheetTitle>
+              <SheetContent side="bottom" className="h-auto max-h-[50vh] rounded-t-xl">
+                <SheetHeader className="pb-4">
+                  <SheetTitle className="text-center">Mais Opções</SheetTitle>
                 </SheetHeader>
                 
-                <div className="space-y-4 pb-4 overflow-y-auto max-h-[60vh]">
-                  {/* Dashboard Section */}
-                  <div className="space-y-2">
-                    <Button 
-                      variant="outline" 
-                      size="lg" 
-                      onClick={() => {
-                        navigate('/dashboard');
-                        setIsMoreMenuOpen(false);
-                      }}
-                      className={cn(
-                        "w-full h-16 justify-start space-x-3 border-2 transition-all duration-200",
-                        isActive('/dashboard') 
-                          ? "bg-primary text-primary-foreground border-primary shadow-lg" 
-                          : "hover:bg-muted/50 hover:border-primary/20"
-                      )}
-                    >
-                      <div className="w-10 h-10 rounded-full flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-500">
-                        <House className="w-5 h-5 text-white" />
+                <div className="grid grid-cols-2 gap-3 pb-4">
+                  {[{
+                  path: '/farm',
+                  icon: Waves,
+                  label: 'Fazenda',
+                  color: 'from-blue-500 to-cyan-500'
+                }, {
+                  path: '/despesca',
+                  icon: Shrimp,
+                  label: 'Despesca',
+                  color: 'from-orange-500 to-orange-600'
+                }, {
+                  path: '/feeding',
+                  icon: ForkKnife,
+                  label: 'Ração',
+                  color: 'from-orange-500 to-red-500'
+                }, {
+                  path: '/financial',
+                  icon: CurrencyDollar,
+                  label: 'Financeiro',
+                  color: 'from-green-500 to-emerald-500'
+                }].map(({
+                  path,
+                  icon: Icon,
+                  label,
+                  color
+                }) => <Button key={path} variant="outline" size="lg" onClick={() => {
+                  navigate(path);
+                  setIsMoreMenuOpen(false);
+                }} className={cn("h-20 flex-col space-y-2 border-2 transition-all duration-200 hover:scale-105", isActive(path) ? "bg-primary text-primary-foreground border-primary shadow-lg" : "hover:bg-muted/50 hover:border-primary/20")}>
+                      <div className={cn("w-8 h-8 rounded-full flex items-center justify-center bg-gradient-to-br", color)}>
+                        <Icon className="w-4 h-4 text-white" />
                       </div>
-                      <span className="text-base font-semibold">Dashboard</span>
-                    </Button>
-                  </div>
-
-                  {/* Separator */}
-                  <div className="border-t border-border my-3" />
-
-                  {/* Operações Section */}
-                  <div className="space-y-2">
-                    <p className="text-xs font-medium text-muted-foreground px-2 mb-2">OPERAÇÕES</p>
-                    <div className="grid grid-cols-3 gap-2">
-                      {[
-                        { path: '/manejos', icon: Shrimp, label: 'Manejos', color: 'from-blue-500 to-cyan-500' },
-                        { path: '/despesca', icon: Scales, label: 'Despesca', color: 'from-orange-500 to-orange-600' },
-                        { path: '/inventory', icon: Package, label: 'Estoque', color: 'from-purple-500 to-pink-500' }
-                      ].map(({ path, icon: Icon, label, color }) => (
-                        <Button 
-                          key={path}
-                          variant="outline" 
-                          size="lg" 
-                          onClick={() => {
-                            navigate(path);
-                            setIsMoreMenuOpen(false);
-                          }}
-                          className={cn(
-                            "h-20 flex-col space-y-2 border-2 transition-all duration-200",
-                            isActive(path) 
-                              ? "bg-primary text-primary-foreground border-primary shadow-lg" 
-                              : "hover:bg-muted/50 hover:border-primary/20"
-                          )}
-                        >
-                          <div className={cn("w-8 h-8 rounded-full flex items-center justify-center bg-gradient-to-br", color)}>
-                            <Icon className="w-4 h-4 text-white" />
-                          </div>
-                          <span className="text-xs font-medium">{label}</span>
-                        </Button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Separator */}
-                  <div className="border-t border-border my-3" />
-
-                  {/* Gestão Section */}
-                  <div className="space-y-2">
-                    <p className="text-xs font-medium text-muted-foreground px-2 mb-2">GESTÃO</p>
-                    <div className="grid grid-cols-2 gap-2">
-                      {[
-                        { path: '/reports', icon: ChartBar, label: 'Relatórios', color: 'from-indigo-500 to-blue-500' },
-                        { path: '/feeding', icon: ForkKnife, label: 'Ração', color: 'from-orange-500 to-red-500' }
-                      ].map(({ path, icon: Icon, label, color }) => (
-                        <Button 
-                          key={path}
-                          variant="outline" 
-                          size="lg" 
-                          onClick={() => {
-                            navigate(path);
-                            setIsMoreMenuOpen(false);
-                          }}
-                          className={cn(
-                            "h-20 flex-col space-y-2 border-2 transition-all duration-200",
-                            isActive(path) 
-                              ? "bg-primary text-primary-foreground border-primary shadow-lg" 
-                              : "hover:bg-muted/50 hover:border-primary/20"
-                          )}
-                        >
-                          <div className={cn("w-8 h-8 rounded-full flex items-center justify-center bg-gradient-to-br", color)}>
-                            <Icon className="w-4 h-4 text-white" />
-                          </div>
-                          <span className="text-sm font-medium">{label}</span>
-                        </Button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Separator */}
-                  <div className="border-t border-border my-3" />
-
-                  {/* Administrativo Section */}
-                  <div className="space-y-2">
-                    <p className="text-xs font-medium text-muted-foreground px-2 mb-2">ADMINISTRATIVO</p>
-                    <div className="grid grid-cols-2 gap-2">
-                      {[
-                        { path: '/financial', icon: CurrencyDollar, label: 'Financeiro', color: 'from-green-500 to-emerald-500' },
-                        { path: '/farm', icon: Waves, label: 'Fazenda', color: 'from-blue-500 to-cyan-500' }
-                      ].map(({ path, icon: Icon, label, color }) => (
-                        <Button 
-                          key={path}
-                          variant="outline" 
-                          size="lg" 
-                          onClick={() => {
-                            navigate(path);
-                            setIsMoreMenuOpen(false);
-                          }}
-                          className={cn(
-                            "h-20 flex-col space-y-2 border-2 transition-all duration-200",
-                            isActive(path) 
-                              ? "bg-primary text-primary-foreground border-primary shadow-lg" 
-                              : "hover:bg-muted/50 hover:border-primary/20"
-                          )}
-                        >
-                          <div className={cn("w-8 h-8 rounded-full flex items-center justify-center bg-gradient-to-br", color)}>
-                            <Icon className="w-4 h-4 text-white" />
-                          </div>
-                          <span className="text-sm font-medium">{label}</span>
-                        </Button>
-                      ))}
-                    </div>
-                  </div>
+                      <span className="text-sm font-medium">{label}</span>
+                    </Button>)}
                 </div>
               </SheetContent>
             </Sheet>

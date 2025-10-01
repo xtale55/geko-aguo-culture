@@ -100,6 +100,11 @@ export const Layout = memo(function Layout({
                 
                 <div className="grid grid-cols-2 gap-3 pb-4">
                   {[{
+                  path: '/stocking',
+                  icon: Shrimp,
+                  label: 'Povoamento',
+                  color: 'from-emerald-500 to-teal-500'
+                }, {
                   path: '/farm',
                   icon: Waves,
                   label: 'Fazenda',

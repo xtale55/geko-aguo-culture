@@ -13,9 +13,7 @@ import { Plus, Waves, Edit, Trash2, MapPin, Activity, CheckCircle } from 'lucide
 import { Shrimp } from '@phosphor-icons/react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
-import { StockingContent } from '@/components/StockingContent';
 import { FarmEmployees } from '@/components/FarmEmployees';
-import { StockingHistory } from '@/components/StockingHistory';
 import { LoadingScreen } from '@/components/LoadingScreen';
 
 interface Farm {
@@ -507,18 +505,12 @@ export default function Farm() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3 h-12 p-1 bg-white/60 backdrop-blur-sm border border-slate-200 rounded-lg">
+          <TabsList className="grid w-full grid-cols-2 h-12 p-1 bg-white/60 backdrop-blur-sm border border-slate-200 rounded-lg">
             <TabsTrigger 
               value="viveiros" 
               className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-blue-700 data-[state=active]:text-white data-[state=active]:shadow-lg font-medium text-slate-700 data-[state=active]:font-semibold transition-all rounded-md"
             >
               Viveiros
-            </TabsTrigger>
-            <TabsTrigger 
-              value="povoamento" 
-              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-blue-700 data-[state=active]:text-white data-[state=active]:shadow-lg font-medium text-slate-700 data-[state=active]:font-semibold transition-all rounded-md"
-            >
-              Povoamento
             </TabsTrigger>
             <TabsTrigger 
               value="funcionarios" 
@@ -530,11 +522,6 @@ export default function Farm() {
           
           <TabsContent value="viveiros" className="space-y-4 mt-6">
             {renderFarmContent()}
-          </TabsContent>
-          
-          <TabsContent value="povoamento" className="space-y-4 mt-6">
-            <StockingContent />
-            <StockingHistory />
           </TabsContent>
 
           <TabsContent value="funcionarios" className="space-y-4 mt-6">

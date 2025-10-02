@@ -1,55 +1,50 @@
-import { useState, useEffect } from 'react';
 import { Layout } from '@/components/Layout';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, ClipboardCheck, Info } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useFarmsQuery } from '@/hooks/useSupabaseQuery';
 import { useActivePondBatches } from '@/hooks/useActivePondBatches';
-import { FeedingEvaluationModal } from '@/components/FeedingEvaluationModal';
-import { toast } from 'sonner';
+import { PondEvaluationCard } from '@/components/PondEvaluationCard';
+import { useUnevaluatedFeedings, useLastEvaluationTime, useTodayFeedingRecords } from '@/hooks/useTodayFeedingRecords';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function AvaliacaoAlimentacaoPage() {
   const navigate = useNavigate();
   const { data: farms } = useFarmsQuery();
   const farm = farms?.[0];
   const { data: activePonds, isLoading } = useActivePondBatches(farm?.id);
-  
-  const [selectedPondBatchId, setSelectedPondBatchId] = useState<string>("");
-  const [feedingDate, setFeedingDate] = useState<string>(new Date().toISOString().split('T')[0]);
-  const [feedingTime, setFeedingTime] = useState<string>("");
-  const [amountOffered, setAmountOffered] = useState<string>("");
-  const [isEvaluationModalOpen, setIsEvaluationModalOpen] = useState(false);
 
-  const handleStartEvaluation = () => {
-    if (!selectedPondBatchId) {
-      toast.error("Selecione um viveiro");
-      return;
-    }
-    if (!feedingTime) {
-      toast.error("Informe o horário da alimentação");
-      return;
-    }
-    if (!amountOffered || parseFloat(amountOffered) <= 0) {
-      toast.error("Informe a quantidade oferecida");
-      return;
-    }
+  // Get biometry data for all active ponds
+  const { data: biometryData } = useQuery({
+    queryKey: ['biometry-for-evaluation', farm?.id],
+    queryFn: async () => {
+      if (!farm?.id) return {};
 
-    setIsEvaluationModalOpen(true);
-  };
+      const pondBatchIds = activePonds?.map(p => p.pond_batch_id) || [];
+      if (pondBatchIds.length === 0) return {};
 
-  const handleEvaluationComplete = () => {
-    setIsEvaluationModalOpen(false);
-    setSelectedPondBatchId("");
-    setFeedingTime("");
-    setAmountOffered("");
-    toast.success("Avaliação registrada com sucesso!");
-  };
+      const { data, error } = await supabase
+        .from('biometrics')
+        .select('pond_batch_id, average_weight, measurement_date')
+        .in('pond_batch_id', pondBatchIds)
+        .order('measurement_date', { ascending: false });
 
-  const selectedPond = activePonds?.find(p => p.pond_batch_id === selectedPondBatchId);
+      if (error) throw error;
+
+      // Get latest biometry for each pond
+      const biometryMap: Record<string, { average_weight: number }> = {};
+      data?.forEach((bio) => {
+        if (!biometryMap[bio.pond_batch_id]) {
+          biometryMap[bio.pond_batch_id] = { average_weight: bio.average_weight };
+        }
+      });
+
+      return biometryMap;
+    },
+    enabled: !!farm?.id && !!activePonds && activePonds.length > 0,
+  });
 
   return (
     <Layout>
@@ -77,6 +72,23 @@ export default function AvaliacaoAlimentacaoPage() {
           </div>
         </div>
 
+        {/* Info Card */}
+        <Card className="mb-6 border-blue-200 bg-blue-50/50 dark:bg-blue-950/20">
+          <CardHeader>
+            <div className="flex items-start gap-2">
+              <Info className="h-5 w-5 text-blue-600 mt-0.5 shrink-0" />
+              <div>
+                <CardTitle className="text-lg">Como funciona</CardTitle>
+                <CardDescription className="mt-2 space-y-1">
+                  <p>• <strong>Modo 1:</strong> Avalie alimentações já registradas no sistema hoje</p>
+                  <p>• <strong>Modo 2:</strong> Registre manualmente quantidade + avaliação (para registro semanal)</p>
+                  <p>• O sistema sugerirá ajustes automáticos baseados nas suas avaliações</p>
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+        </Card>
+
         {/* Loading State */}
         {isLoading && (
           <Card>
@@ -88,123 +100,78 @@ export default function AvaliacaoAlimentacaoPage() {
           </Card>
         )}
 
-        {/* Evaluation Form */}
-        {!isLoading && (
-          <>
-            <Card>
-              <CardHeader>
-                <CardTitle>Selecione o Viveiro e Horário</CardTitle>
-                <CardDescription>
-                  Escolha o viveiro e informe os dados da alimentação para avaliar o consumo
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="pond">Viveiro</Label>
-                  <Select value={selectedPondBatchId} onValueChange={setSelectedPondBatchId}>
-                    <SelectTrigger id="pond">
-                      <SelectValue placeholder="Selecione um viveiro" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {activePonds?.map((pond) => (
-                        <SelectItem key={pond.pond_batch_id} value={pond.pond_batch_id}>
-                          {pond.pond_name} - {pond.batch_name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+        {/* Pond Cards Grid */}
+        {!isLoading && activePonds && activePonds.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {activePonds.map((pond) => {
+              const latestWeight = biometryData?.[pond.pond_batch_id]?.average_weight;
+              const currentBiomass = latestWeight 
+                ? (pond.current_population * latestWeight) / 1000 
+                : undefined;
 
-                {selectedPond && (
-                  <div className="p-3 bg-muted rounded-lg text-sm">
-                    <p className="text-muted-foreground">
-                      População atual: <span className="font-medium text-foreground">{selectedPond.current_population.toLocaleString()}</span>
-                    </p>
-                  </div>
-                )}
+              return (
+                <PondEvaluationCardWithData
+                  key={pond.pond_batch_id}
+                  pondBatchId={pond.pond_batch_id}
+                  pondName={pond.pond_name}
+                  batchName={pond.batch_name}
+                  currentPopulation={pond.current_population}
+                  latestWeight={latestWeight}
+                  currentBiomass={currentBiomass}
+                />
+              );
+            })}
+          </div>
+        )}
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="date">Data da Alimentação</Label>
-                    <Input
-                      id="date"
-                      type="date"
-                      value={feedingDate}
-                      onChange={(e) => setFeedingDate(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="time">Horário</Label>
-                    <Input
-                      id="time"
-                      type="time"
-                      value={feedingTime}
-                      onChange={(e) => setFeedingTime(e.target.value)}
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="amount">Quantidade Oferecida (kg)</Label>
-                  <Input
-                    id="amount"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    placeholder="Ex: 25.5"
-                    value={amountOffered}
-                    onChange={(e) => setAmountOffered(e.target.value)}
-                  />
-                </div>
-
-                <Button 
-                  onClick={handleStartEvaluation}
-                  className="w-full"
-                  disabled={!selectedPondBatchId || !feedingTime || !amountOffered}
-                >
-                  <ClipboardCheck className="mr-2 h-4 w-4" />
-                  Iniciar Avaliação
-                </Button>
-              </CardContent>
-            </Card>
-
-            {/* Info Card */}
-            <Card className="mt-6 border-blue-200 bg-blue-50/50 dark:bg-blue-950/20">
-              <CardHeader>
-                <div className="flex items-start gap-2">
-                  <Info className="h-5 w-5 text-blue-600 mt-0.5 shrink-0" />
-                  <div>
-                    <CardTitle className="text-lg">Como funciona a avaliação</CardTitle>
-                    <CardDescription className="mt-2 space-y-1">
-                      <p>• Selecione o viveiro que deseja avaliar</p>
-                      <p>• Informe quando foi a alimentação e a quantidade oferecida</p>
-                      <p>• Avalie o consumo observado no viveiro</p>
-                      <p>• O sistema irá sugerir ajustes automáticos baseados na sua avaliação</p>
-                    </CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-            </Card>
-          </>
+        {/* Empty State */}
+        {!isLoading && (!activePonds || activePonds.length === 0) && (
+          <Card>
+            <CardContent className="p-6 text-center">
+              <ClipboardCheck className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-semibold mb-2">Nenhum viveiro ativo</h3>
+              <p className="text-muted-foreground">
+                Não há viveiros ativos no momento para avaliar alimentação.
+              </p>
+            </CardContent>
+          </Card>
         )}
       </div>
-
-      {/* Evaluation Modal */}
-      {isEvaluationModalOpen && selectedPond && (
-        <FeedingEvaluationModal
-          open={isEvaluationModalOpen}
-          onOpenChange={setIsEvaluationModalOpen}
-          feedingRecord={{
-            pond_batch_id: selectedPondBatchId,
-            feeding_date: feedingDate,
-            feeding_time: feedingTime,
-            actual_amount: Math.round(parseFloat(amountOffered) * 1000), // Convert kg to grams
-            pond_name: selectedPond.pond_name,
-            batch_name: selectedPond.batch_name,
-          }}
-          onEvaluationComplete={handleEvaluationComplete}
-        />
-      )}
     </Layout>
+  );
+}
+
+// Wrapper component to fetch data for each card
+function PondEvaluationCardWithData({
+  pondBatchId,
+  pondName,
+  batchName,
+  currentPopulation,
+  latestWeight,
+  currentBiomass,
+}: {
+  pondBatchId: string;
+  pondName: string;
+  batchName: string;
+  currentPopulation: number;
+  latestWeight?: number;
+  currentBiomass?: number;
+}) {
+  const { data: unevaluatedFeedings } = useUnevaluatedFeedings(pondBatchId);
+  const { data: lastEvaluationTime } = useLastEvaluationTime(pondBatchId);
+  const { data: todayFeedings } = useTodayFeedingRecords(pondBatchId);
+
+  return (
+    <PondEvaluationCard
+      pondBatchId={pondBatchId}
+      pondName={pondName}
+      batchName={batchName}
+      currentPopulation={currentPopulation}
+      latestWeight={latestWeight}
+      currentBiomass={currentBiomass}
+      unevaluatedFeedings={unevaluatedFeedings || []}
+      todayFeedings={todayFeedings?.length || 0}
+      lastEvaluationTime={lastEvaluationTime || undefined}
+    />
   );
 }

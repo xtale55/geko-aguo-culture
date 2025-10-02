@@ -12,7 +12,7 @@ interface FeedingEvaluationNotificationsProps {
 
 export function FeedingEvaluationNotifications({ farmId }: FeedingEvaluationNotificationsProps) {
   const { data: pendingEvaluations, isLoading, refetch } = usePendingFeedingEvaluations(farmId);
-  const [selectedFeedingRecord, setSelectedFeedingRecord] = useState<any>(null);
+  const [selectedEvaluation, setSelectedEvaluation] = useState<any>(null);
   const [evaluationModalOpen, setEvaluationModalOpen] = useState(false);
 
   if (isLoading) {
@@ -31,14 +31,14 @@ export function FeedingEvaluationNotifications({ farmId }: FeedingEvaluationNoti
     return null; // Don't show anything if no pending evaluations
   }
 
-  const handleEvaluateFeeding = (feedingRecord: any) => {
-    setSelectedFeedingRecord(feedingRecord);
+  const handleEvaluateFeeding = (evaluation: any) => {
+    setSelectedEvaluation(evaluation);
     setEvaluationModalOpen(true);
   };
 
   const handleEvaluationComplete = () => {
     refetch();
-    setSelectedFeedingRecord(null);
+    setSelectedEvaluation(null);
   };
 
   return (
@@ -110,11 +110,19 @@ export function FeedingEvaluationNotifications({ farmId }: FeedingEvaluationNoti
         </CardContent>
       </Card>
 
-      {selectedFeedingRecord && (
+      {selectedEvaluation && (
         <FeedingEvaluationModal
           open={evaluationModalOpen}
           onOpenChange={setEvaluationModalOpen}
-          feedingRecord={selectedFeedingRecord}
+          pondBatchId={selectedEvaluation.pond_batch_id}
+          pondName={selectedEvaluation.pond_name}
+          batchName={selectedEvaluation.batch_name}
+          unevaluatedFeedings={[{
+            id: selectedEvaluation.id,
+            feeding_date: selectedEvaluation.feeding_date,
+            feeding_time: selectedEvaluation.feeding_time,
+            actual_amount: selectedEvaluation.actual_amount,
+          }]}
           onEvaluationComplete={handleEvaluationComplete}
         />
       )}

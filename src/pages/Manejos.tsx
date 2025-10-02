@@ -14,7 +14,7 @@ export default function Manejos() {
   // Get farm data for recent records
   const { data: farms } = useFarmsQuery();
   const farmId = farms?.[0]?.id;
-  const { recentBiometrics, recentWaterQuality, recentInputs, recentMortality, recentHarvest, recentCosts } = useRecentManagementData(farmId);
+  const { recentBiometrics, recentWaterQuality, recentInputs, recentMortality } = useRecentManagementData(farmId);
 
   const managementCards = [
     {
@@ -191,7 +191,7 @@ export default function Manejos() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                 {/* Biometrics */}
                 <div className="space-y-4">
                   <h4 className="font-semibold text-primary flex items-center gap-2 text-lg">
@@ -286,58 +286,6 @@ export default function Manejos() {
                             <div className="flex items-center gap-2 text-xs text-muted-foreground">
                               <span>{new Date(mortality.record_date).toLocaleDateString('pt-BR')}</span>
                               <span>• {mortality.dead_count} mortos</span>
-                            </div>
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <p className="text-sm text-muted-foreground">Nenhum registro recente</p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Harvest */}
-                <div className="space-y-4">
-                  <h4 className="font-semibold text-orange-600 flex items-center gap-2 text-lg">
-                    <Shrimp className="w-5 h-5" />
-                    Despesca
-                  </h4>
-                  <div className="space-y-3">
-                    {recentHarvest.length > 0 ? (
-                      recentHarvest.slice(0, 3).map((harvest: any) => (
-                        <div key={harvest.id} className="flex items-center gap-3 p-3 rounded-xl bg-muted/50 border border-border hover:bg-muted transition-all duration-300">
-                          <div className="w-2 h-2 rounded-full bg-gradient-to-r from-orange-400 to-orange-600"></div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-foreground truncate">{harvest.pond_batches?.ponds?.name}</p>
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                              <span>{new Date(harvest.harvest_date).toLocaleDateString('pt-BR')}</span>
-                              <span>• {harvest.biomass_harvested}kg</span>
-                            </div>
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <p className="text-sm text-muted-foreground">Nenhum registro recente</p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Operational Costs */}
-                <div className="space-y-4">
-                  <h4 className="font-semibold text-purple-600 flex items-center gap-2 text-lg">
-                    <CurrencyDollar className="w-5 h-5" />
-                    Custos Operacionais
-                  </h4>
-                  <div className="space-y-3">
-                    {recentCosts.length > 0 ? (
-                      recentCosts.slice(0, 3).map((cost: any) => (
-                        <div key={cost.id} className="flex items-center gap-3 p-3 rounded-xl bg-muted/50 border border-border hover:bg-muted transition-all duration-300">
-                          <div className="w-2 h-2 rounded-full bg-gradient-to-r from-purple-400 to-purple-600"></div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-foreground truncate">{cost.category}</p>
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                              <span>{new Date(cost.cost_date).toLocaleDateString('pt-BR')}</span>
-                              <span>• R$ {cost.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
                             </div>
                           </div>
                         </div>

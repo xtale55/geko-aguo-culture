@@ -2,11 +2,10 @@ import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Scales, Drop, Skull, TestTube, Shrimp, CurrencyDollar, CaretRight, Clock, Pulse, ForkKnife } from '@phosphor-icons/react';
+import { ArrowLeft, Scales, Drop, Skull, TestTube, Shrimp, CurrencyDollar, CaretRight, Clock, Pulse, ForkKnife, ListChecks } from '@phosphor-icons/react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useFarmsQuery } from '@/hooks/useSupabaseQuery';
 import { useRecentManagementData } from '@/hooks/useRecentManagementData';
-import { FeedingEvaluationNotifications } from '@/components/FeedingEvaluationNotifications';
 
 export default function Manejos() {
   const navigate = useNavigate();
@@ -25,6 +24,15 @@ export default function Manejos() {
       icon: ForkKnife,
       iconColor: 'text-green-600/70',
       route: '/manejos/alimentacao',
+      status: 'Novo'
+    },
+    {
+      id: 'avaliacao',
+      title: 'Avaliação de Alimentação',
+      description: 'Avalie o consumo e ajuste automaticamente',
+      icon: ListChecks,
+      iconColor: 'text-amber-600/70',
+      route: '/manejos/avaliacao-alimentacao',
       status: 'Novo'
     },
     {
@@ -88,9 +96,6 @@ export default function Manejos() {
             </p>
           </div>
         </div>
-
-        {/* Feeding Evaluation Notifications */}
-        <FeedingEvaluationNotifications farmId={farmId} />
 
         {/* Management Cards Grid */}
         <div className={`${!isMobile ? 'grid grid-cols-2 gap-4' : 'space-y-4'}`}>

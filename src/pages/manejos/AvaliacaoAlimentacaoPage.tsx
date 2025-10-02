@@ -1,50 +1,55 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, ClipboardCheck, Clock, AlertTriangle } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ArrowLeft, ClipboardCheck, Info } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useFarmsQuery } from '@/hooks/useSupabaseQuery';
-import { usePendingFeedingEvaluations } from '@/hooks/useFeedingEvaluation';
+import { useActivePondBatches } from '@/hooks/useActivePondBatches';
 import { FeedingEvaluationModal } from '@/components/FeedingEvaluationModal';
-import { format, parseISO } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { toast } from 'sonner';
 
 export default function AvaliacaoAlimentacaoPage() {
   const navigate = useNavigate();
   const { data: farms } = useFarmsQuery();
   const farm = farms?.[0];
-  const { data: pendingEvaluations, isLoading, refetch } = usePendingFeedingEvaluations(farm?.id);
-  const [selectedFeedingRecord, setSelectedFeedingRecord] = useState<any>(null);
-  const [evaluationModalOpen, setEvaluationModalOpen] = useState(false);
+  const { data: activePonds, isLoading } = useActivePondBatches(farm?.id);
+  
+  const [selectedPondBatchId, setSelectedPondBatchId] = useState<string>("");
+  const [feedingDate, setFeedingDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [feedingTime, setFeedingTime] = useState<string>("");
+  const [amountOffered, setAmountOffered] = useState<string>("");
+  const [isEvaluationModalOpen, setIsEvaluationModalOpen] = useState(false);
 
-  const handleEvaluateFeeding = (evaluation: any) => {
-    setSelectedFeedingRecord({
-      id: evaluation.id,
-      pond_batch_id: evaluation.pond_batch_id,
-      feeding_date: evaluation.feeding_date,
-      feeding_time: evaluation.feeding_time,
-      actual_amount: evaluation.actual_amount,
-      planned_amount: evaluation.planned_amount,
-      pond_name: evaluation.pond_name,
-      batch_name: evaluation.batch_name,
-    });
-    setEvaluationModalOpen(true);
+  const handleStartEvaluation = () => {
+    if (!selectedPondBatchId) {
+      toast.error("Selecione um viveiro");
+      return;
+    }
+    if (!feedingTime) {
+      toast.error("Informe o horário da alimentação");
+      return;
+    }
+    if (!amountOffered || parseFloat(amountOffered) <= 0) {
+      toast.error("Informe a quantidade oferecida");
+      return;
+    }
+
+    setIsEvaluationModalOpen(true);
   };
 
   const handleEvaluationComplete = () => {
-    refetch();
-    setSelectedFeedingRecord(null);
-    setEvaluationModalOpen(false);
+    setIsEvaluationModalOpen(false);
+    setSelectedPondBatchId("");
+    setFeedingTime("");
+    setAmountOffered("");
+    toast.success("Avaliação registrada com sucesso!");
   };
 
-  const isOverdue = (evaluationDueTime: string) => {
-    const now = new Date();
-    const dueTime = new Date(evaluationDueTime);
-    const hoursSince = (now.getTime() - dueTime.getTime()) / (1000 * 60 * 60);
-    return hoursSince > 2;
-  };
+  const selectedPond = activePonds?.find(p => p.pond_batch_id === selectedPondBatchId);
 
   return (
     <Layout>
@@ -66,7 +71,7 @@ export default function AvaliacaoAlimentacaoPage() {
             <div>
               <h1 className="text-3xl font-bold">Avaliação de Alimentação</h1>
               <p className="text-muted-foreground">
-                Avalie o consumo de ração e ajuste automaticamente as próximas alimentações
+                Avalie o consumo de ração e receba sugestões para ajustes
               </p>
             </div>
           </div>
@@ -83,130 +88,120 @@ export default function AvaliacaoAlimentacaoPage() {
           </Card>
         )}
 
-        {/* Pending Evaluations */}
-        {!isLoading && pendingEvaluations && pendingEvaluations.length > 0 && (
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="flex items-center gap-2">
-                    <AlertTriangle className="h-5 w-5 text-amber-600" />
-                    Alimentações Pendentes de Avaliação
-                  </CardTitle>
-                  <CardDescription>
-                    {pendingEvaluations.length} alimentação{pendingEvaluations.length !== 1 ? 'ões' : ''} aguardando avaliação
-                  </CardDescription>
+        {/* Evaluation Form */}
+        {!isLoading && (
+          <>
+            <Card>
+              <CardHeader>
+                <CardTitle>Selecione o Viveiro e Horário</CardTitle>
+                <CardDescription>
+                  Escolha o viveiro e informe os dados da alimentação para avaliar o consumo
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="pond">Viveiro</Label>
+                  <Select value={selectedPondBatchId} onValueChange={setSelectedPondBatchId}>
+                    <SelectTrigger id="pond">
+                      <SelectValue placeholder="Selecione um viveiro" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {activePonds?.map((pond) => (
+                        <SelectItem key={pond.pond_batch_id} value={pond.pond_batch_id}>
+                          {pond.pond_name} - {pond.batch_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {pendingEvaluations.map((evaluation) => {
-                  const overdue = isOverdue(evaluation.evaluation_due_time);
-                  const dueTime = parseISO(evaluation.evaluation_due_time);
-                  
-                  return (
-                    <Card key={evaluation.id} className="border-l-4 border-l-amber-600">
-                      <CardContent className="p-4">
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex-1 space-y-2">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <h3 className="font-semibold text-lg">
-                                {evaluation.pond_name}
-                              </h3>
-                              <Badge variant="outline" className="text-xs">
-                                {evaluation.batch_name}
-                              </Badge>
-                              {overdue && (
-                                <Badge variant="destructive" className="text-xs">
-                                  Atrasada
-                                </Badge>
-                              )}
-                            </div>
-                            
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-sm text-muted-foreground">
-                              <div className="flex items-center gap-2">
-                                <Clock className="h-4 w-4" />
-                                <span>
-                                  {format(parseISO(`${evaluation.feeding_date}T${evaluation.feeding_time}`), "dd/MM 'às' HH:mm", { locale: ptBR })}
-                                </span>
-                              </div>
-                              <div>
-                                <span className="font-medium">Quantidade:</span> {(evaluation.actual_amount / 1000).toFixed(1)} kg
-                              </div>
-                              <div>
-                                <span className="font-medium">Liberada há:</span>{' '}
-                                {format(dueTime, "HH:mm", { locale: ptBR })}
-                              </div>
-                            </div>
-                          </div>
-                          
-                          <Button
-                            onClick={() => handleEvaluateFeeding(evaluation)}
-                            className="shrink-0"
-                          >
-                            <ClipboardCheck className="mr-2 h-4 w-4" />
-                            Avaliar
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
-        )}
 
-        {/* No Pending Evaluations */}
-        {!isLoading && (!pendingEvaluations || pendingEvaluations.length === 0) && (
-          <Card>
-            <CardContent className="p-8">
-              <div className="text-center space-y-4">
-                <div className="flex justify-center">
-                  <div className="p-4 bg-green-600/10 rounded-full">
-                    <ClipboardCheck className="h-12 w-12 text-green-600" />
+                {selectedPond && (
+                  <div className="p-3 bg-muted rounded-lg text-sm">
+                    <p className="text-muted-foreground">
+                      População atual: <span className="font-medium text-foreground">{selectedPond.current_population.toLocaleString()}</span>
+                    </p>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="date">Data da Alimentação</Label>
+                    <Input
+                      id="date"
+                      type="date"
+                      value={feedingDate}
+                      onChange={(e) => setFeedingDate(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="time">Horário</Label>
+                    <Input
+                      id="time"
+                      type="time"
+                      value={feedingTime}
+                      onChange={(e) => setFeedingTime(e.target.value)}
+                    />
                   </div>
                 </div>
-                <div>
-                  <h3 className="text-xl font-semibold mb-2">
-                    Tudo em dia!
-                  </h3>
-                  <p className="text-muted-foreground max-w-md mx-auto">
-                    Não há alimentações pendentes de avaliação no momento. As avaliações ficam disponíveis 2 horas após cada alimentação.
-                  </p>
-                </div>
-                <Button
-                  variant="outline"
-                  onClick={() => navigate('/manejos/alimentacao')}
-                >
-                  Ir para Alimentação
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
 
-        {/* Info Card */}
-        <Card className="mt-6 border-blue-200 bg-blue-50/50 dark:bg-blue-950/20">
-          <CardHeader>
-            <CardTitle className="text-lg">Como funciona a avaliação?</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2 text-sm">
-            <p>• As avaliações ficam disponíveis <strong>2 horas após</strong> cada alimentação</p>
-            <p>• Avalie o <strong>consumo real</strong> de ração observado no viveiro</p>
-            <p>• O sistema ajusta <strong>automaticamente</strong> a próxima alimentação baseado na sua avaliação</p>
-            <p>• Quanto mais avaliações você fizer, mais <strong>preciso</strong> fica o sistema</p>
-          </CardContent>
-        </Card>
+                <div className="space-y-2">
+                  <Label htmlFor="amount">Quantidade Oferecida (kg)</Label>
+                  <Input
+                    id="amount"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="Ex: 25.5"
+                    value={amountOffered}
+                    onChange={(e) => setAmountOffered(e.target.value)}
+                  />
+                </div>
+
+                <Button 
+                  onClick={handleStartEvaluation}
+                  className="w-full"
+                  disabled={!selectedPondBatchId || !feedingTime || !amountOffered}
+                >
+                  <ClipboardCheck className="mr-2 h-4 w-4" />
+                  Iniciar Avaliação
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Info Card */}
+            <Card className="mt-6 border-blue-200 bg-blue-50/50 dark:bg-blue-950/20">
+              <CardHeader>
+                <div className="flex items-start gap-2">
+                  <Info className="h-5 w-5 text-blue-600 mt-0.5 shrink-0" />
+                  <div>
+                    <CardTitle className="text-lg">Como funciona a avaliação</CardTitle>
+                    <CardDescription className="mt-2 space-y-1">
+                      <p>• Selecione o viveiro que deseja avaliar</p>
+                      <p>• Informe quando foi a alimentação e a quantidade oferecida</p>
+                      <p>• Avalie o consumo observado no viveiro</p>
+                      <p>• O sistema irá sugerir ajustes automáticos baseados na sua avaliação</p>
+                    </CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+            </Card>
+          </>
+        )}
       </div>
 
       {/* Evaluation Modal */}
-      {selectedFeedingRecord && (
+      {isEvaluationModalOpen && selectedPond && (
         <FeedingEvaluationModal
-          open={evaluationModalOpen}
-          onOpenChange={setEvaluationModalOpen}
-          feedingRecord={selectedFeedingRecord}
+          open={isEvaluationModalOpen}
+          onOpenChange={setIsEvaluationModalOpen}
+          feedingRecord={{
+            pond_batch_id: selectedPondBatchId,
+            feeding_date: feedingDate,
+            feeding_time: feedingTime,
+            actual_amount: Math.round(parseFloat(amountOffered) * 1000), // Convert kg to grams
+            pond_name: selectedPond.pond_name,
+            batch_name: selectedPond.batch_name,
+          }}
           onEvaluationComplete={handleEvaluationComplete}
         />
       )}

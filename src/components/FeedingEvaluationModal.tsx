@@ -16,9 +16,9 @@ interface FeedingEvaluationModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   feedingRecord: {
-    id: string;
+    id?: string;
     pond_batch_id: string;
-    planned_amount: number;
+    planned_amount?: number;
     actual_amount: number;
     feeding_date: string;
     feeding_time: string;

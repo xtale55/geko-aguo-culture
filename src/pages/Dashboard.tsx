@@ -77,7 +77,7 @@ export default function Dashboard() {
         </div>
 
         {/* Critical Alerts Row - First Row Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Critical Alerts Card - Clickable */}
           <Card 
             className={`h-full cursor-pointer transition-all hover:shadow-lg ${alerts.length > 0 ? 'bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20 border-red-200 dark:border-red-800 hover:border-red-300 dark:hover:border-red-700' : 'bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 border-green-200 dark:border-green-800 hover:border-green-300 dark:hover:border-green-700'}`}
@@ -106,6 +106,9 @@ export default function Dashboard() {
 
           {/* Weekly Growth Rate */}
           <GrowthRateCard farmId={firstFarm?.id} />
+
+          {/* Moon Phase */}
+          <MoonPhaseCard />
         </div>
 
         {/* Biomass Table */}

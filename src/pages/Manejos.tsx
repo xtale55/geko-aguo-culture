@@ -36,21 +36,21 @@ export default function Manejos() {
       status: 'Novo'
     },
     {
-      id: 'insumos',
-      title: 'Aplicação de Insumos',
-      description: 'Controle probióticos e fertilizantes',
-      icon: TestTube,
-      iconColor: 'text-emerald-600/70',
-      route: '/manejos/insumos',
-      status: 'Ativo'
-    },
-    {
       id: 'biometria',
       title: 'Biometria',
       description: 'Registre medições de peso e crescimento',
       icon: Scales,
       iconColor: 'text-blue-600/70',
       route: '/manejos/biometria',
+      status: 'Ativo'
+    },
+    {
+      id: 'insumos',
+      title: 'Aplicação de Insumos',
+      description: 'Controle probióticos e fertilizantes',
+      icon: TestTube,
+      iconColor: 'text-emerald-600/70',
+      route: '/manejos/insumos',
       status: 'Ativo'
     },
     {
@@ -99,9 +99,8 @@ export default function Manejos() {
 
         {/* Management Cards Grid */}
         <div className={`${!isMobile ? 'grid grid-cols-2 gap-4' : 'space-y-4'}`}>
-          {managementCards.map((card, index) => {
+          {managementCards.map((card) => {
             const IconComponent = card.icon;
-            const isFirstCard = index === 0; // Alimentação
             
             return (
               <Card
@@ -112,7 +111,6 @@ export default function Manejos() {
                   hover:shadow-lg hover:shadow-primary/5 transition-all duration-300 hover:scale-[1.02]
                   ${isMobile ? 'p-3' : 'p-2'}
                   ${card.status === 'Novo' ? 'ring-1 ring-purple-400/20' : ''}
-                  ${!isMobile && isFirstCard ? 'col-span-2' : ''}
                   overflow-hidden relative
                 `}
                 onClick={() => navigate(card.route)}

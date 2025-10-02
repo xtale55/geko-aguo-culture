@@ -93,9 +93,9 @@ export function FeedingEvaluationModal({
     setLeftoverPercentage(percentageMap[value] || 0);
     
     // Get adjustment suggestion based on amount offered
-    if (amountOffered && parseInt(amountOffered) > 0) {
+    if (amountOffered && parseFloat(amountOffered) > 0) {
       try {
-        const offeredGrams = parseInt(amountOffered);
+        const offeredGrams = Math.round(parseFloat(amountOffered) * 1000);
         const { data, error } = await supabase.rpc('calculate_feeding_adjustment', {
           pond_batch_id_param: feedingRecord.pond_batch_id,
           current_amount: offeredGrams,
@@ -122,7 +122,7 @@ export function FeedingEvaluationModal({
       return;
     }
 
-    if (!amountOffered || parseInt(amountOffered) <= 0) {
+    if (!amountOffered || parseFloat(amountOffered) <= 0) {
       toast({
         title: 'Erro',
         description: 'Informe a quantidade oferecida nesta alimentação',
@@ -134,7 +134,7 @@ export function FeedingEvaluationModal({
     try {
       setSaving(true);
       
-      const offeredGrams = parseInt(amountOffered);
+      const offeredGrams = Math.round(parseFloat(amountOffered) * 1000);
       const adjustmentAmount = suggestion?.suggested_amount 
         ? suggestion.suggested_amount - offeredGrams 
         : 0;
@@ -234,7 +234,7 @@ export function FeedingEvaluationModal({
               <Input
                 id="amount-offered"
                 type="number"
-                placeholder="Quantidade em gramas (ex: 10000)"
+                placeholder="Quantidade em kg (ex: 10)"
                 value={amountOffered}
                 onChange={(e) => {
                   setAmountOffered(e.target.value);
@@ -244,15 +244,15 @@ export function FeedingEvaluationModal({
                   }
                 }}
                 min="0"
-                step="100"
+                step="0.1"
                 className="flex-1"
               />
               <div className="flex items-center px-3 bg-muted rounded-md text-sm text-muted-foreground">
-                g
+                kg
               </div>
             </div>
             <p className="text-xs text-muted-foreground">
-              Informe exatamente quantos gramas você colocou nesta alimentação específica (10kg = 10000g)
+              Informe exatamente quantos kg você colocou nesta alimentação específica
             </p>
           </div>
 

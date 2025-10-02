@@ -9,6 +9,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { AlertTriangle, CheckCircle, XCircle, Clock, TrendingUp, TrendingDown } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useFeedingEvaluations } from '@/hooks/useFeedingEvaluations';
+import { useFeedingBaseAmount } from '@/hooks/useFeedingBaseAmount';
 
 interface FeedingEvaluationModalProps {
   open: boolean;
@@ -67,12 +69,15 @@ export function FeedingEvaluationModal({
   feedingRecord, 
   onEvaluationComplete 
 }: FeedingEvaluationModalProps) {
+  const [amountOffered, setAmountOffered] = useState<string>('');
   const [selectedConsumption, setSelectedConsumption] = useState<string>('');
   const [leftoverPercentage, setLeftoverPercentage] = useState<number>(0);
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
   const [suggestion, setSuggestion] = useState<any>(null);
   const { toast } = useToast();
+  const { createEvaluation } = useFeedingEvaluations(feedingRecord?.pond_batch_id);
+  const { baseAmount, updateBaseAmount } = useFeedingBaseAmount(feedingRecord?.pond_batch_id);
 
   const handleConsumptionSelect = async (value: string) => {
     setSelectedConsumption(value);
@@ -87,20 +92,23 @@ export function FeedingEvaluationModal({
     
     setLeftoverPercentage(percentageMap[value] || 0);
     
-    // Get adjustment suggestion
-    try {
-      const { data, error } = await supabase.rpc('calculate_feeding_adjustment', {
-        pond_batch_id_param: feedingRecord.pond_batch_id,
-        current_amount: feedingRecord.actual_amount,
-        consumption_eval: value,
-      });
-      
-      if (error) throw error;
-      if (data && data.length > 0) {
-        setSuggestion(data[0]);
+    // Get adjustment suggestion based on amount offered
+    if (amountOffered && parseInt(amountOffered) > 0) {
+      try {
+        const offeredGrams = parseInt(amountOffered);
+        const { data, error } = await supabase.rpc('calculate_feeding_adjustment', {
+          pond_batch_id_param: feedingRecord.pond_batch_id,
+          current_amount: offeredGrams,
+          consumption_eval: value,
+        });
+        
+        if (error) throw error;
+        if (data && data.length > 0) {
+          setSuggestion(data[0]);
+        }
+      } catch (error) {
+        console.error('Erro ao calcular sugestão:', error);
       }
-    } catch (error) {
-      console.error('Erro ao calcular sugestão:', error);
     }
   };
 
@@ -114,35 +122,52 @@ export function FeedingEvaluationModal({
       return;
     }
 
+    if (!amountOffered || parseInt(amountOffered) <= 0) {
+      toast({
+        title: 'Erro',
+        description: 'Informe a quantidade oferecida nesta alimentação',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     try {
       setSaving(true);
       
-      const updates = {
-        consumption_evaluation: selectedConsumption,
-        leftover_percentage: leftoverPercentage,
-        evaluation_time: new Date().toISOString(),
-        next_feeding_adjustment: suggestion?.adjustment_percentage || 0,
-        adjustment_reason: suggestion?.reason || '',
-        notes: notes || null,
-        evaluated_by: (await supabase.auth.getUser()).data.user?.id,
-      };
+      const offeredGrams = parseInt(amountOffered);
+      const adjustmentAmount = suggestion?.suggested_amount 
+        ? suggestion.suggested_amount - offeredGrams 
+        : 0;
 
-      const { error } = await supabase
-        .from('feeding_records')
-        .update(updates)
-        .eq('id', feedingRecord.id);
+      // Create independent evaluation
+      const evaluation = await createEvaluation({
+        pondBatchId: feedingRecord.pond_batch_id,
+        amountOffered: offeredGrams,
+        consumptionEvaluation: selectedConsumption,
+        leftoverPercentage: selectedConsumption !== 'consumed_all' ? leftoverPercentage : 0,
+        adjustmentAmount,
+        adjustmentPercentage: suggestion?.adjustment_percentage || 0,
+        notes: notes || undefined,
+      });
 
-      if (error) throw error;
+      // Update base amount for next feeding
+      const newBaseAmount = suggestion?.suggested_amount || offeredGrams;
+      await updateBaseAmount({
+        pondBatchId: feedingRecord.pond_batch_id,
+        baseAmountPerMeal: newBaseAmount,
+        lastEvaluationId: evaluation.id,
+      });
 
       toast({
         title: 'Sucesso',
-        description: 'Avaliação de consumo registrada com sucesso',
+        description: `Avaliação salva! Próxima alimentação: ${(newBaseAmount / 1000).toFixed(2)}kg`,
       });
 
       onEvaluationComplete?.();
       onOpenChange(false);
       
       // Reset form
+      setAmountOffered('');
       setSelectedConsumption('');
       setLeftoverPercentage(0);
       setNotes('');
@@ -191,15 +216,45 @@ export function FeedingEvaluationModal({
                 <div>
                   <span className="font-medium">Horário:</span> {feedingRecord.feeding_time}
                 </div>
-                <div>
-                  <span className="font-medium">Planejado:</span> {(feedingRecord.planned_amount / 1000).toFixed(1)} kg
-                </div>
-                <div>
-                  <span className="font-medium">Oferecido:</span> {(feedingRecord.actual_amount / 1000).toFixed(1)} kg
-                </div>
+                {baseAmount && (
+                  <div className="col-span-2">
+                    <span className="font-medium">Base atual:</span> {(baseAmount / 1000).toFixed(2)} kg
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
+
+          {/* Amount Offered Input */}
+          <div className="space-y-2">
+            <Label htmlFor="amount-offered" className="text-base font-medium">
+              Quantidade oferecida nesta alimentação *
+            </Label>
+            <div className="flex gap-2">
+              <Input
+                id="amount-offered"
+                type="number"
+                placeholder="Quantidade em gramas (ex: 10000)"
+                value={amountOffered}
+                onChange={(e) => {
+                  setAmountOffered(e.target.value);
+                  // Recalculate suggestion when amount changes
+                  if (selectedConsumption) {
+                    handleConsumptionSelect(selectedConsumption);
+                  }
+                }}
+                min="0"
+                step="100"
+                className="flex-1"
+              />
+              <div className="flex items-center px-3 bg-muted rounded-md text-sm text-muted-foreground">
+                g
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Informe exatamente quantos gramas você colocou nesta alimentação específica (10kg = 10000g)
+            </p>
+          </div>
 
           {/* Consumption Evaluation */}
           <div className="space-y-3">

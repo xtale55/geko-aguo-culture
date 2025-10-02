@@ -104,8 +104,8 @@ export default function Dashboard() {
           {/* Daily Feeding Progress */}
           <FeedingProgressCard farmId={firstFarm?.id} />
 
-          {/* Weekly Growth Rate */}
-          <GrowthRateCard farmId={firstFarm?.id} />
+          {/* Moon Phase */}
+          <MoonPhaseCard />
         </div>
 
         {/* Biomass Table */}

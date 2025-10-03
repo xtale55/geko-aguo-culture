@@ -2,11 +2,10 @@ import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Scales, Drop, Skull, TestTube, Shrimp, CurrencyDollar, CaretRight, Clock, Pulse, ForkKnife } from '@phosphor-icons/react';
+import { ArrowLeft, Scales, Drop, Skull, TestTube, Shrimp, CurrencyDollar, CaretRight, Clock, Pulse, ForkKnife, ListChecks } from '@phosphor-icons/react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useFarmsQuery } from '@/hooks/useSupabaseQuery';
 import { useRecentManagementData } from '@/hooks/useRecentManagementData';
-import { FeedingEvaluationNotifications } from '@/components/FeedingEvaluationNotifications';
 
 export default function Manejos() {
   const navigate = useNavigate();
@@ -15,7 +14,7 @@ export default function Manejos() {
   // Get farm data for recent records
   const { data: farms } = useFarmsQuery();
   const farmId = farms?.[0]?.id;
-  const { recentBiometrics, recentWaterQuality, recentInputs, recentMortality, recentHarvest, recentCosts } = useRecentManagementData(farmId);
+  const { recentBiometrics, recentWaterQuality, recentInputs, recentMortality } = useRecentManagementData(farmId);
 
   const managementCards = [
     {
@@ -28,13 +27,13 @@ export default function Manejos() {
       status: 'Novo'
     },
     {
-      id: 'insumos',
-      title: 'Aplicação de Insumos',
-      description: 'Controle probióticos e fertilizantes',
-      icon: TestTube,
-      iconColor: 'text-emerald-600/70',
-      route: '/manejos/insumos',
-      status: 'Ativo'
+      id: 'avaliacao',
+      title: 'Avaliação de Alimentação',
+      description: 'Avalie o consumo e ajuste automaticamente',
+      icon: ListChecks,
+      iconColor: 'text-amber-600/70',
+      route: '/manejos/avaliacao-alimentacao',
+      status: 'Novo'
     },
     {
       id: 'biometria',
@@ -43,6 +42,15 @@ export default function Manejos() {
       icon: Scales,
       iconColor: 'text-blue-600/70',
       route: '/manejos/biometria',
+      status: 'Ativo'
+    },
+    {
+      id: 'insumos',
+      title: 'Aplicação de Insumos',
+      description: 'Controle probióticos e fertilizantes',
+      icon: TestTube,
+      iconColor: 'text-emerald-600/70',
+      route: '/manejos/insumos',
       status: 'Ativo'
     },
     {
@@ -89,14 +97,10 @@ export default function Manejos() {
           </div>
         </div>
 
-        {/* Feeding Evaluation Notifications */}
-        <FeedingEvaluationNotifications farmId={farmId} />
-
         {/* Management Cards Grid */}
         <div className={`${!isMobile ? 'grid grid-cols-2 gap-4' : 'space-y-4'}`}>
-          {managementCards.map((card, index) => {
+          {managementCards.map((card) => {
             const IconComponent = card.icon;
-            const isFirstCard = index === 0; // Alimentação
             
             return (
               <Card
@@ -107,7 +111,6 @@ export default function Manejos() {
                   hover:shadow-lg hover:shadow-primary/5 transition-all duration-300 hover:scale-[1.02]
                   ${isMobile ? 'p-3' : 'p-2'}
                   ${card.status === 'Novo' ? 'ring-1 ring-purple-400/20' : ''}
-                  ${!isMobile && isFirstCard ? 'col-span-2' : ''}
                   overflow-hidden relative
                 `}
                 onClick={() => navigate(card.route)}
@@ -188,7 +191,7 @@ export default function Manejos() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                 {/* Biometrics */}
                 <div className="space-y-4">
                   <h4 className="font-semibold text-primary flex items-center gap-2 text-lg">
@@ -283,58 +286,6 @@ export default function Manejos() {
                             <div className="flex items-center gap-2 text-xs text-muted-foreground">
                               <span>{new Date(mortality.record_date).toLocaleDateString('pt-BR')}</span>
                               <span>• {mortality.dead_count} mortos</span>
-                            </div>
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <p className="text-sm text-muted-foreground">Nenhum registro recente</p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Harvest */}
-                <div className="space-y-4">
-                  <h4 className="font-semibold text-orange-600 flex items-center gap-2 text-lg">
-                    <Shrimp className="w-5 h-5" />
-                    Despesca
-                  </h4>
-                  <div className="space-y-3">
-                    {recentHarvest.length > 0 ? (
-                      recentHarvest.slice(0, 3).map((harvest: any) => (
-                        <div key={harvest.id} className="flex items-center gap-3 p-3 rounded-xl bg-muted/50 border border-border hover:bg-muted transition-all duration-300">
-                          <div className="w-2 h-2 rounded-full bg-gradient-to-r from-orange-400 to-orange-600"></div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-foreground truncate">{harvest.pond_batches?.ponds?.name}</p>
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                              <span>{new Date(harvest.harvest_date).toLocaleDateString('pt-BR')}</span>
-                              <span>• {harvest.biomass_harvested}kg</span>
-                            </div>
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <p className="text-sm text-muted-foreground">Nenhum registro recente</p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Operational Costs */}
-                <div className="space-y-4">
-                  <h4 className="font-semibold text-purple-600 flex items-center gap-2 text-lg">
-                    <CurrencyDollar className="w-5 h-5" />
-                    Custos Operacionais
-                  </h4>
-                  <div className="space-y-3">
-                    {recentCosts.length > 0 ? (
-                      recentCosts.slice(0, 3).map((cost: any) => (
-                        <div key={cost.id} className="flex items-center gap-3 p-3 rounded-xl bg-muted/50 border border-border hover:bg-muted transition-all duration-300">
-                          <div className="w-2 h-2 rounded-full bg-gradient-to-r from-purple-400 to-purple-600"></div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-foreground truncate">{cost.category}</p>
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                              <span>{new Date(cost.cost_date).toLocaleDateString('pt-BR')}</span>
-                              <span>• R$ {cost.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
                             </div>
                           </div>
                         </div>

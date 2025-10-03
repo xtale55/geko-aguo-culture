@@ -7,20 +7,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
-import { 
-  TrendingUp, Download, Calendar, DollarSign, Scale, 
-  Activity, BarChart3, PieChart, LineChart, FileText
-} from "lucide-react";
+import { TrendingUp, Download, Calendar, DollarSign, Scale, Activity, BarChart3, PieChart, LineChart, FileText } from "lucide-react";
 import { Shrimp } from '@phosphor-icons/react';
 import { useToast } from "@/hooks/use-toast";
 import { FeedingHistoryPanel } from "@/components/FeedingHistoryPanel";
 import { GrowthAnalysis } from "@/components/GrowthAnalysis";
 import { PerformanceHistoryTab } from "@/components/PerformanceHistoryTab";
-
 import { QuantityUtils } from "@/lib/quantityUtils";
 import { DashboardSkeleton } from "@/components/DashboardSkeleton";
 import { LoadingScreen } from "@/components/LoadingScreen";
-
 interface ProductionReport {
   totalCycles: number;
   activeCycles: number;
@@ -33,7 +28,6 @@ interface ProductionReport {
   operationalCosts: number;
   profitMargin: number;
 }
-
 interface CycleAnalysis {
   cycle_id: string;
   batch_name: string;
@@ -52,7 +46,6 @@ interface CycleAnalysis {
   cycle_cost: number;
   profit_margin: number;
 }
-
 interface PondCardData {
   pond_batch_id: string;
   pond_name: string;
@@ -76,7 +69,6 @@ interface PondCardData {
   productivity_per_ha: number; // kg/ha for this pond
   pond_area: number; // pond area in m²
 }
-
 export default function Reports() {
   const [productionReport, setProductionReport] = useState<ProductionReport>({
     totalCycles: 0,
@@ -88,7 +80,7 @@ export default function Reports() {
     totalRevenue: 0,
     totalCost: 0,
     operationalCosts: 0,
-    profitMargin: 0,
+    profitMargin: 0
   });
   const [cycleAnalyses, setCycleAnalyses] = useState<CycleAnalysis[]>([]);
   const [pondCards, setPondCards] = useState<PondCardData[]>([]);
@@ -100,110 +92,97 @@ export default function Reports() {
   const [farmIds, setFarmIds] = useState<string[]>([]);
   const [materialsConsumed, setMaterialsConsumed] = useState<number>(0);
   const [priceTable, setPriceTable] = useState<number>(19); // Default table price for 10g shrimp
-  const { user } = useAuth();
+  const {
+    user
+  } = useAuth();
   const navigate = useNavigate();
-  const { toast } = useToast();
-
+  const {
+    toast
+  } = useToast();
   useEffect(() => {
     if (user) {
       loadReports();
     }
   }, [user, selectedPeriod, priceTable]);
-
   const loadReports = async () => {
     try {
       setLoading(true);
-      
-      // Get farms
-      const { data: farms } = await supabase
-        .from('farms')
-        .select('id, total_area')
-        .eq('user_id', user?.id);
 
+      // Get farms
+      const {
+        data: farms
+      } = await supabase.from('farms').select('id, total_area').eq('user_id', user?.id);
       if (!farms || farms.length === 0) {
         setLoading(false);
         return;
       }
-
       const farmIds = farms.map(f => f.id);
       const currentFarmArea = farms.reduce((sum, farm) => sum + (farm.total_area || 0), 0) || 1;
       setFarmArea(currentFarmArea);
       setFarmIds(farmIds);
 
       // Get ponds first
-      const { data: ponds, error: pondsError } = await supabase
-        .from('ponds')
-        .select('id, name, area, farm_id')
-        .in('farm_id', farmIds);
-
+      const {
+        data: ponds,
+        error: pondsError
+      } = await supabase.from('ponds').select('id, name, area, farm_id').in('farm_id', farmIds);
       if (pondsError) throw pondsError;
       if (!ponds || ponds.length === 0) {
         setLoading(false);
         return;
       }
-
       const pondIds = ponds.map(p => p.id);
 
       // Get pond batches with active populations
-      const { data: pondBatches, error: batchesError } = await supabase
-        .from('pond_batches')
-        .select('*')
-        .in('pond_id', pondIds)
-        .gte('current_population', 1);
-
+      const {
+        data: pondBatches,
+        error: batchesError
+      } = await supabase.from('pond_batches').select('*').in('pond_id', pondIds).gte('current_population', 1);
       if (batchesError) throw batchesError;
       if (!pondBatches || pondBatches.length === 0) {
         setLoading(false);
         return;
       }
-
       const pondBatchIds = pondBatches.map(pb => pb.id);
       const batchIds = pondBatches.map(pb => pb.batch_id);
 
       // Get batches data
-      const { data: batches } = await supabase
-        .from('batches')
-        .select('*')
-        .in('id', batchIds);
+      const {
+        data: batches
+      } = await supabase.from('batches').select('*').in('id', batchIds);
 
       // Get biometrics data
-      const { data: biometrics } = await supabase
-        .from('biometrics')
-        .select('*')
-        .in('pond_batch_id', pondBatchIds)
-        .order('created_at', { ascending: false });
+      const {
+        data: biometrics
+      } = await supabase.from('biometrics').select('*').in('pond_batch_id', pondBatchIds).order('created_at', {
+        ascending: false
+      });
 
       // Get mortality records
-      const { data: mortality } = await supabase
-        .from('mortality_records')
-        .select('*')
-        .in('pond_batch_id', pondBatchIds);
+      const {
+        data: mortality
+      } = await supabase.from('mortality_records').select('*').in('pond_batch_id', pondBatchIds);
 
       // Get feeding records
-      const { data: feeding } = await supabase
-        .from('feeding_records')
-        .select('*')
-        .in('pond_batch_id', pondBatchIds);
+      const {
+        data: feeding
+      } = await supabase.from('feeding_records').select('*').in('pond_batch_id', pondBatchIds);
 
       // Get input applications
-      const { data: inputApplications } = await supabase
-        .from('input_applications')
-        .select('*')
-        .in('pond_batch_id', pondBatchIds);
+      const {
+        data: inputApplications
+      } = await supabase.from('input_applications').select('*').in('pond_batch_id', pondBatchIds);
 
       // Get harvest records to consider partial harvests
-      const { data: harvestRecords } = await supabase
-        .from('harvest_records')
-        .select('*')
-        .in('pond_batch_id', pondBatchIds);
-
+      const {
+        data: harvestRecords
+      } = await supabase.from('harvest_records').select('*').in('pond_batch_id', pondBatchIds);
       const cycles = pondBatches.map(pb => {
         const pond = ponds.find(p => p.id === pb.pond_id);
         const batch = batches?.find(b => b.id === pb.batch_id);
         const pbBiometrics = biometrics?.filter(b => b.pond_batch_id === pb.id) || [];
         const pbMortality = mortality?.filter(m => m.pond_batch_id === pb.id) || [];
         const pbFeeding = feeding?.filter(f => f.pond_batch_id === pb.id) || [];
-
         return {
           ...pb,
           ponds: pond,
@@ -215,29 +194,25 @@ export default function Reports() {
       });
 
       // Get operational costs for all farms and specific pond batches
-      const { data: operationalCosts } = await supabase
-        .from('operational_costs')
-        .select('amount, category, pond_batch_id')
-        .in('farm_id', farmIds);
+      const {
+        data: operationalCosts
+      } = await supabase.from('operational_costs').select('amount, category, pond_batch_id').in('farm_id', farmIds);
 
       // Get inventory costs for all farms
-      const { data: inventory } = await supabase
-        .from('inventory')
-        .select('total_value, category')
-        .in('farm_id', farmIds);
+      const {
+        data: inventory
+      } = await supabase.from('inventory').select('total_value, category').in('farm_id', farmIds);
 
       // Calculate operational costs
       const calculatedOpCosts = operationalCosts?.reduce((sum, cost) => sum + cost.amount, 0) || 0;
-      
+
       // Calculate consumed materials costs (Anti-Drift: converter gramas para kg)
       const calculatedFeedConsumed = feeding?.reduce((sum, feed) => {
-        return sum + (QuantityUtils.gramsToKg(feed.actual_amount) * (feed.unit_cost || 0));
+        return sum + QuantityUtils.gramsToKg(feed.actual_amount) * (feed.unit_cost || 0);
       }, 0) || 0;
-      
       const calculatedInputsConsumed = inputApplications?.reduce((sum, input) => {
         return sum + (input.total_cost || 0);
       }, 0) || 0;
-      
       const calculatedMaterialsConsumed = calculatedFeedConsumed + calculatedInputsConsumed;
 
       // Calculate price based on weight and table
@@ -253,113 +228,79 @@ export default function Reports() {
       let totalCosts = 0;
       let activeCycles = 0;
       let totalProductivityPerHa = 0;
-
       cycles?.forEach(cycle => {
         const stocking = new Date(cycle.stocking_date);
         const today = new Date();
         const doc = Math.ceil((today.getTime() - stocking.getTime()) / (1000 * 60 * 60 * 24));
-        
+
         // Get latest biometry
-        const latestBiometry = cycle.biometrics
-          ?.sort((a, b) => new Date(b.measurement_date).getTime() - new Date(a.measurement_date).getTime())[0];
+        const latestBiometry = cycle.biometrics?.sort((a, b) => new Date(b.measurement_date).getTime() - new Date(a.measurement_date).getTime())[0];
 
         // Calculate mortality
-        const totalMortality = cycle.mortality_records
-          ?.reduce((sum, mr) => sum + mr.dead_count, 0) || 0;
+        const totalMortality = cycle.mortality_records?.reduce((sum, mr) => sum + mr.dead_count, 0) || 0;
 
         // Calculate cumulative survival: considers all harvested population vs mortality
-        const harvestedPopulation = harvestRecords
-          ?.filter(hr => hr.pond_batch_id === cycle.id)
-          ?.reduce((sum, hr) => sum + (hr.population_harvested || 0), 0) || 0;
-        
+        const harvestedPopulation = harvestRecords?.filter(hr => hr.pond_batch_id === cycle.id)?.reduce((sum, hr) => sum + (hr.population_harvested || 0), 0) || 0;
+
         // Check if cycle has total harvest (completed)
-        const hasTotal = harvestRecords
-          ?.filter(hr => hr.pond_batch_id === cycle.id)
-          ?.some(hr => hr.harvest_type === 'total') || false;
-        
+        const hasTotal = harvestRecords?.filter(hr => hr.pond_batch_id === cycle.id)?.some(hr => hr.harvest_type === 'total') || false;
+
         // Calculate survival rate for active cycles
         // For active cycles: (current population + harvested population) / initial PLs
         // For completed cycles: (all harvested + current remaining) / initial PLs
-        const survivalRate = cycle.pl_quantity > 0 
-          ? hasTotal 
-            ? ((cycle.current_population + harvestedPopulation) / cycle.pl_quantity) * 100
-            : ((cycle.current_population + harvestedPopulation) / cycle.pl_quantity) * 100
-          : 0;
-
+        const survivalRate = cycle.pl_quantity > 0 ? hasTotal ? (cycle.current_population + harvestedPopulation) / cycle.pl_quantity * 100 : (cycle.current_population + harvestedPopulation) / cycle.pl_quantity * 100 : 0;
         if (latestBiometry && cycle.current_population > 0) {
           activeCycles++;
-          
-          const biomass = (cycle.current_population * latestBiometry.average_weight) / 1000;
+          const biomass = cycle.current_population * latestBiometry.average_weight / 1000;
           totalProduction += biomass;
-          
+
           // Calculate real feed consumption and cost (Anti-Drift: converter gramas para kg)
-          const totalFeedConsumed = Array.isArray(cycle.feeding_records)
-            ? cycle.feeding_records.reduce((sum, fr) => sum + QuantityUtils.gramsToKg(fr.actual_amount), 0)
-            : 0;
-            
-          const realFeedCost = Array.isArray(cycle.feeding_records)
-            ? cycle.feeding_records.reduce((sum, fr) => sum + (QuantityUtils.gramsToKg(fr.actual_amount) * (fr.unit_cost || 7)), 0)
-            : 0;
-          
+          const totalFeedConsumed = Array.isArray(cycle.feeding_records) ? cycle.feeding_records.reduce((sum, fr) => sum + QuantityUtils.gramsToKg(fr.actual_amount), 0) : 0;
+          const realFeedCost = Array.isArray(cycle.feeding_records) ? cycle.feeding_records.reduce((sum, fr) => sum + QuantityUtils.gramsToKg(fr.actual_amount) * (fr.unit_cost || 7), 0) : 0;
+
           // Calculate total biomass produced (current + harvested)
-          const harvestedBiomass = harvestRecords
-            ?.filter(hr => hr.pond_batch_id === cycle.id)
-            ?.reduce((sum, hr) => sum + hr.biomass_harvested, 0) || 0;
-          
+          const harvestedBiomass = harvestRecords?.filter(hr => hr.pond_batch_id === cycle.id)?.reduce((sum, hr) => sum + hr.biomass_harvested, 0) || 0;
           const totalBiomassProduced = biomass + harvestedBiomass;
-          
+
           // Calculate real FCA: Total feed consumed / Total biomass produced
           // This gives accurate feed conversion across the entire cycle
           let realFCA: number | null = null;
           if (totalFeedConsumed > 0 && totalBiomassProduced > 0) {
             realFCA = totalFeedConsumed / totalBiomassProduced;
           }
-          
+
           // Calculate weekly growth
           let weeklyGrowth = 0;
           if (cycle.biometrics && cycle.biometrics.length >= 2) {
-            const sortedBio = cycle.biometrics.sort((a, b) => 
-              new Date(a.measurement_date).getTime() - new Date(b.measurement_date).getTime()
-            );
+            const sortedBio = cycle.biometrics.sort((a, b) => new Date(a.measurement_date).getTime() - new Date(b.measurement_date).getTime());
             const recent = sortedBio[sortedBio.length - 1];
             const previous = sortedBio[sortedBio.length - 2];
-            const daysDiff = Math.ceil(
-              (new Date(recent.measurement_date).getTime() - new Date(previous.measurement_date).getTime()) 
-              / (1000 * 60 * 60 * 24)
-            );
+            const daysDiff = Math.ceil((new Date(recent.measurement_date).getTime() - new Date(previous.measurement_date).getTime()) / (1000 * 60 * 60 * 24));
             if (daysDiff > 0) {
-              weeklyGrowth = ((recent.average_weight - previous.average_weight) / daysDiff) * 7;
+              weeklyGrowth = (recent.average_weight - previous.average_weight) / daysDiff * 7;
             }
           }
-          
+
           // Calculate remaining costs (only what hasn't been allocated to harvests yet)
           const plCost = cycle.batches?.pl_cost || 0;
           const preparationCost = cycle.preparation_cost || 0;
-          
+
           // Total costs accumulated in cycle
-          const inputsCostToDate = (inputApplications
-            ?.filter(ia => ia.pond_batch_id === cycle.id)
-            ?.reduce((sum, ia) => sum + (ia.total_cost || 0), 0)) || 0;
+          const inputsCostToDate = inputApplications?.filter(ia => ia.pond_batch_id === cycle.id)?.reduce((sum, ia) => sum + (ia.total_cost || 0), 0) || 0;
 
           // Operational costs for this specific cycle
-          const operationalCostForCycle = operationalCosts
-            ?.filter(oc => oc.pond_batch_id === cycle.id)
-            ?.reduce((sum, oc) => sum + oc.amount, 0) || 0;
+          const operationalCostForCycle = operationalCosts?.filter(oc => oc.pond_batch_id === cycle.id)?.reduce((sum, oc) => sum + oc.amount, 0) || 0;
 
           // Costs already allocated to previous harvests (partial harvests)
-          const allocatedFeed = harvestRecords?.filter(hr => hr.pond_batch_id === cycle.id)
-            ?.reduce((sum, hr) => sum + (hr.allocated_feed_cost || 0), 0) || 0;
-          const allocatedInputs = harvestRecords?.filter(hr => hr.pond_batch_id === cycle.id)
-            ?.reduce((sum, hr) => sum + (hr.allocated_input_cost || 0), 0) || 0;
-          const allocatedPL = harvestRecords?.filter(hr => hr.pond_batch_id === cycle.id)
-            ?.reduce((sum, hr) => sum + (hr.allocated_pl_cost || 0), 0) || 0;
-          const allocatedPrep = harvestRecords?.filter(hr => hr.pond_batch_id === cycle.id)
-            ?.reduce((sum, hr) => sum + (hr.allocated_preparation_cost || 0), 0) || 0;
-          
+          const allocatedFeed = harvestRecords?.filter(hr => hr.pond_batch_id === cycle.id)?.reduce((sum, hr) => sum + (hr.allocated_feed_cost || 0), 0) || 0;
+          const allocatedInputs = harvestRecords?.filter(hr => hr.pond_batch_id === cycle.id)?.reduce((sum, hr) => sum + (hr.allocated_input_cost || 0), 0) || 0;
+          const allocatedPL = harvestRecords?.filter(hr => hr.pond_batch_id === cycle.id)?.reduce((sum, hr) => sum + (hr.allocated_pl_cost || 0), 0) || 0;
+          const allocatedPrep = harvestRecords?.filter(hr => hr.pond_batch_id === cycle.id)?.reduce((sum, hr) => sum + (hr.allocated_preparation_cost || 0), 0) || 0;
+
           // Only remaining costs for ongoing production (not already harvested/sold)
           const remainingFeedCost = Math.max(0, (realFeedCost || 0) - allocatedFeed);
           const remainingInputsCost = Math.max(0, inputsCostToDate - allocatedInputs);
-          const remainingPLCost = Math.max(0, (plCost * (cycle.pl_quantity / 1000)) - allocatedPL);
+          const remainingPLCost = Math.max(0, plCost * (cycle.pl_quantity / 1000) - allocatedPL);
           const remainingPreparationCost = Math.max(0, preparationCost - allocatedPrep);
 
           // Include operational costs in total cycle cost calculation
@@ -369,7 +310,7 @@ export default function Reports() {
           // Calculate revenue using price table
           const pricePerKg = calculatePriceByWeight(latestBiometry.average_weight, priceTable);
           const estimatedRevenue = biomass * pricePerKg;
-          const profitMargin = ((estimatedRevenue - cycleCost) / estimatedRevenue) * 100;
+          const profitMargin = (estimatedRevenue - cycleCost) / estimatedRevenue * 100;
 
           // Calculate pond area in hectares and productivity per ha
           const pondArea = cycle.ponds?.area || 1;
@@ -386,7 +327,6 @@ export default function Reports() {
           } else if (survivalRate >= 70 && realFCA && realFCA <= 1.8) {
             performanceScore = 'average';
           }
-
           processedCycles.push({
             cycle_id: cycle.id,
             batch_name: cycle.batches?.name || '',
@@ -438,29 +378,17 @@ export default function Reports() {
           });
         }
       });
-
       const totalOperationalCosts = totalCosts + calculatedOpCosts + calculatedMaterialsConsumed;
 
       // Calculate overall metrics with average price
-      const averageWeight = processedCycles.length > 0
-        ? processedCycles.reduce((sum, c) => sum + c.average_weight, 0) / processedCycles.length
-        : 0;
-
+      const averageWeight = processedCycles.length > 0 ? processedCycles.reduce((sum, c) => sum + c.average_weight, 0) / processedCycles.length : 0;
       const averagePrice = calculatePriceByWeight(averageWeight, priceTable);
       const totalRevenue = totalProduction * averagePrice;
-      const overallProfitMargin = totalRevenue > 0 
-        ? ((totalRevenue - totalOperationalCosts) / totalRevenue) * 100 
-        : 0;
-
-      const averageSurvival = processedCycles.length > 0
-        ? processedCycles.reduce((sum, c) => sum + c.survival_rate, 0) / processedCycles.length
-        : 0;
+      const overallProfitMargin = totalRevenue > 0 ? (totalRevenue - totalOperationalCosts) / totalRevenue * 100 : 0;
+      const averageSurvival = processedCycles.length > 0 ? processedCycles.reduce((sum, c) => sum + c.survival_rate, 0) / processedCycles.length : 0;
 
       // Calculate average productivity per hectare
-      const averageProductivityPerHa = activeCycles > 0 
-        ? totalProductivityPerHa / activeCycles 
-        : 0;
-
+      const averageProductivityPerHa = activeCycles > 0 ? totalProductivityPerHa / activeCycles : 0;
       setProductionReport({
         totalCycles: cycles?.length || 0,
         activeCycles,
@@ -473,13 +401,10 @@ export default function Reports() {
         operationalCosts: totalOperationalCosts,
         profitMargin: overallProfitMargin
       });
-
       setOperationalCosts(calculatedOpCosts);
       setMaterialsConsumed(calculatedMaterialsConsumed);
-
       setCycleAnalyses(processedCycles.sort((a, b) => b.doc - a.doc));
       setPondCards(processedPondCards.sort((a, b) => a.pond_name.localeCompare(b.pond_name)));
-      
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -490,38 +415,24 @@ export default function Reports() {
       setLoading(false);
     }
   };
-
   const exportReport = () => {
-    const csvContent = [
-      ['Lote', 'Viveiro', 'DOC', 'População Inicial', 'População Atual', 'Sobrevivência (%)', 'Peso Médio (g)', 'Biomassa (kg)', 'Receita Estimada (R$)', 'Custo do Ciclo (R$)', 'Margem (%)'],
-      ...cycleAnalyses.map(cycle => [
-        cycle.batch_name,
-        cycle.pond_name,
-        cycle.doc.toString(),
-        cycle.initial_population.toString(),
-        cycle.current_population.toString(),
-        cycle.survival_rate.toFixed(1),
-        cycle.average_weight.toString(),
-        cycle.biomass.toFixed(1),
-        cycle.estimated_revenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 }),
-        cycle.cycle_cost.toLocaleString('pt-BR', { minimumFractionDigits: 2 }),
-        cycle.profit_margin.toFixed(1)
-      ])
-    ].map(row => row.join(',')).join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const csvContent = [['Lote', 'Viveiro', 'DOC', 'População Inicial', 'População Atual', 'Sobrevivência (%)', 'Peso Médio (g)', 'Biomassa (kg)', 'Receita Estimada (R$)', 'Custo do Ciclo (R$)', 'Margem (%)'], ...cycleAnalyses.map(cycle => [cycle.batch_name, cycle.pond_name, cycle.doc.toString(), cycle.initial_population.toString(), cycle.current_population.toString(), cycle.survival_rate.toFixed(1), cycle.average_weight.toString(), cycle.biomass.toFixed(1), cycle.estimated_revenue.toLocaleString('pt-BR', {
+      minimumFractionDigits: 2
+    }), cycle.cycle_cost.toLocaleString('pt-BR', {
+      minimumFractionDigits: 2
+    }), cycle.profit_margin.toFixed(1)])].map(row => row.join(',')).join('\n');
+    const blob = new Blob([csvContent], {
+      type: 'text/csv;charset=utf-8;'
+    });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
     link.download = `relatorio_producao_${new Date().toISOString().split('T')[0]}.csv`;
     link.click();
   };
-
   if (loading) {
     return <LoadingScreen message="Carregando relatórios..." />;
   }
-
-  return (
-    <Layout>
+  return <Layout>
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-emerald-50/20">
         <div className="space-y-6">
         {/* Header */}
@@ -542,100 +453,22 @@ export default function Reports() {
 
         {/* KPI Summary */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Produção Total</p>
-                  <p className="text-2xl font-bold text-primary">
-                    {productionReport.totalProduction.toFixed(1)} kg
-                  </p>
-                </div>
-                <Scale className="w-8 h-8 text-primary/70" />
-              </div>
-            </CardContent>
-          </Card>
+          
 
-          <Card className="bg-gradient-to-br from-success/10 to-success/5 border-success/20">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Receita Estimada</p>
-                  <p className="text-2xl font-bold text-success">
-                    R$ {productionReport.totalRevenue.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}
-                  </p>
-                </div>
-                <DollarSign className="w-8 h-8 text-success/70" />
-              </div>
-            </CardContent>
-          </Card>
+          
 
-          <Card className="bg-gradient-to-br from-warning/10 to-warning/5 border-warning/20">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Custo Total</p>
-                  <p className="text-2xl font-bold text-warning">
-                    R$ {productionReport.totalCost.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}
-                  </p>
-                </div>
-                <DollarSign className="w-8 h-8 text-warning/70" />
-              </div>
-            </CardContent>
-          </Card>
+          
 
-          <Card className="bg-gradient-to-br from-accent/10 to-accent/5 border-accent/20">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Produtividade</p>
-                  <p className="text-2xl font-bold text-accent">
-                    {productionReport.productivityPerHa.toFixed(0)} kg/ha
-                  </p>
-                </div>
-                <BarChart3 className="w-8 h-8 text-accent/70" />
-              </div>
-            </CardContent>
-          </Card>
+          
         </div>
 
         {/* Performance Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center gap-3">
-                <Activity className="w-6 h-6 text-primary" />
-                <div>
-                  <p className="text-sm text-muted-foreground">Sobrevivência Média</p>
-                  <p className="text-2xl font-bold">{productionReport.survivalRate.toFixed(1)}%</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          
 
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center gap-3">
-                <Scale className="w-6 h-6 text-success" />
-                <div>
-                  <p className="text-sm text-muted-foreground">Peso Médio</p>
-                  <p className="text-2xl font-bold">{productionReport.averageWeight.toFixed(1)}g</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          
 
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center gap-3">
-                <PieChart className="w-6 h-6 text-accent" />
-                <div>
-                  <p className="text-sm text-muted-foreground">Ciclos Ativos</p>
-                  <p className="text-2xl font-bold">{productionReport.activeCycles}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          
         </div>
 
         {/* Detailed Analysis */}
@@ -656,25 +489,14 @@ export default function Reports() {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {pondCards.map((pond) => (
-                    <Card 
-                      key={pond.pond_batch_id}
-                      className="hover:shadow-lg transition-shadow cursor-pointer border-l-4 border-l-primary"
-                      onClick={() => navigate(`/pond-history/${pond.pond_batch_id}`)}
-                    >
+                  {pondCards.map(pond => <Card key={pond.pond_batch_id} className="hover:shadow-lg transition-shadow cursor-pointer border-l-4 border-l-primary" onClick={() => navigate(`/pond-history/${pond.pond_batch_id}`)}>
                       <CardHeader className="pb-3">
                         <div className="flex justify-between items-start">
                           <div>
                             <CardTitle className="text-lg">{pond.pond_name}</CardTitle>
                             <p className="text-sm text-muted-foreground">{pond.batch_name}</p>
                           </div>
-                          <Badge 
-                            variant={
-                              pond.performance_score === 'excellent' ? 'default' :
-                              pond.performance_score === 'good' ? 'secondary' :
-                              pond.performance_score === 'average' ? 'outline' : 'destructive'
-                            }
-                          >
+                          <Badge variant={pond.performance_score === 'excellent' ? 'default' : pond.performance_score === 'good' ? 'secondary' : pond.performance_score === 'average' ? 'outline' : 'destructive'}>
                             DOC {pond.doc}
                           </Badge>
                         </div>
@@ -697,11 +519,7 @@ export default function Reports() {
                            </div>
                            <div>
                              <p className="text-muted-foreground">FCA Real</p>
-                             <p className={`font-medium ${
-                               !pond.real_fca ? 'text-muted-foreground' :
-                               pond.real_fca <= 1.3 ? 'text-success' : 
-                               pond.real_fca <= 1.6 ? 'text-warning' : 'text-destructive'
-                             }`}>
+                             <p className={`font-medium ${!pond.real_fca ? 'text-muted-foreground' : pond.real_fca <= 1.3 ? 'text-success' : pond.real_fca <= 1.6 ? 'text-warning' : 'text-destructive'}`}>
                                {pond.real_fca ? pond.real_fca.toFixed(2) : '-'}
                              </p>
                            </div>
@@ -711,10 +529,7 @@ export default function Reports() {
                           </div>
                           <div>
                             <p className="text-muted-foreground">Custo/kg</p>
-                            <p className={`font-medium ${
-                              pond.cost_per_kg <= 15 ? 'text-success' : 
-                              pond.cost_per_kg <= 20 ? 'text-warning' : 'text-destructive'
-                            }`}>
+                            <p className={`font-medium ${pond.cost_per_kg <= 15 ? 'text-success' : pond.cost_per_kg <= 20 ? 'text-warning' : 'text-destructive'}`}>
                               R$ {pond.cost_per_kg.toFixed(2)}
                             </p>
                           </div>
@@ -734,19 +549,25 @@ export default function Reports() {
                             <div className="flex justify-between text-sm">
                               <span className="text-muted-foreground">Receita Estimada:</span>
                               <span className="font-medium text-success">
-                                R$ {pond.estimated_revenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                R$ {pond.estimated_revenue.toLocaleString('pt-BR', {
+                              minimumFractionDigits: 2
+                            })}
                               </span>
                             </div>
                             <div className="flex justify-between text-sm">
                               <span className="text-muted-foreground">Custo Total:</span>
                               <span className="font-medium text-destructive">
-                                R$ {pond.total_cost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                R$ {pond.total_cost.toLocaleString('pt-BR', {
+                              minimumFractionDigits: 2
+                            })}
                               </span>
                             </div>
                             <div className="flex justify-between text-sm">
                               <span className="text-muted-foreground">Resultado:</span>
                               <span className={`font-medium ${pond.pond_result > 0 ? 'text-success' : 'text-destructive'}`}>
-                                R$ {pond.pond_result.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                R$ {pond.pond_result.toLocaleString('pt-BR', {
+                              minimumFractionDigits: 2
+                            })}
                               </span>
                             </div>
                             <div className="flex justify-between text-sm">
@@ -758,20 +579,8 @@ export default function Reports() {
                           </div>
 
                         <div className="pt-2">
-                          <Badge 
-                            variant="outline" 
-                            className={`w-full justify-center ${
-                              pond.performance_score === 'excellent' ? 'border-success text-success' :
-                              pond.performance_score === 'good' ? 'border-primary text-primary' :
-                              pond.performance_score === 'average' ? 'border-warning text-warning' : 
-                              'border-destructive text-destructive'
-                            }`}
-                          >
-                            Performance: {
-                              pond.performance_score === 'excellent' ? 'Excelente' :
-                              pond.performance_score === 'good' ? 'Boa' :
-                              pond.performance_score === 'average' ? 'Média' : 'Baixa'
-                            }
+                          <Badge variant="outline" className={`w-full justify-center ${pond.performance_score === 'excellent' ? 'border-success text-success' : pond.performance_score === 'good' ? 'border-primary text-primary' : pond.performance_score === 'average' ? 'border-warning text-warning' : 'border-destructive text-destructive'}`}>
+                            Performance: {pond.performance_score === 'excellent' ? 'Excelente' : pond.performance_score === 'good' ? 'Boa' : pond.performance_score === 'average' ? 'Média' : 'Baixa'}
                           </Badge>
                         </div>
 
@@ -779,16 +588,13 @@ export default function Reports() {
                           Clique para ver histórico completo →
                         </div>
                       </CardContent>
-                    </Card>
-                  ))}
+                    </Card>)}
                 </div>
                 
-                {pondCards.length === 0 && (
-                  <div className="text-center py-8">
+                {pondCards.length === 0 && <div className="text-center py-8">
                     <Shrimp className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                     <p className="text-muted-foreground">Nenhum viveiro ativo encontrado</p>
-                  </div>
-                )}
+                  </div>}
               </CardContent>
             </Card>
           </TabsContent>
@@ -810,14 +616,10 @@ export default function Reports() {
                   <div className="space-y-4">
                     <div className="flex items-center gap-4">
                       <label className="text-sm font-medium">Tabela de Preços (10g):</label>
-                      <select 
-                        value={priceTable} 
-                        onChange={(e) => setPriceTable(Number(e.target.value))}
-                        className="px-3 py-1 border border-border rounded bg-background text-foreground"
-                      >
-                        {Array.from({ length: 31 }, (_, i) => 10 + i * 0.5).map(value => (
-                          <option key={value} value={value}>R$ {value.toFixed(1)}</option>
-                        ))}
+                      <select value={priceTable} onChange={e => setPriceTable(Number(e.target.value))} className="px-3 py-1 border border-border rounded bg-background text-foreground">
+                        {Array.from({
+                          length: 31
+                        }, (_, i) => 10 + i * 0.5).map(value => <option key={value} value={value}>R$ {value.toFixed(1)}</option>)}
                       </select>
                     </div>
                     <p className="text-xs text-muted-foreground">
@@ -834,30 +636,24 @@ export default function Reports() {
                   Viveiros Ativos - Análise Financeira
                 </h3>
                 
-                {pondCards.length === 0 ? (
-                  <Card>
+                {pondCards.length === 0 ? <Card>
                     <CardContent className="py-8 text-center">
                       <div className="text-muted-foreground">
                         Nenhum viveiro ativo encontrado com dados suficientes para análise.
                       </div>
                     </CardContent>
-                  </Card>
-                ) : (
-                  <>
+                  </Card> : <>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {pondCards.map((pond) => {
-                        const calculatePriceByWeight = (weight: number, tableValue: number) => {
-                          return tableValue + (weight - 10);
-                        };
-                        
-                        const pricePerKg = calculatePriceByWeight(pond.current_weight, priceTable);
-                        const revenue = pond.biomass * pricePerKg;
-                        const totalCost = pond.total_cost;
-                        const profit = revenue - totalCost;
-                        const profitMargin = revenue > 0 ? (profit / revenue) * 100 : 0;
-                        
-                        return (
-                          <Card key={pond.pond_batch_id} className="relative">
+                      {pondCards.map(pond => {
+                      const calculatePriceByWeight = (weight: number, tableValue: number) => {
+                        return tableValue + (weight - 10);
+                      };
+                      const pricePerKg = calculatePriceByWeight(pond.current_weight, priceTable);
+                      const revenue = pond.biomass * pricePerKg;
+                      const totalCost = pond.total_cost;
+                      const profit = revenue - totalCost;
+                      const profitMargin = revenue > 0 ? profit / revenue * 100 : 0;
+                      return <Card key={pond.pond_batch_id} className="relative">
                             <CardHeader className="pb-4">
                               <div className="flex justify-between items-start">
                                 <div>
@@ -866,10 +662,7 @@ export default function Reports() {
                                     {pond.batch_name} • {pond.doc} DOC
                                   </p>
                                 </div>
-                                <Badge 
-                                  variant={profit > 0 ? "default" : "destructive"}
-                                  className="text-xs"
-                                >
+                                <Badge variant={profit > 0 ? "default" : "destructive"} className="text-xs">
                                   {profit > 0 ? "Lucro" : "Prejuízo"}
                                 </Badge>
                               </div>
@@ -893,7 +686,9 @@ export default function Reports() {
                                 <div className="flex justify-between items-center">
                                   <span className="text-sm text-muted-foreground">Faturamento</span>
                                   <span className="font-bold text-success">
-                                    R$ {revenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                    R$ {revenue.toLocaleString('pt-BR', {
+                                  minimumFractionDigits: 2
+                                })}
                                   </span>
                                 </div>
                                 <p className="text-xs text-muted-foreground mt-1">
@@ -906,7 +701,9 @@ export default function Reports() {
                                 <div className="flex justify-between items-center">
                                   <span className="text-sm text-muted-foreground">Custo Total</span>
                                   <span className="font-bold text-destructive">
-                                    R$ {totalCost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                    R$ {totalCost.toLocaleString('pt-BR', {
+                                  minimumFractionDigits: 2
+                                })}
                                   </span>
                                 </div>
                               </div>
@@ -916,7 +713,9 @@ export default function Reports() {
                                 <div className="flex justify-between items-center">
                                   <span className="text-sm text-muted-foreground">Lucro Final</span>
                                   <span className={`font-bold ${profit > 0 ? 'text-success' : 'text-destructive'}`}>
-                                    R$ {profit.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                    R$ {profit.toLocaleString('pt-BR', {
+                                  minimumFractionDigits: 2
+                                })}
                                   </span>
                                 </div>
                                 <p className="text-xs text-muted-foreground mt-1">
@@ -924,9 +723,8 @@ export default function Reports() {
                                 </p>
                               </div>
                             </CardContent>
-                          </Card>
-                        );
-                      })}
+                          </Card>;
+                    })}
                     </div>
                     
                     {/* Resumo Geral */}
@@ -940,21 +738,18 @@ export default function Reports() {
                       <CardContent>
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                           {(() => {
-                            const calculatePriceByWeight = (weight: number, tableValue: number) => {
-                              return tableValue + (weight - 10);
-                            };
-                            
-                            const totalBiomass = pondCards.reduce((sum, pond) => sum + pond.biomass, 0);
-                            const totalRevenue = pondCards.reduce((sum, pond) => {
-                              const pricePerKg = calculatePriceByWeight(pond.current_weight, priceTable);
-                              return sum + (pond.biomass * pricePerKg);
-                            }, 0);
-                            const totalCosts = pondCards.reduce((sum, pond) => sum + pond.total_cost, 0);
-                            const totalProfit = totalRevenue - totalCosts;
-                            const avgMargin = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
-                            
-                            return (
-                              <>
+                          const calculatePriceByWeight = (weight: number, tableValue: number) => {
+                            return tableValue + (weight - 10);
+                          };
+                          const totalBiomass = pondCards.reduce((sum, pond) => sum + pond.biomass, 0);
+                          const totalRevenue = pondCards.reduce((sum, pond) => {
+                            const pricePerKg = calculatePriceByWeight(pond.current_weight, priceTable);
+                            return sum + pond.biomass * pricePerKg;
+                          }, 0);
+                          const totalCosts = pondCards.reduce((sum, pond) => sum + pond.total_cost, 0);
+                          const totalProfit = totalRevenue - totalCosts;
+                          const avgMargin = totalRevenue > 0 ? totalProfit / totalRevenue * 100 : 0;
+                          return <>
                                 <div className="text-center p-3 bg-muted/50 rounded">
                                   <p className="text-sm text-muted-foreground">Biomassa Total</p>
                                   <p className="text-xl font-bold">{totalBiomass.toFixed(1)} kg</p>
@@ -962,38 +757,41 @@ export default function Reports() {
                                 <div className="text-center p-3 bg-success/10 rounded">
                                   <p className="text-sm text-muted-foreground">Faturamento Total</p>
                                   <p className="text-xl font-bold text-success">
-                                    R$ {totalRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
+                                    R$ {totalRevenue.toLocaleString('pt-BR', {
+                                  minimumFractionDigits: 0
+                                })}
                                   </p>
                                 </div>
                                 <div className="text-center p-3 bg-destructive/10 rounded">
                                   <p className="text-sm text-muted-foreground">Custos Totais</p>
                                   <p className="text-xl font-bold text-destructive">
-                                    R$ {totalCosts.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
+                                    R$ {totalCosts.toLocaleString('pt-BR', {
+                                  minimumFractionDigits: 0
+                                })}
                                   </p>
                                 </div>
                                 <div className={`text-center p-3 rounded ${totalProfit > 0 ? 'bg-success/10' : 'bg-destructive/10'}`}>
                                   <p className="text-sm text-muted-foreground">Lucro Total</p>
                                   <p className={`text-xl font-bold ${totalProfit > 0 ? 'text-success' : 'text-destructive'}`}>
-                                    R$ {totalProfit.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
+                                    R$ {totalProfit.toLocaleString('pt-BR', {
+                                  minimumFractionDigits: 0
+                                })}
                                   </p>
                                   <p className="text-xs text-muted-foreground mt-1">
                                     Margem: {avgMargin.toFixed(1)}%
                                   </p>
                                 </div>
-                              </>
-                            );
-                          })()}
+                              </>;
+                        })()}
                         </div>
                       </CardContent>
                     </Card>
-                  </>
-                )}
+                  </>}
               </div>
             </div>
             </TabsContent>
           </Tabs>
         </div>
       </div>
-    </Layout>
-    );
- }
+    </Layout>;
+}

@@ -4,7 +4,7 @@ import { Layout } from '@/components/Layout';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Warning, Plus, Shrimp, ChartBar, ForkKnife, Package, Gear, CurrencyDollar } from '@phosphor-icons/react';
+import { Warning, Plus } from '@phosphor-icons/react';
 import { useFarmsQuery, useActivePondsQuery, useInventoryQuery, useWaterQualityQuery } from '@/hooks/useSupabaseQuery';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
 import { useRecentManagementData } from '@/hooks/useRecentManagementData';
@@ -77,7 +77,7 @@ export default function Dashboard() {
         </div>
 
         {/* Critical Alerts Row - First Row Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {/* Critical Alerts Card - Clickable */}
           <Card 
             className={`h-full cursor-pointer transition-all hover:shadow-lg ${alerts.length > 0 ? 'bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20 border-red-200 dark:border-red-800 hover:border-red-300 dark:hover:border-red-700' : 'bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 border-green-200 dark:border-green-800 hover:border-green-300 dark:hover:border-green-700'}`}
@@ -104,9 +104,6 @@ export default function Dashboard() {
           {/* Daily Feeding Progress */}
           <FeedingProgressCard farmId={firstFarm?.id} />
 
-          {/* Weekly Growth Rate */}
-          <GrowthRateCard farmId={firstFarm?.id} />
-
           {/* Moon Phase */}
           <MoonPhaseCard />
         </div>
@@ -114,68 +111,9 @@ export default function Dashboard() {
         {/* Biomass Table */}
         <BiomassTable farmId={firstFarm?.id} />
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Quick Actions */}
-          <Card className="lg:col-span-1">
-            <CardHeader>
-              <CardTitle>Ações Rápidas</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 gap-3">
-                {[
-                  { 
-                    label: 'Manejos', 
-                    path: '/manejos', 
-                    icon: Shrimp,
-                    color: 'from-blue-500 to-cyan-500'
-                  },
-                    { 
-                      label: 'Registrar Ração', 
-                      path: '/feeding', 
-                      icon: ForkKnife,
-                      color: 'from-orange-500 to-red-500'
-                    },
-                    { 
-                      label: 'Estoque', 
-                      path: '/inventory', 
-                      icon: Package,
-                      color: 'from-purple-500 to-indigo-500'
-                    },
-                    { 
-                      label: 'Relatórios', 
-                      path: '/reports', 
-                      icon: ChartBar,
-                      color: 'from-green-500 to-emerald-500'
-                    },
-                    { 
-                      label: 'Fazenda', 
-                      path: '/farm', 
-                      icon: Gear,
-                      color: 'from-gray-500 to-slate-600'
-                    },
-                    { 
-                      label: 'Financeiro', 
-                      path: '/financial', 
-                      icon: CurrencyDollar,
-                      color: 'from-yellow-500 to-amber-500'
-                    },
-                ].map(({ label, path, icon: Icon, color }) => (
-                  <Button
-                    key={path}
-                    variant="outline"
-                    className={`h-20 flex flex-col gap-2 bg-gradient-to-br ${color} text-white border-0 hover:opacity-90`}
-                    onClick={() => navigate(path)}
-                  >
-                    <Icon className="h-6 w-6" />
-                    <span className="text-xs text-center">{label}</span>
-                  </Button>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Recent Activities */}
-          <Card className="lg:col-span-1">
+          <Card>
             <CardHeader>
               <CardTitle>Atividades Recentes</CardTitle>
             </CardHeader>

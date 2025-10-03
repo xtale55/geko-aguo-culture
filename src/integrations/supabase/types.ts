@@ -195,6 +195,84 @@ export type Database = {
         }
         Relationships: []
       }
+      feeding_base_amounts: {
+        Row: {
+          base_amount_per_meal: number
+          created_at: string
+          date: string
+          id: string
+          last_evaluation_id: string | null
+          pond_batch_id: string
+          updated_at: string
+        }
+        Insert: {
+          base_amount_per_meal: number
+          created_at?: string
+          date?: string
+          id?: string
+          last_evaluation_id?: string | null
+          pond_batch_id: string
+          updated_at?: string
+        }
+        Update: {
+          base_amount_per_meal?: number
+          created_at?: string
+          date?: string
+          id?: string
+          last_evaluation_id?: string | null
+          pond_batch_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      feeding_evaluations: {
+        Row: {
+          adjustment_amount: number
+          adjustment_percentage: number
+          amount_offered: number
+          consumption_evaluation: string
+          created_at: string
+          evaluated_by: string | null
+          evaluation_date: string
+          evaluation_time: string
+          id: string
+          leftover_percentage: number | null
+          notes: string | null
+          pond_batch_id: string
+          updated_at: string
+        }
+        Insert: {
+          adjustment_amount?: number
+          adjustment_percentage?: number
+          amount_offered: number
+          consumption_evaluation: string
+          created_at?: string
+          evaluated_by?: string | null
+          evaluation_date?: string
+          evaluation_time?: string
+          id?: string
+          leftover_percentage?: number | null
+          notes?: string | null
+          pond_batch_id: string
+          updated_at?: string
+        }
+        Update: {
+          adjustment_amount?: number
+          adjustment_percentage?: number
+          amount_offered?: number
+          consumption_evaluation?: string
+          created_at?: string
+          evaluated_by?: string | null
+          evaluation_date?: string
+          evaluation_time?: string
+          id?: string
+          leftover_percentage?: number | null
+          notes?: string | null
+          pond_batch_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       feeding_rates: {
         Row: {
           created_at: string

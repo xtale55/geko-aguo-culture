@@ -15,7 +15,10 @@ export function useActivePondBatches(farmId?: string) {
   return useSupabaseQuery(
     ['active-pond-batches', farmId],
     async () => {
+      console.log('🔍 useActivePondBatches - farmId:', farmId);
+      
       if (!farmId) {
+        console.log('⚠️ No farmId provided');
         return { data: [], error: null };
       }
 
@@ -39,20 +42,28 @@ export function useActivePondBatches(farmId?: string) {
           )
         `)
         .eq('ponds.farm_id', farmId)
-        .eq('cycle_status', 'active')
-        .order('ponds.name');
+        .eq('cycle_status', 'active');
 
-      if (error) throw error;
+      console.log('📊 Query result:', { data, error, count: data?.length });
 
-      const activePonds: ActivePondBatch[] = (data || []).map((pb: any) => ({
-        pond_batch_id: pb.id,
-        pond_id: pb.ponds.id,
-        pond_name: pb.ponds.name,
-        batch_id: pb.batches.id,
-        batch_name: pb.batches.name,
-        current_population: pb.current_population,
-        stocking_date: pb.stocking_date,
-      }));
+      if (error) {
+        console.error('❌ Query error:', error);
+        throw error;
+      }
+
+      const activePonds: ActivePondBatch[] = (data || [])
+        .map((pb: any) => ({
+          pond_batch_id: pb.id,
+          pond_id: pb.ponds.id,
+          pond_name: pb.ponds.name,
+          batch_id: pb.batches.id,
+          batch_name: pb.batches.name,
+          current_population: pb.current_population,
+          stocking_date: pb.stocking_date,
+        }))
+        .sort((a, b) => a.pond_name.localeCompare(b.pond_name));
+
+      console.log('✅ Active ponds mapped:', activePonds);
 
       return { data: activePonds, error: null };
     },

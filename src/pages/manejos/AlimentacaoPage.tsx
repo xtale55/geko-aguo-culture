@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,52 +18,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { getCurrentDateForInput, formatDateForDisplay } from '@/lib/utils';
 import { QuantityUtils } from '@/lib/quantityUtils';
-import { getFeedItemsIncludingMixtures } from '@/lib/feedUtils';
 import { FeedingChartModal } from '@/components/FeedingChartModal';
 import { FeedingEvaluationNotifications } from '@/components/FeedingEvaluationNotifications';
-
-interface PondWithBatch {
-  id: string;
-  name: string;
-  area: number;
-  status: string;
-  current_batch?: {
-    id: string;
-    batch_name: string;
-    stocking_date: string;
-    current_population: number;
-    current_biomass?: number;
-    average_weight?: number;
-    latest_feeding?: {
-      feeding_date: string;
-      total_daily: number;
-      meals_completed: number;
-      meals_per_day: number;
-      planned_total_daily: number;
-      planned_per_meal: number;
-      feeding_percentage: number;
-    };
-  };
-}
-
-interface FeedingRecord {
-  id: string;
-  feeding_date: string;
-  feeding_time: string;
-  actual_amount: number;
-  planned_amount: number;
-  notes?: string;
-  pond_name: string;
-  batch_name: string;
-  pond_batch_id: string;
-}
-
-interface FeedType {
-  id: string;
-  name: string;
-  quantity: number;
-  unit_price: number;
-}
+import { useAlimentacaoOptimized, OptimizedPondData, FeedingHistoryRecord } from '@/hooks/useAlimentacaoOptimized';
+import { queryClient } from '@/lib/queryClient';
 
 interface FeedingData {
   pond_batch_id: string;
@@ -81,22 +39,18 @@ export default function AlimentacaoPage() {
   const { toast } = useToast();
   const { user } = useAuth();
   
-  const [ponds, setPonds] = useState<PondWithBatch[]>([]);
-  const [feedingHistory, setFeedingHistory] = useState<FeedingRecord[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [farmId, setFarmId] = useState<string>('');
-  const [historyLoading, setHistoryLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // Use optimized hook
+  const { data, isLoading, error: queryError, refetch } = useAlimentacaoOptimized(user?.id);
+  
   const [submitting, setSubmitting] = useState(false);
   const [showDialog, setShowDialog] = useState(false);
-  const [selectedPond, setSelectedPond] = useState<PondWithBatch | null>(null);
-  const [availableFeeds, setAvailableFeeds] = useState<FeedType[]>([]);
+  const [selectedPond, setSelectedPond] = useState<OptimizedPondData | null>(null);
   const [selectedFeedType, setSelectedFeedType] = useState<string>('');
-  const [editingRecord, setEditingRecord] = useState<FeedingRecord | null>(null);
+  const [editingRecord, setEditingRecord] = useState<FeedingHistoryRecord | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [isChartModalOpen, setIsChartModalOpen] = useState(false);
   const [feedingChartData, setFeedingChartData] = useState<Array<{feeding_date: string, cumulative_feed: number}>>([]);
-  const [selectedPondForChart, setSelectedPondForChart] = useState<PondWithBatch | null>(null);
+  const [selectedPondForChart, setSelectedPondForChart] = useState<OptimizedPondData | null>(null);
   
   const [feedingData, setFeedingData] = useState<FeedingData>({
     pond_batch_id: '',
@@ -107,507 +61,37 @@ export default function AlimentacaoPage() {
     notes: ''
   });
 
-  useEffect(() => {
-    console.log('📊 AlimentacaoPage useEffect triggered, user:', user?.id);
-    if (user) {
-      setError(null);
-      loadActivePonds();
-      loadFeedingHistory();
-      loadAvailableFeeds();
-    } else {
-      console.log('⚠️ No user found, waiting for authentication...');
-    }
-  }, [user]);
+  const ponds = data?.ponds || [];
+  const feedingHistory = data?.feedingHistory || [];
+  const availableFeeds = data?.availableFeeds || [];
+  const farmId = data?.farmId || '';
+  const loading = isLoading;
+  const error = queryError?.message || null;
 
-  const loadActivePonds = async () => {
-    console.log('🏊 Loading active ponds...');
-    try {
-      if (!user?.id) {
-        console.log('❌ No user ID available');
-        return;
-      }
-
-      // Load farms first
-      const { data: farmsData, error: farmsError } = await supabase
-        .from('farms')
-        .select('id')
-        .eq('user_id', user.id);
-
-      console.log('🏠 Farms data:', farmsData);
-      if (farmsError) {
-        console.error('❌ Farms error:', farmsError);
-        throw farmsError;
-      }
-
-      if (farmsData && farmsData.length > 0) {
-        console.log('✅ Setting farmId:', farmsData[0].id);
-        setFarmId(farmsData[0].id);
-        // Load active ponds with active batch data
-        const { data: pondsData, error: pondsError } = await supabase
-          .from('ponds')
-          .select(`
-            *,
-            pond_batches!inner(
-              id,
-              current_population,
-              stocking_date,
-              cycle_status,
-              batches!inner(name)
-            )
-          `)
-          .eq('farm_id', farmsData[0].id)
-          .eq('status', 'in_use')
-          .eq('pond_batches.cycle_status', 'active')
-          .gt('pond_batches.current_population', 0)
-          .order('name');
-
-        if (pondsError) throw pondsError;
-
-        // Process and format pond data
-        const formattedPonds: PondWithBatch[] = pondsData?.map(pond => {
-          const activeBatch = pond.pond_batches[0];
-          return {
-            id: pond.id,
-            name: pond.name,
-            area: pond.area,
-            status: pond.status,
-            current_batch: activeBatch ? {
-              id: activeBatch.id,
-              batch_name: activeBatch.batches.name,
-              stocking_date: activeBatch.stocking_date,
-              current_population: activeBatch.current_population
-            } : undefined
-          };
-        }) || [];
-
-        // Load today's feeding summary for each pond
-        for (const pond of formattedPonds) {
-          if (pond.current_batch) {
-            await loadTodayFeedingSummary(pond);
-            await loadBiomassData(pond);
-          }
-        }
-
-        console.log('🏊 Formatted ponds:', formattedPonds);
-        setPonds(formattedPonds);
-      } else {
-        console.log('⚠️ No farms found for user');
-        setError('Nenhuma fazenda encontrada. Por favor, crie uma fazenda primeiro.');
-      }
-    } catch (error) {
-      console.error('❌ Error loading ponds:', error);
-      setError(`Erro ao carregar viveiros: ${error.message}`);
-      toast({
-        title: "Erro",
-        description: "Erro ao carregar viveiros",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const getFeedingRate = async (pondBatchId: string, weight: number, farmId: string): Promise<number> => {
-    try {
-      // First check for pond-specific rates
-      const { data: pondSpecific } = await supabase
-        .from('feeding_rates')
-        .select('feeding_percentage')
-        .eq('pond_batch_id', pondBatchId)
-        .lte('weight_range_min', weight)
-        .gte('weight_range_max', weight)
-        .order('weight_range_min', { ascending: false })
-        .limit(1);
-
-      if (pondSpecific && pondSpecific.length > 0) {
-        return pondSpecific[0].feeding_percentage;
-      }
-
-      // Then check for farm templates
-      const { data: farmTemplate } = await supabase
-        .from('feeding_rates')
-        .select('feeding_percentage')
-        .eq('farm_id', farmId)
-        .is('pond_batch_id', null)
-        .lte('weight_range_min', weight)
-        .gte('weight_range_max', weight)
-        .order('weight_range_min', { ascending: false })
-        .limit(1);
-
-      if (farmTemplate && farmTemplate.length > 0) {
-        return farmTemplate[0].feeding_percentage;
-      }
-    } catch (error) {
-      console.error('Error getting feeding rate:', error);
-    }
-
-    // Default feeding rate based on weight
-    if (weight < 1) return 10;
-    if (weight < 3) return 8;
-    if (weight < 5) return 6;
-    if (weight < 10) return 4;
-    if (weight < 15) return 2.5;
-    return 2;
-  };
-
-  const getMealsPerDay = async (pondBatchId: string, weight: number, farmId: string): Promise<number> => {
-    try {
-      // First check for pond-specific rates
-      const { data: pondSpecific } = await supabase
-        .from('feeding_rates')
-        .select('meals_per_day')
-        .eq('pond_batch_id', pondBatchId)
-        .lte('weight_range_min', weight)
-        .gte('weight_range_max', weight)
-        .order('weight_range_min', { ascending: false })
-        .limit(1);
-
-      if (pondSpecific && pondSpecific.length > 0) {
-        return pondSpecific[0].meals_per_day;
-      }
-
-      // Then check for farm templates
-      const { data: farmTemplate } = await supabase
-        .from('feeding_rates')
-        .select('meals_per_day')
-        .eq('farm_id', farmId)
-        .is('pond_batch_id', null)
-        .lte('weight_range_min', weight)
-        .gte('weight_range_max', weight)
-        .order('weight_range_min', { ascending: false })
-        .limit(1);
-
-      if (farmTemplate && farmTemplate.length > 0) {
-        return farmTemplate[0].meals_per_day;
-      }
-    } catch (error) {
-      console.error('Error getting meals per day:', error);
-    }
-
-    // Default meals per day based on weight
-    if (weight < 1) return 5;
-    if (weight < 3) return 4;
-    if (weight < 10) return 3;
-    return 2;
-  };
-
-  const loadTodayFeedingSummary = async (pond: PondWithBatch) => {
-    if (!pond.current_batch) return;
-
-    try {
-      const today = getCurrentDateForInput();
-      
-      // Get today's feeding records
-      const { data: feedingRecords } = await supabase
-        .from('feeding_records')
-        .select('actual_amount')
-        .eq('pond_batch_id', pond.current_batch.id)
-        .eq('feeding_date', today);
-
-      // Get latest biometry for calculations
-      const { data: biometry } = await supabase
-        .from('biometrics')
-        .select('average_weight')
-        .eq('pond_batch_id', pond.current_batch.id)
-        .order('measurement_date', { ascending: false })
-        .limit(1);
-
-      // Get farm_id from pond to find feeding rates
-      const { data: pondData } = await supabase
-        .from('ponds')
-        .select('farm_id')
-        .eq('id', pond.id)
-        .single();
-
-      const avgWeight = biometry?.[0]?.average_weight || 1; // Default to 1g if no biometry
-
-      // Use fallback system for feeding rates
-      const feedingPercentage = await getFeedingRate(pond.current_batch.id, avgWeight, pondData?.farm_id || '');
-      const mealsPerDay = await getMealsPerDay(pond.current_batch.id, avgWeight, pondData?.farm_id || '');
-
-      const totalDaily = feedingRecords?.reduce((sum, record) => sum + record.actual_amount, 0) || 0;
-      const mealsCompleted = feedingRecords?.length || 0;
-      
-      // Calculate planned amounts with adjustment logic
-      let plannedTotalDaily = 0;
-      let plannedPerMeal = 0;
-
-      // Get last feeding record to check for adjustments
-      const { data: lastFeeding } = await supabase
-        .from('feeding_records')
-        .select('actual_amount, consumption_evaluation, next_feeding_adjustment')
-        .eq('pond_batch_id', pond.current_batch.id)
-        .order('feeding_date', { ascending: false })
-        .order('feeding_time', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      
-      if (lastFeeding) {
-        if (lastFeeding.consumption_evaluation) {
-          // Has evaluation: apply adjustment over actual_amount
-          const adjustmentPercent = lastFeeding.next_feeding_adjustment || 0;
-          plannedPerMeal = Math.round(lastFeeding.actual_amount * (1 + adjustmentPercent / 100));
-        } else {
-          // No evaluation: recalculate based on current biomass and standard rates
-          const biomass = (pond.current_batch.current_population * avgWeight) / 1000; // kg
-          plannedTotalDaily = (biomass * feedingPercentage / 100) * 1000; // grams
-          plannedPerMeal = Math.round(plannedTotalDaily / mealsPerDay);
-        }
-        plannedTotalDaily = plannedPerMeal * mealsPerDay;
-      } else if (pond.current_batch) {
-        // No history: use standard calculation with fallback system
-        const biomass = (pond.current_batch.current_population * avgWeight) / 1000; // kg
-        plannedTotalDaily = (biomass * feedingPercentage / 100) * 1000; // grams
-        plannedPerMeal = Math.round(plannedTotalDaily / mealsPerDay);
-      }
-
-      // Update pond with feeding summary
-      pond.current_batch.latest_feeding = {
-        feeding_date: today,
-        total_daily: totalDaily,
-        meals_completed: mealsCompleted,
-        meals_per_day: mealsPerDay,
-        planned_total_daily: plannedTotalDaily,
-        planned_per_meal: plannedPerMeal,
-        feeding_percentage: feedingPercentage
-      };
-    } catch (error) {
-      console.error('Error loading feeding summary:', error);
-    }
-  };
-
-  const loadBiomassData = async (pond: PondWithBatch) => {
-    if (!pond.current_batch) return;
-
-    try {
-      // Get latest biometry for weight calculation
-      const { data: biometry } = await supabase
-        .from('biometrics')
-        .select('average_weight')
-        .eq('pond_batch_id', pond.current_batch.id)
-        .order('measurement_date', { ascending: false })
-        .limit(1);
-
-      const avgWeight = biometry?.[0]?.average_weight || 1; // Default to 1g if no biometry
-      const biomass = (pond.current_batch.current_population * avgWeight) / 1000; // Convert to kg
-
-      // Update pond with biomass data
-      pond.current_batch.current_biomass = biomass;
-      pond.current_batch.average_weight = avgWeight;
-    } catch (error) {
-      console.error('Error loading biomass data:', error);
-    }
-  };
-
-  const loadFeedingHistory = async () => {
-    try {
-      setHistoryLoading(true);
-
-      // Load farms first
-      const { data: farmsData, error: farmsError } = await supabase
-        .from('farms')
-        .select('id')
-        .eq('user_id', user?.id);
-
-      if (farmsError) throw farmsError;
-
-      if (farmsData && farmsData.length > 0) {
-        const { data: historyData, error: historyError } = await supabase
-          .from('feeding_records')
-          .select(`
-            id,
-            feeding_date,
-            feeding_time,
-            actual_amount,
-            planned_amount,
-            notes,
-            pond_batch_id
-          `)
-          .order('feeding_date', { ascending: false })
-          .order('feeding_time', { ascending: false })
-          .limit(50);
-
-        if (historyError) throw historyError;
-
-        // Get pond and batch info for each record
-        const formattedHistory: FeedingRecord[] = [];
-        
-        if (historyData) {
-          for (const record of historyData) {
-            const { data: pondBatchData } = await supabase
-              .from('pond_batches')
-              .select(`
-                ponds!inner(name, farm_id),
-                batches!inner(name)
-              `)
-              .eq('id', record.pond_batch_id)
-              .eq('ponds.farm_id', farmsData[0].id)
-              .single();
-
-            if (pondBatchData) {
-              formattedHistory.push({
-                id: record.id,
-                feeding_date: record.feeding_date,
-                feeding_time: record.feeding_time,
-                actual_amount: record.actual_amount,
-                planned_amount: record.planned_amount,
-                notes: record.notes,
-                pond_name: pondBatchData.ponds.name,
-                batch_name: pondBatchData.batches.name,
-                pond_batch_id: record.pond_batch_id
-              });
-            }
-          }
-        }
-
-        setFeedingHistory(formattedHistory);
-      }
-    } catch (error) {
-      console.error('Error loading feeding history:', error);
-      toast({
-        title: "Erro",
-        description: "Erro ao carregar histórico de alimentação",
-        variant: "destructive"
-      });
-    } finally {
-      setHistoryLoading(false);
-    }
-  };
-
-  const loadAvailableFeeds = async () => {
-    try {
-      // Load farms first
-      const { data: farmsData, error: farmsError } = await supabase
-        .from('farms')
-        .select('id')
-        .eq('user_id', user?.id);
-
-      if (farmsError) throw farmsError;
-
-      if (farmsData && farmsData.length > 0) {
-        const feedsData = await getFeedItemsIncludingMixtures(farmsData[0].id);
-
-        const feeds: FeedType[] = feedsData.map(feed => ({
-          id: feed.id,
-          name: feed.name,
-          quantity: feed.quantity / 1000, // Convert to kg for display
-          unit_price: feed.unit_price
-        })) || [];
-
-        setAvailableFeeds(feeds);
-      }
-    } catch (error) {
-      console.error('Error loading available feeds:', error);
-    }
-  };
-
-  const handleOpenDialog = async (pond: PondWithBatch) => {
+  const handleOpenDialog = async (pond: OptimizedPondData) => {
     if (!pond.current_batch) return;
 
     setSelectedPond(pond);
     
-    // Calculate planned amount based on feeding rate and history
-    try {
-      // Get latest biometry for weight calculation
-      const { data: biometry } = await supabase
-        .from('biometrics')
-        .select('average_weight')
-        .eq('pond_batch_id', pond.current_batch.id)
-        .order('measurement_date', { ascending: false })
-        .limit(1);
-
-      // Get farm_id from pond to find feeding rates
-      const { data: pondData } = await supabase
-        .from('ponds')
-        .select('farm_id')
-        .eq('id', pond.id)
-        .single();
-
-      const avgWeight = biometry?.[0]?.average_weight || 1; // Default to 1g if no biometry
-
-      // Use fallback system for feeding rates
-      const feedingPercentage = await getFeedingRate(pond.current_batch.id, avgWeight, pondData?.farm_id || '');
-      const mealsPerDay = await getMealsPerDay(pond.current_batch.id, avgWeight, pondData?.farm_id || '');
-
-      // Try to get default feed type from farm template (if exists)
-      const { data: feedingRate } = await supabase
-        .from('feeding_rates')
-        .select('default_feed_type_id, default_feed_type_name')
-        .eq('farm_id', pondData?.farm_id)
-        .is('pond_batch_id', null)
-        .lte('weight_range_min', avgWeight)
-        .gte('weight_range_max', avgWeight)
-        .order('weight_range_min', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      // Get last feeding record to check for adjustments
-      const { data: lastFeeding } = await supabase
-        .from('feeding_records')
-        .select('actual_amount, consumption_evaluation, next_feeding_adjustment')
-        .eq('pond_batch_id', pond.current_batch.id)
-        .order('feeding_date', { ascending: false })
-        .order('feeding_time', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      let plannedAmount = 0;
-      
-      if (lastFeeding) {
-        if (lastFeeding.consumption_evaluation) {
-          // Has evaluation: apply adjustment over actual_amount
-          const adjustmentPercent = lastFeeding.next_feeding_adjustment || 0;
-          plannedAmount = Math.round(lastFeeding.actual_amount * (1 + adjustmentPercent / 100));
-        } else {
-          // No evaluation: maintain actual_amount
-          plannedAmount = lastFeeding.actual_amount;
-        }
-      } else if (pond.current_batch) {
-        // No history: use standard calculation with fallback system
-        const biomass = (pond.current_batch.current_population * avgWeight) / 1000; // kg
-        const dailyFeed = (biomass * feedingPercentage / 100) * 1000; // grams
-        plannedAmount = Math.round(dailyFeed / mealsPerDay);
-      }
-
-      // Set default feed type if available
-      let defaultFeedId = '';
-      if (feedingRate?.default_feed_type_id && availableFeeds.some(feed => feed.id === feedingRate.default_feed_type_id)) {
-        defaultFeedId = feedingRate.default_feed_type_id;
-      } else if (availableFeeds.length > 0) {
-        defaultFeedId = availableFeeds[0].id;
-      }
-
-      setSelectedFeedType(defaultFeedId);
-      setFeedingData({
-        pond_batch_id: pond.current_batch.id,
-        feeding_date: getCurrentDateForInput(),
-        feeding_time: format(new Date(), 'HH:mm'),
-        planned_amount: plannedAmount,
-        actual_amount: plannedAmount,
-        notes: '',
-        feed_type_id: defaultFeedId,
-        feed_type_name: availableFeeds.find(feed => feed.id === defaultFeedId)?.name || ''
-      });
-    } catch (error) {
-      console.error('Error calculating planned amount:', error);
-      const defaultFeedId = availableFeeds.length > 0 ? availableFeeds[0].id : '';
-      setSelectedFeedType(defaultFeedId);
-      setFeedingData({
-        pond_batch_id: pond.current_batch.id,
-        feeding_date: getCurrentDateForInput(),
-        feeding_time: format(new Date(), 'HH:mm'),
-        planned_amount: 0,
-        actual_amount: 0,
-        notes: '',
-        feed_type_id: defaultFeedId,
-        feed_type_name: availableFeeds.find(feed => feed.id === defaultFeedId)?.name || ''
-      });
-    }
+    const plannedAmount = pond.current_batch.latest_feeding.planned_per_meal;
+    const defaultFeedId = availableFeeds.length > 0 ? availableFeeds[0].id : '';
+    
+    setSelectedFeedType(defaultFeedId);
+    setFeedingData({
+      pond_batch_id: pond.current_batch.id,
+      feeding_date: getCurrentDateForInput(),
+      feeding_time: format(new Date(), 'HH:mm'),
+      planned_amount: plannedAmount,
+      actual_amount: plannedAmount,
+      notes: '',
+      feed_type_id: defaultFeedId,
+      feed_type_name: availableFeeds.find(feed => feed.id === defaultFeedId)?.name || ''
+    });
 
     setShowDialog(true);
   };
 
-  const handleOpenChartModal = async (pond: PondWithBatch) => {
+  const handleOpenChartModal = async (pond: OptimizedPondData) => {
     if (!pond.current_batch) return;
 
     try {
@@ -736,9 +220,8 @@ export default function AlimentacaoPage() {
       });
 
       setShowDialog(false);
-      loadActivePonds();
-      loadFeedingHistory();
-      loadAvailableFeeds(); // Reload feeds to update quantities
+      queryClient.invalidateQueries({ queryKey: ['alimentacao-optimized'] });
+      refetch();
 
     } catch (error) {
       console.error('Error saving feeding:', error);
@@ -752,34 +235,13 @@ export default function AlimentacaoPage() {
     }
   };
 
-  const handleEditFeeding = async (record: FeedingRecord) => {
+  const handleEditFeeding = async (record: FeedingHistoryRecord) => {
     setEditingRecord(record);
     setIsEditing(true);
     
     // Find the pond data for this record
-    const { data: pondBatchData } = await supabase
-      .from('pond_batches')
-      .select(`
-        ponds!inner(id, name, area),
-        batches!inner(name)
-      `)
-      .eq('id', record.pond_batch_id)
-      .single();
-
-    if (pondBatchData) {
-      const pondData: PondWithBatch = {
-        id: pondBatchData.ponds.id,
-        name: pondBatchData.ponds.name,
-        area: pondBatchData.ponds.area,
-        status: 'in_use',
-        current_batch: {
-          id: record.pond_batch_id,
-          batch_name: pondBatchData.batches.name,
-          stocking_date: '',
-          current_population: 0
-        }
-      };
-      
+    const pondData = ponds.find(p => p.current_batch?.id === record.pond_batch_id);
+    if (pondData) {
       setSelectedPond(pondData);
     }
 
@@ -852,8 +314,8 @@ export default function AlimentacaoPage() {
         description: "Registro excluído com sucesso"
       });
 
-      loadFeedingHistory();
-      loadAvailableFeeds();
+      queryClient.invalidateQueries({ queryKey: ['alimentacao-optimized'] });
+      refetch();
     } catch (error) {
       console.error('Error deleting feeding record:', error);
       toast({
@@ -969,8 +431,8 @@ export default function AlimentacaoPage() {
       setShowDialog(false);
       setIsEditing(false);
       setEditingRecord(null);
-      loadFeedingHistory();
-      loadAvailableFeeds();
+      queryClient.invalidateQueries({ queryKey: ['alimentacao-optimized'] });
+      refetch();
 
     } catch (error) {
       console.error('Error updating feeding:', error);
@@ -1012,11 +474,7 @@ export default function AlimentacaoPage() {
               <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
                 <h3 className="text-red-800 font-medium mb-2">Erro ao carregar página</h3>
                 <p className="text-red-600 mb-4">{error}</p>
-                <Button onClick={() => {
-                  setError(null);
-                  setLoading(true);
-                  loadActivePonds();
-                }}>
+                <Button onClick={() => refetch()}>
                   Tentar novamente
                 </Button>
               </div>
@@ -1207,7 +665,7 @@ export default function AlimentacaoPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {historyLoading ? (
+                  {loading ? (
                     <div className="flex items-center justify-center h-32">
                       <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
                     </div>

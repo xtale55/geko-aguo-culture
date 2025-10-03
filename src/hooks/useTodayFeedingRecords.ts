@@ -11,13 +11,26 @@ interface TodayFeedingRecord {
   consumption_evaluation?: string;
 }
 
+// Helper function to get today's date in local Brazilian time (UTC-3)
+const getTodayDateLocal = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 export function useTodayFeedingRecords(pondBatchId?: string) {
   return useQuery({
     queryKey: ['today-feeding-records', pondBatchId],
     queryFn: async () => {
-      if (!pondBatchId) return [];
+      if (!pondBatchId) {
+        console.log('⚠️ useTodayFeedingRecords - No pondBatchId');
+        return [];
+      }
 
-      const today = new Date().toISOString().split('T')[0];
+      const today = getTodayDateLocal();
+      console.log('📅 useTodayFeedingRecords - Today:', today, 'PondBatchId:', pondBatchId);
 
       const { data, error } = await supabase
         .from('feeding_records')
@@ -26,7 +39,13 @@ export function useTodayFeedingRecords(pondBatchId?: string) {
         .eq('feeding_date', today)
         .order('feeding_time', { ascending: false });
 
-      if (error) throw error;
+      console.log('📊 useTodayFeedingRecords - Result:', { count: data?.length, error });
+      
+      if (error) {
+        console.error('❌ useTodayFeedingRecords - Error:', error);
+        throw error;
+      }
+      
       return data || [];
     },
     enabled: !!pondBatchId,
@@ -37,9 +56,13 @@ export function useUnevaluatedFeedings(pondBatchId?: string) {
   return useQuery({
     queryKey: ['unevaluated-feedings', pondBatchId],
     queryFn: async () => {
-      if (!pondBatchId) return [];
+      if (!pondBatchId) {
+        console.log('⚠️ useUnevaluatedFeedings - No pondBatchId');
+        return [];
+      }
 
-      const today = new Date().toISOString().split('T')[0];
+      const today = getTodayDateLocal();
+      console.log('📅 useUnevaluatedFeedings - Today:', today, 'PondBatchId:', pondBatchId);
 
       const { data, error } = await supabase
         .from('feeding_records')
@@ -49,7 +72,13 @@ export function useUnevaluatedFeedings(pondBatchId?: string) {
         .is('consumption_evaluation', null)
         .order('feeding_time', { ascending: false });
 
-      if (error) throw error;
+      console.log('📊 useUnevaluatedFeedings - Result:', { count: data?.length, error, data });
+      
+      if (error) {
+        console.error('❌ useUnevaluatedFeedings - Error:', error);
+        throw error;
+      }
+      
       return data || [];
     },
     enabled: !!pondBatchId,

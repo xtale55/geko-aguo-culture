@@ -93,6 +93,13 @@ export function FeedingEvaluationModal({
   // Reset form when opening
   useEffect(() => {
     if (open) {
+      console.log('🔄 FeedingEvaluationModal opened - unevaluatedFeedings count:', unevaluatedFeedings.length);
+      console.log('📋 Unevaluated feedings:', unevaluatedFeedings);
+      
+      if (unevaluatedFeedings.length === 0) {
+        console.log('⚠️ Nenhuma alimentação não avaliada encontrada - usando modo manual');
+      }
+      
       setMode(unevaluatedFeedings.length > 0 ? 'registered' : 'manual');
       setSelectedFeedingId('');
       setManualDate(new Date().toISOString().split('T')[0]);

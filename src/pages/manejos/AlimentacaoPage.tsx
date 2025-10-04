@@ -586,6 +586,22 @@ export default function AlimentacaoPage() {
                       </CardHeader>
                       
                       <CardContent className="space-y-4">
+                        {/* Biometry & Biomass Info - Top Row */}
+                        <div className="grid grid-cols-2 gap-4 px-3 py-2 bg-slate-50/50 rounded-md border-b">
+                          <div className="text-xs text-muted-foreground">
+                            <span className="font-medium">Peso Médio:</span>{' '}
+                            {pond.current_batch?.average_weight 
+                              ? `${pond.current_batch.average_weight.toFixed(1)}g`
+                              : 'N/A'}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            <span className="font-medium">Biomassa:</span>{' '}
+                            {pond.current_batch?.current_biomass 
+                              ? `${(pond.current_batch.current_biomass / 1000).toFixed(1)} kg`
+                              : 'N/A'}
+                          </div>
+                        </div>
+
                         {/* Feeding Configuration Summary */}
                         {pond.current_batch?.latest_feeding && (
                           <div className="space-y-4">

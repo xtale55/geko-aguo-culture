@@ -362,38 +362,35 @@ export function FeedingEvaluationModal({
                   onChange={(e) => setManualDate(e.target.value)}
                 />
               </div>
-              <div className="space-y-2">
-                <Label>Horário *</Label>
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="manual-hour" className="text-xs text-muted-foreground">Hora</Label>
-                    <Select value={manualHour} onValueChange={setManualHour}>
-                      <SelectTrigger id="manual-hour">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="max-h-[200px]">
-                        {Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0')).map((hour) => (
-                          <SelectItem key={hour} value={hour}>
-                            {hour}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="manual-minute" className="text-xs text-muted-foreground">Minuto</Label>
-                    <Select value={manualMinute} onValueChange={setManualMinute}>
-                      <SelectTrigger id="manual-minute">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="00">00</SelectItem>
-                        <SelectItem value="15">15</SelectItem>
-                        <SelectItem value="30">30</SelectItem>
-                        <SelectItem value="45">45</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-2">
+                  <Label htmlFor="manual-hour" className="text-xs text-muted-foreground">Hora</Label>
+                  <Select value={manualHour} onValueChange={setManualHour}>
+                    <SelectTrigger id="manual-hour">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-[200px]">
+                      {Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0')).map((hour) => (
+                        <SelectItem key={hour} value={hour}>
+                          {hour}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="manual-minute" className="text-xs text-muted-foreground">Minuto</Label>
+                  <Select value={manualMinute} onValueChange={setManualMinute}>
+                    <SelectTrigger id="manual-minute">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="00">00</SelectItem>
+                      <SelectItem value="15">15</SelectItem>
+                      <SelectItem value="30">30</SelectItem>
+                      <SelectItem value="45">45</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
             </div>

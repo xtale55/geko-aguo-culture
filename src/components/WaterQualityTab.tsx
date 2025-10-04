@@ -49,8 +49,18 @@ export function WaterQualityTab() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedPond, setSelectedPond] = useState<string>('');
   const [recordToDelete, setRecordToDelete] = useState<WaterQualityRecord | null>(null);
-  const [measurementHour, setMeasurementHour] = useState('06');
-  const [measurementMinute, setMeasurementMinute] = useState('00');
+  
+  const getCurrentDateTime = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  };
+  
+  const [measurementDateTime, setMeasurementDateTime] = useState(getCurrentDateTime());
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -134,11 +144,13 @@ export function WaterQualityTab() {
     setSubmitting(true);
 
     try {
-      const measurementTime = `${measurementHour}:${measurementMinute}:00`;
+      // Extrair data e hora do datetime-local
+      const [datePart, timePart] = measurementDateTime.split('T');
+      const measurementTime = `${timePart}:00`;
       
       const record = {
         pond_id: selectedPond,
-        measurement_date: formData.get('measurement_date') as string,
+        measurement_date: datePart,
         measurement_time: measurementTime,
         oxygen_level: formData.get('oxygen_level') ? parseFloat(formData.get('oxygen_level') as string) : null,
         temperature: formData.get('temperature') ? parseFloat(formData.get('temperature') as string) : null,
@@ -163,6 +175,7 @@ export function WaterQualityTab() {
 
       setShowDialog(false);
       setSelectedPond('');
+      setMeasurementDateTime(getCurrentDateTime());
       loadData();
       loadWaterQualityHistory();
     } catch (error: any) {
@@ -368,45 +381,15 @@ export function WaterQualityTab() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="measurement_date">Data da Medição</Label>
+                  <Label htmlFor="measurement_datetime">Data e Hora da Medição</Label>
                   <Input
-                    id="measurement_date"
-                    name="measurement_date"
-                    type="date"
-                    defaultValue={getCurrentDateForInput()}
+                    id="measurement_datetime"
+                    name="measurement_datetime"
+                    type="datetime-local"
+                    value={measurementDateTime}
+                    onChange={(e) => setMeasurementDateTime(e.target.value)}
                     required
                   />
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="measurement-hour" className="text-xs text-muted-foreground">Hora</Label>
-                    <Select value={measurementHour} onValueChange={setMeasurementHour}>
-                      <SelectTrigger id="measurement-hour">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="max-h-[200px]">
-                        {Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0')).map((hour) => (
-                          <SelectItem key={hour} value={hour}>
-                            {hour}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="measurement-minute" className="text-xs text-muted-foreground">Minuto</Label>
-                    <Select value={measurementMinute} onValueChange={setMeasurementMinute}>
-                      <SelectTrigger id="measurement-minute">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="00">00</SelectItem>
-                        <SelectItem value="15">15</SelectItem>
-                        <SelectItem value="30">30</SelectItem>
-                        <SelectItem value="45">45</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
                 </div>
               </div>
 

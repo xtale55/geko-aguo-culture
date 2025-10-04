@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
-import { TrendingUp, Download, Calendar, DollarSign, Scale, Activity, BarChart3, PieChart, LineChart, FileText } from "lucide-react";
+import { TrendingUp, Download, Calendar, DollarSign, Scale, Activity, BarChart3, PieChart, LineChart, FileText, History } from "lucide-react";
 import { Shrimp } from '@phosphor-icons/react';
 import { useToast } from "@/hooks/use-toast";
 import { FeedingHistoryPanel } from "@/components/FeedingHistoryPanel";
@@ -16,6 +16,7 @@ import { PerformanceHistoryTab } from "@/components/PerformanceHistoryTab";
 import { QuantityUtils } from "@/lib/quantityUtils";
 import { DashboardSkeleton } from "@/components/DashboardSkeleton";
 import { LoadingScreen } from "@/components/LoadingScreen";
+import { FeedingEvaluationHistoryDialog } from "@/components/FeedingEvaluationHistoryDialog";
 interface ProductionReport {
   totalCycles: number;
   activeCycles: number;
@@ -92,6 +93,12 @@ export default function Reports() {
   const [farmIds, setFarmIds] = useState<string[]>([]);
   const [materialsConsumed, setMaterialsConsumed] = useState<number>(0);
   const [priceTable, setPriceTable] = useState<number>(19); // Default table price for 10g shrimp
+  const [selectedPondForHistory, setSelectedPondForHistory] = useState<{
+    pondBatchId: string;
+    pondName: string;
+    batchName: string;
+    stockingDate: string;
+  } | null>(null);
   const {
     user
   } = useAuth();
@@ -489,16 +496,34 @@ export default function Reports() {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {pondCards.map(pond => <Card key={pond.pond_batch_id} className="hover:shadow-lg transition-shadow cursor-pointer border-l-4 border-l-primary" onClick={() => navigate(`/pond-history/${pond.pond_batch_id}`)}>
+                  {pondCards.map(pond => <Card key={pond.pond_batch_id} className="hover:shadow-lg transition-shadow border-l-4 border-l-primary">
                       <CardHeader className="pb-3">
                         <div className="flex justify-between items-start">
-                          <div>
+                          <div className="flex-1 cursor-pointer" onClick={() => navigate(`/pond-history/${pond.pond_batch_id}`)}>
                             <CardTitle className="text-lg">{pond.pond_name}</CardTitle>
                             <p className="text-sm text-muted-foreground">{pond.batch_name}</p>
                           </div>
-                          <Badge variant={pond.performance_score === 'excellent' ? 'default' : pond.performance_score === 'good' ? 'secondary' : pond.performance_score === 'average' ? 'outline' : 'destructive'}>
-                            DOC {pond.doc}
-                          </Badge>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedPondForHistory({
+                                  pondBatchId: pond.pond_batch_id,
+                                  pondName: pond.pond_name,
+                                  batchName: pond.batch_name,
+                                  stockingDate: pond.stocking_date,
+                                });
+                              }}
+                              title="Ver histórico de avaliações"
+                            >
+                              <History className="h-4 w-4" />
+                            </Button>
+                            <Badge variant={pond.performance_score === 'excellent' ? 'default' : pond.performance_score === 'good' ? 'secondary' : pond.performance_score === 'average' ? 'outline' : 'destructive'}>
+                              DOC {pond.doc}
+                            </Badge>
+                          </div>
                         </div>
                       </CardHeader>
                       <CardContent className="space-y-3">
@@ -584,12 +609,21 @@ export default function Reports() {
                           </Badge>
                         </div>
 
-                        <div className="text-xs text-muted-foreground text-center pt-2">
-                          Clique para ver histórico completo →
+                        <div className="text-xs text-muted-foreground text-center pt-2" onClick={() => navigate(`/pond-history/${pond.pond_batch_id}`)}>
+                          Clique no nome para ver histórico completo →
                         </div>
                       </CardContent>
                     </Card>)}
                 </div>
+
+                {/* History Dialog */}
+                {selectedPondForHistory && (
+                  <FeedingEvaluationHistoryDialog
+                    open={!!selectedPondForHistory}
+                    onOpenChange={(open) => !open && setSelectedPondForHistory(null)}
+                    {...selectedPondForHistory}
+                  />
+                )}
                 
                 {pondCards.length === 0 && <div className="text-center py-8">
                     <Shrimp className="w-12 h-12 text-muted-foreground mx-auto mb-4" />

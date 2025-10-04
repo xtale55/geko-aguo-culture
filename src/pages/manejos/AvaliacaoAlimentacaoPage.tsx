@@ -16,7 +16,7 @@ export default function AvaliacaoAlimentacaoPage() {
   const farm = farms?.[0];
   const { data: activePonds, isLoading } = useActivePondBatches(farm?.id);
 
-  // Get biometry data for all active ponds
+  // Get biometry data and stocking dates for all active ponds
   const { data: biometryData } = useQuery({
     queryKey: ['biometry-for-evaluation', farm?.id],
     queryFn: async () => {
@@ -115,6 +115,7 @@ export default function AvaliacaoAlimentacaoPage() {
                   pondBatchId={pond.pond_batch_id}
                   pondName={pond.pond_name}
                   batchName={pond.batch_name}
+                  stockingDate={pond.stocking_date}
                   currentPopulation={pond.current_population}
                   latestWeight={latestWeight}
                   currentBiomass={currentBiomass}
@@ -146,6 +147,7 @@ function PondEvaluationCardWithData({
   pondBatchId,
   pondName,
   batchName,
+  stockingDate,
   currentPopulation,
   latestWeight,
   currentBiomass,
@@ -153,6 +155,7 @@ function PondEvaluationCardWithData({
   pondBatchId: string;
   pondName: string;
   batchName: string;
+  stockingDate: string;
   currentPopulation: number;
   latestWeight?: number;
   currentBiomass?: number;
@@ -166,6 +169,7 @@ function PondEvaluationCardWithData({
       pondBatchId={pondBatchId}
       pondName={pondName}
       batchName={batchName}
+      stockingDate={stockingDate}
       currentPopulation={currentPopulation}
       latestWeight={latestWeight}
       currentBiomass={currentBiomass}

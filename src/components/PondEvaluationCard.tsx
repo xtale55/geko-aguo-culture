@@ -2,13 +2,15 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ClipboardCheck, Users, Weight, TrendingUp, Clock, CheckCircle, AlertTriangle } from 'lucide-react';
+import { ClipboardCheck, Users, Weight, TrendingUp, Clock, History } from 'lucide-react';
 import { FeedingEvaluationModal } from '@/components/FeedingEvaluationModal';
+import { FeedingEvaluationHistoryDialog } from '@/components/FeedingEvaluationHistoryDialog';
 
 interface PondEvaluationCardProps {
   pondBatchId: string;
   pondName: string;
   batchName: string;
+  stockingDate: string;
   currentPopulation: number;
   latestWeight?: number;
   currentBiomass?: number;
@@ -27,6 +29,7 @@ export function PondEvaluationCard({
   pondBatchId,
   pondName,
   batchName,
+  stockingDate,
   currentPopulation,
   latestWeight,
   currentBiomass,
@@ -36,6 +39,7 @@ export function PondEvaluationCard({
   unevaluatedFeedings = [],
 }: PondEvaluationCardProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
 
   const hasPendingEvaluations = unevaluatedFeedings.length > 0;
 
@@ -48,11 +52,6 @@ export function PondEvaluationCard({
               <CardTitle className="text-lg">{pondName}</CardTitle>
               <p className="text-sm text-muted-foreground mt-1">{batchName}</p>
             </div>
-            {hasPendingEvaluations && (
-              <Badge variant="destructive" className="ml-2">
-                {unevaluatedFeedings.length} pendente{unevaluatedFeedings.length > 1 ? 's' : ''}
-              </Badge>
-            )}
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -94,33 +93,26 @@ export function PondEvaluationCard({
             )}
           </div>
 
-          {/* Status Indicators */}
-          {(hasPendingEvaluations || lastEvaluationTime) && (
-            <div className="space-y-2 pt-2 border-t">
-              {hasPendingEvaluations && (
-                <div className="flex items-center gap-2 text-sm text-orange-600">
-                  <AlertTriangle className="h-4 w-4" />
-                  <span>Alimentações aguardando avaliação</span>
-                </div>
-              )}
-              {lastEvaluationTime && (
-                <div className="flex items-center gap-2 text-sm text-green-600">
-                  <CheckCircle className="h-4 w-4" />
-                  <span>Última avaliação: {lastEvaluationTime}</span>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Action Button */}
-          <Button 
-            onClick={() => setIsModalOpen(true)} 
-            className="w-full"
-            variant={hasPendingEvaluations ? "default" : "outline"}
-          >
-            <ClipboardCheck className="mr-2 h-4 w-4" />
-            Avaliar Alimentação
-          </Button>
+          {/* Action Buttons */}
+          <div className="flex gap-2">
+            <Button 
+              onClick={() => setIsModalOpen(true)} 
+              className="flex-1"
+              variant="outline"
+            >
+              <ClipboardCheck className="mr-2 h-4 w-4" />
+              Avaliar Alimentação
+            </Button>
+            
+            <Button 
+              onClick={() => setShowHistory(true)}
+              variant="ghost"
+              size="icon"
+              title="Ver histórico de avaliações"
+            >
+              <History className="h-4 w-4" />
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
@@ -135,6 +127,16 @@ export function PondEvaluationCard({
         onEvaluationComplete={() => {
           setIsModalOpen(false);
         }}
+      />
+
+      {/* History Dialog */}
+      <FeedingEvaluationHistoryDialog
+        open={showHistory}
+        onOpenChange={setShowHistory}
+        pondBatchId={pondBatchId}
+        pondName={pondName}
+        batchName={batchName}
+        stockingDate={stockingDate}
       />
     </>
   );

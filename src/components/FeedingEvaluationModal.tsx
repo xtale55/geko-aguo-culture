@@ -74,12 +74,12 @@ export function FeedingEvaluationModal({
   unevaluatedFeedings = [],
   onEvaluationComplete 
 }: FeedingEvaluationModalProps) {
-  const [mode, setMode] = useState<'registered' | 'manual'>(
-    unevaluatedFeedings.length > 0 ? 'registered' : 'manual'
-  );
+  const [mode, setMode] = useState<'registered' | 'manual'>('manual');
   const [selectedFeedingId, setSelectedFeedingId] = useState<string>('');
   const [manualDate, setManualDate] = useState<string>(new Date().toISOString().split('T')[0]);
-  const [manualTime, setManualTime] = useState<string>('');
+  const [manualHour, setManualHour] = useState<string>('06');
+  const [manualMinute, setManualMinute] = useState<string>('00');
+  const manualTime = `${manualHour}:${manualMinute}`;
   const [amountOffered, setAmountOffered] = useState<string>('');
   const [selectedConsumption, setSelectedConsumption] = useState<string>('');
   const [leftoverPercentage, setLeftoverPercentage] = useState<number>(0);
@@ -100,10 +100,11 @@ export function FeedingEvaluationModal({
         console.log('⚠️ Nenhuma alimentação não avaliada encontrada - usando modo manual');
       }
       
-      setMode(unevaluatedFeedings.length > 0 ? 'registered' : 'manual');
+      setMode('manual');
       setSelectedFeedingId('');
       setManualDate(new Date().toISOString().split('T')[0]);
-      setManualTime('');
+      setManualHour('06');
+      setManualMinute('00');
       setAmountOffered('');
       setSelectedConsumption('');
       setLeftoverPercentage(0);
@@ -362,13 +363,38 @@ export function FeedingEvaluationModal({
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="manual-time">Horário *</Label>
-                <Input
-                  id="manual-time"
-                  type="time"
-                  value={manualTime}
-                  onChange={(e) => setManualTime(e.target.value)}
-                />
+                <Label>Horário *</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="manual-hour" className="text-xs text-muted-foreground">Hora</Label>
+                    <Select value={manualHour} onValueChange={setManualHour}>
+                      <SelectTrigger id="manual-hour">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-[200px]">
+                        {Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0')).map((hour) => (
+                          <SelectItem key={hour} value={hour}>
+                            {hour}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="manual-minute" className="text-xs text-muted-foreground">Minuto</Label>
+                    <Select value={manualMinute} onValueChange={setManualMinute}>
+                      <SelectTrigger id="manual-minute">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="00">00</SelectItem>
+                        <SelectItem value="15">15</SelectItem>
+                        <SelectItem value="30">30</SelectItem>
+                        <SelectItem value="45">45</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
               </div>
             </div>
 

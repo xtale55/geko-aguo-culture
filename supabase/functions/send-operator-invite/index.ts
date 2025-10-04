@@ -16,7 +16,9 @@ serve(async (req) => {
   try {
     const { email, farmName, token, permissions } = await req.json();
     
-    const acceptUrl = `${Deno.env.get('SUPABASE_URL').replace('.supabase.co', '')}/accept-invite/${token}`;
+    // URL do frontend para aceitar o convite
+    const siteUrl = Deno.env.get('SITE_URL') || 'https://c4c0bdca-d942-4109-bdb1-8569081be53d.lovableproject.com';
+    const acceptUrl = `${siteUrl}/accept-invite/${token}`;
     
     const permissionsList = Object.entries(permissions)
       .filter(([_, value]) => value)
@@ -30,7 +32,7 @@ serve(async (req) => {
       })
       .join(', ');
 
-    await resend.emails.send({
+    const result = await resend.emails.send({
       from: 'AquaHub <onboarding@resend.dev>',
       to: [email],
       subject: `Convite para ser Operador - ${farmName}`,
@@ -52,7 +54,9 @@ serve(async (req) => {
       `
     });
 
+    console.log('Resend response:', result);
     console.log('Convite enviado para:', email);
+    console.log('URL do convite:', acceptUrl);
 
     return new Response(JSON.stringify({ success: true }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }

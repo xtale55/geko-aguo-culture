@@ -23,17 +23,36 @@ const Index = () => {
   // Configuração automática para operadores no primeiro login
   useEffect(() => {
     const setupOperatorFirstLogin = async () => {
-      if (!user || !profile || profile.user_type !== 'operator') return;
+      // ✅ CORREÇÃO: Verificar loading states
+      if (loading || profileLoading) {
+        console.log('⏳ Aguardando carregamento completo...');
+        return;
+      }
 
-      // Verificar se já tem organização vinculada
+      if (!user || !profile || profile.user_type !== 'operator') {
+        console.log('❌ Não é operador ou ainda carregando');
+        return;
+      }
+
+      console.log('🔍 Verificando vinculação do operador...');
+
+      // Verificar AMBAS as tabelas
       const { data: orgMember } = await supabase
         .from('organization_members')
         .select('id')
         .eq('user_id', user.id)
         .maybeSingle();
 
-      // Se já tem, não precisa fazer nada
-      if (orgMember) return;
+      const { data: permissions } = await supabase
+        .from('operator_permissions')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (orgMember && permissions) {
+        console.log('✅ Operador já configurado');
+        return;
+      }
 
       console.log('🔧 Operador sem fazenda - configurando primeiro acesso...');
 
@@ -55,53 +74,61 @@ const Index = () => {
         return;
       }
 
-      // Criar vínculo com a fazenda
-      const { error: memberError } = await supabase
-        .from('organization_members')
-        .insert({
-          user_id: user.id,
-          farm_id: invitation.farm_id,
-          role: 'operador',
-          status: 'active',
-          invited_by: invitation.invited_by
-        });
+      console.log('📧 Convite encontrado:', invitation.farm_id);
 
-      if (memberError) {
-        console.error('❌ Erro ao criar membro:', memberError);
-        toast({
-          title: 'Erro',
-          description: 'Erro ao vincular à fazenda.',
-          variant: 'destructive'
-        });
-        return;
+      // Criar vínculo com a fazenda (se não existir)
+      if (!orgMember) {
+        const { error: memberError } = await supabase
+          .from('organization_members')
+          .insert({
+            user_id: user.id,
+            farm_id: invitation.farm_id,
+            role: 'operador',
+            status: 'active',
+            invited_by: invitation.invited_by
+          });
+
+        if (memberError) {
+          console.error('❌ Erro ao criar membro:', memberError);
+          toast({
+            title: 'Erro',
+            description: 'Erro ao vincular à fazenda.',
+            variant: 'destructive'
+          });
+          return;
+        }
+        console.log('✅ Membro criado');
       }
 
-      // Criar permissões
-      const permissions = invitation.permissions as any;
-      const { error: permError } = await supabase
-        .from('operator_permissions')
-        .insert({
-          user_id: user.id,
-          farm_id: invitation.farm_id,
-          can_access_manejos: permissions?.manejos || false,
-          can_access_despesca: permissions?.despesca || false,
-          can_access_estoque: permissions?.estoque || false
-        });
+      // Criar permissões (se não existir)
+      if (!permissions) {
+        const perms = invitation.permissions as any;
+        const { error: permError } = await supabase
+          .from('operator_permissions')
+          .insert({
+            user_id: user.id,
+            farm_id: invitation.farm_id,
+            can_access_manejos: perms?.manejos || false,
+            can_access_despesca: perms?.despesca || false,
+            can_access_estoque: perms?.estoque || false
+          });
 
-      if (permError) {
-        console.error('❌ Erro ao criar permissões:', permError);
-        toast({
-          title: 'Erro',
-          description: 'Erro ao configurar permissões.',
-          variant: 'destructive'
-        });
-        return;
+        if (permError) {
+          console.error('❌ Erro ao criar permissões:', permError);
+          toast({
+            title: 'Erro',
+            description: 'Erro ao configurar permissões.',
+            variant: 'destructive'
+          });
+          return;
+        }
+        console.log('✅ Permissões criadas');
       }
 
-      // Marcar convite como aceito
+      // Marcar convite como aceito (status correto)
       await supabase
         .from('invitations')
-        .update({ status: 'accepted' })
+        .update({ status: 'accepted' as const })
         .eq('email', user.email)
         .eq('farm_id', invitation.farm_id);
 
@@ -117,7 +144,7 @@ const Index = () => {
     };
 
     setupOperatorFirstLogin();
-  }, [user, profile, toast]);
+  }, [user, profile, loading, profileLoading, toast]);
 
   if (loading || profileLoading) {
     return <LoadingScreen />;

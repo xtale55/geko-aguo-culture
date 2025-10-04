@@ -2,12 +2,12 @@ import { useNavigate } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { useOperatorPermissions } from '@/hooks/useOperatorPermissions';
-import { Shrimp, Truck, Barn } from '@phosphor-icons/react';
+import { useOperatorFarm } from '@/contexts/OperatorFarmContext';
+import { Shrimp, Truck, Barn, Warning } from '@phosphor-icons/react';
 
 export default function OperatorDashboard() {
   const navigate = useNavigate();
-  const { data: permissions } = useOperatorPermissions();
+  const { farmId, farmName, hasAccess } = useOperatorFarm();
 
   const quickActions = [
     {
@@ -15,21 +15,21 @@ export default function OperatorDashboard() {
       description: 'Registrar alimentação, biometria e mortalidade',
       icon: Shrimp,
       path: '/manejos',
-      enabled: permissions?.can_access_manejos
+      enabled: hasAccess('manejos')
     },
     {
       title: 'Despesca',
       description: 'Registrar despescas parciais e totais',
       icon: Truck,
       path: '/despesca',
-      enabled: permissions?.can_access_despesca
+      enabled: hasAccess('despesca')
     },
     {
       title: 'Estoque',
       description: 'Gerenciar estoque de ração e insumos',
       icon: Barn,
       path: '/inventory',
-      enabled: permissions?.can_access_estoque
+      enabled: hasAccess('estoque')
     }
   ];
 
@@ -38,8 +38,26 @@ export default function OperatorDashboard() {
       <div className="p-6 space-y-6">
         <div>
           <h1 className="text-3xl font-bold">Dashboard do Operador</h1>
-          <p className="text-muted-foreground">Acesso rápido às suas funções</p>
+          {farmName ? (
+            <p className="text-muted-foreground">Fazenda: <span className="font-semibold">{farmName}</span></p>
+          ) : (
+            <p className="text-muted-foreground">Acesso rápido às suas funções</p>
+          )}
         </div>
+
+        {!farmId && (
+          <Card className="border-warning">
+            <CardContent className="p-6 flex items-start gap-3">
+              <Warning className="w-6 h-6 text-warning flex-shrink-0 mt-1" />
+              <div>
+                <h3 className="font-semibold text-warning mb-1">Fazenda não vinculada</h3>
+                <p className="text-sm text-muted-foreground">
+                  Você ainda não está vinculado a nenhuma fazenda. Entre em contato com o administrador para receber um convite.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <div className="grid gap-4 md:grid-cols-3">
           {quickActions.filter(action => action.enabled).map((action) => (

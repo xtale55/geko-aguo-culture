@@ -19,7 +19,6 @@ import { format } from 'date-fns';
 import { getCurrentDateForInput, formatDateForDisplay } from '@/lib/utils';
 import { QuantityUtils } from '@/lib/quantityUtils';
 import { FeedingChartModal } from '@/components/FeedingChartModal';
-import { FeedingEvaluationNotifications } from '@/components/FeedingEvaluationNotifications';
 import { useAlimentacaoOptimized, OptimizedPondData, FeedingHistoryRecord } from '@/hooks/useAlimentacaoOptimized';
 import { queryClient } from '@/lib/queryClient';
 
@@ -531,17 +530,6 @@ export default function AlimentacaoPage() {
               </p>
             </div>
           </div>
-
-          {/* Feeding Evaluation Notifications */}
-          {farmId ? (
-            <div>
-              <FeedingEvaluationNotifications farmId={farmId} />
-            </div>
-          ) : (
-            <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <p className="text-yellow-800">Aguardando dados da fazenda...</p>
-            </div>
-          )}
 
           {/* Content */}
           <Tabs defaultValue="registro" className="space-y-6">

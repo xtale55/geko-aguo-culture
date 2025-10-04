@@ -154,12 +154,12 @@ export function AppSidebar() {
             <SidebarMenu>
               {administrativeItems.map(item => (
                 <SidebarMenuItem key={item.path}>
-                  <SidebarMenuButton asChild isActive={isActive(item.path)}>
-                    <button onClick={() => navigate(item.path)} className={cn("w-full min-w-0 flex items-center justify-start gap-2 px-3 py-2 rounded-md text-sm transition-colors", isActive(item.path) ? "bg-primary text-primary-foreground" : "hover:bg-muted")}>
-                      <item.icon className="w-4 h-4 shrink-0" />
-                      <span className="flex-1 truncate text-left leading-tight">{item.label}</span>
-                    </button>
-                  </SidebarMenuButton>
+                <SidebarMenuButton asChild isActive={isActive(item.path)}>
+                  <button onClick={() => navigate(item.path)} className={cn("w-full min-w-0 flex items-center justify-start gap-2 px-3 py-2 rounded-md text-sm transition-colors", isActive(item.path) ? "bg-primary text-primary-foreground" : "hover:bg-muted")}>
+                    <item.icon className={item.path === '/farm' ? "w-5 h-5 shrink-0" : "w-4 h-4 shrink-0"} />
+                    <span className="flex-1 truncate text-left leading-tight">{item.label}</span>
+                  </button>
+                </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>

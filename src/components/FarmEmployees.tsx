@@ -20,6 +20,24 @@ import { z } from "zod";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
+// Helper function to generate readable invite tokens
+const generateReadableToken = (employeeName: string, farmName: string): string => {
+  const normalize = (str: string) => {
+    return str
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '') // Remove acentos
+      .replace(/[^a-z0-9]/g, '') // Remove caracteres especiais
+      .trim();
+  };
+  
+  const nameSlug = normalize(employeeName);
+  const farmSlug = normalize(farmName);
+  const randomCode = Math.floor(1000 + Math.random() * 9000); // 1000-9999
+  
+  return `${nameSlug}-${farmSlug}-${randomCode}`;
+};
+
 const employeeSchema = z.object({
   name: z.string().min(1, "Nome é obrigatório"),
   role: z.enum(["Operador", "Técnico"], { required_error: "Tipo de funcionário é obrigatório" }),
@@ -128,8 +146,18 @@ export function FarmEmployees({ farmId }: FarmEmployeesProps) {
 
       // Se for Operador, criar convite
       if (employeeData.role === "Operador" && employeeData.email && employeeData.permissions) {
-        // Gerar token único
-        const token = crypto.randomUUID();
+        // Buscar nome da fazenda para gerar token legível
+        const { data: farmData } = await supabase
+          .from('farms')
+          .select('name')
+          .eq('id', farmId)
+          .single();
+
+        // Gerar token legível
+        const token = generateReadableToken(
+          employeeData.name, 
+          farmData?.name || 'fazenda'
+        );
 
         // Criar convite
         const { error: inviteError } = await supabase

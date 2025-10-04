@@ -128,13 +128,6 @@ export function FarmEmployees({ farmId }: FarmEmployeesProps) {
       if (employeeData.role === "Operador" && employeeData.email && employeeData.permissions) {
         // Gerar token único
         const token = crypto.randomUUID();
-        
-        // Buscar nome da fazenda
-        const { data: farm } = await supabase
-          .from('farms')
-          .select('name')
-          .eq('id', farmId)
-          .single();
 
         // Criar convite
         const { error: inviteError } = await supabase
@@ -151,14 +144,13 @@ export function FarmEmployees({ farmId }: FarmEmployeesProps) {
 
         if (inviteError) throw inviteError;
 
-        // Enviar email via Edge Function
-        await supabase.functions.invoke('send-operator-invite', {
-          body: {
-            email: employeeData.email,
-            farmName: farm?.name || 'Fazenda',
-            token,
-            permissions: employeeData.permissions
-          }
+        // Copiar link para clipboard
+        const inviteUrl = `${window.location.origin}/accept-invite/${token}`;
+        await navigator.clipboard.writeText(inviteUrl);
+        
+        toast({
+          title: "Link de convite copiado!",
+          description: `Envie este link para ${employeeData.email} aceitar o convite.`,
         });
       }
 

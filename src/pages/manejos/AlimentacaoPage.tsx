@@ -583,9 +583,17 @@ export default function AlimentacaoPage() {
                             {pond.current_batch?.batch_name}
                           </Badge>
                         </div>
-                        <div className="text-sm text-muted-foreground space-y-1">
-                          <div>População: {pond.current_batch?.current_population?.toLocaleString()} camarões</div>
-                          <div>Biomassa: {pond.current_batch?.current_biomass?.toFixed(1) || '0.0'} kg</div>
+                        <div className="grid grid-cols-2 gap-4 text-sm text-muted-foreground">
+                          <div className="space-y-1">
+                            <div>População: {pond.current_batch?.current_population?.toLocaleString()} camarões</div>
+                            <div>Biomassa: {pond.current_batch?.current_biomass?.toFixed(1) || '0.0'} kg</div>
+                          </div>
+                          {pond.current_batch?.latest_feeding && (
+                            <div>
+                              <div>Taxa de alimentação:</div>
+                              <div className="font-semibold text-base">{pond.current_batch.latest_feeding.feeding_percentage.toFixed(1)}%</div>
+                            </div>
+                          )}
                         </div>
                       </CardHeader>
                       
@@ -593,18 +601,14 @@ export default function AlimentacaoPage() {
                         {/* Feeding Configuration Summary */}
                         {pond.current_batch?.latest_feeding && (
                           <div className="space-y-3">
-                            <div className="bg-slate-50 rounded-lg p-3 space-y-2">
-                              <div className="flex justify-between text-sm">
-                                <span className="text-muted-foreground">Taxa de alimentação:</span>
-                                <span className="font-medium">{pond.current_batch.latest_feeding.feeding_percentage.toFixed(1)}%</span>
+                            <div className="bg-slate-50 rounded-lg p-4 space-y-3">
+                              <div className="flex justify-between items-center">
+                                <span className="text-sm text-muted-foreground">Por refeição (planejado):</span>
+                                <span className="text-lg font-bold">{(pond.current_batch.latest_feeding.planned_per_meal / 1000).toFixed(1)} kg</span>
                               </div>
-                              <div className="flex justify-between text-sm">
-                                <span className="text-muted-foreground">Por refeição (planejado):</span>
-                                <span className="font-medium">{(pond.current_batch.latest_feeding.planned_per_meal / 1000).toFixed(1)} kg</span>
-                              </div>
-                              <div className="flex justify-between text-sm">
-                                <span className="text-muted-foreground">Total diário (planejado):</span>
-                                <span className="font-medium">{(pond.current_batch.latest_feeding.planned_total_daily / 1000).toFixed(1)} kg</span>
+                              <div className="flex justify-between items-center">
+                                <span className="text-sm text-muted-foreground">Total diário (planejado):</span>
+                                <span className="text-lg font-bold">{(pond.current_batch.latest_feeding.planned_total_daily / 1000).toFixed(1)} kg</span>
                               </div>
                             </div>
                             

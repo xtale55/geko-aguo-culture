@@ -2,13 +2,15 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ClipboardCheck, Users, Weight, TrendingUp, Clock, CheckCircle, AlertTriangle } from 'lucide-react';
+import { ClipboardCheck, Users, Weight, TrendingUp, Clock, CheckCircle, AlertTriangle, History } from 'lucide-react';
 import { FeedingEvaluationModal } from '@/components/FeedingEvaluationModal';
+import { FeedingEvaluationHistoryDialog } from '@/components/FeedingEvaluationHistoryDialog';
 
 interface PondEvaluationCardProps {
   pondBatchId: string;
   pondName: string;
   batchName: string;
+  stockingDate: string;
   currentPopulation: number;
   latestWeight?: number;
   currentBiomass?: number;
@@ -27,6 +29,7 @@ export function PondEvaluationCard({
   pondBatchId,
   pondName,
   batchName,
+  stockingDate,
   currentPopulation,
   latestWeight,
   currentBiomass,
@@ -36,6 +39,7 @@ export function PondEvaluationCard({
   unevaluatedFeedings = [],
 }: PondEvaluationCardProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
 
   const hasPendingEvaluations = unevaluatedFeedings.length > 0;
 
@@ -112,15 +116,26 @@ export function PondEvaluationCard({
             </div>
           )}
 
-          {/* Action Button */}
-          <Button 
-            onClick={() => setIsModalOpen(true)} 
-            className="w-full"
-            variant={hasPendingEvaluations ? "default" : "outline"}
-          >
-            <ClipboardCheck className="mr-2 h-4 w-4" />
-            Avaliar Alimentação
-          </Button>
+          {/* Action Buttons */}
+          <div className="flex gap-2">
+            <Button 
+              onClick={() => setIsModalOpen(true)} 
+              className="flex-1"
+              variant={hasPendingEvaluations ? "default" : "outline"}
+            >
+              <ClipboardCheck className="mr-2 h-4 w-4" />
+              Avaliar Alimentação
+            </Button>
+            
+            <Button 
+              onClick={() => setShowHistory(true)}
+              variant="ghost"
+              size="icon"
+              title="Ver histórico de avaliações"
+            >
+              <History className="h-4 w-4" />
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
@@ -135,6 +150,16 @@ export function PondEvaluationCard({
         onEvaluationComplete={() => {
           setIsModalOpen(false);
         }}
+      />
+
+      {/* History Dialog */}
+      <FeedingEvaluationHistoryDialog
+        open={showHistory}
+        onOpenChange={setShowHistory}
+        pondBatchId={pondBatchId}
+        pondName={pondName}
+        batchName={batchName}
+        stockingDate={stockingDate}
       />
     </>
   );

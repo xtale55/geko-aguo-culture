@@ -1,10 +1,13 @@
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Shrimp, SignOut, House, Waves, ForkKnife, Barn, ChartBar, CurrencyDollar, Truck, Farm } from '@phosphor-icons/react';
 import { useAuth } from '@/hooks/useAuth';
+import { useUserProfile } from '@/hooks/useUserProfile';
+import { useOperatorPermissions } from '@/hooks/useOperatorPermissions';
 import { Button } from '@/components/ui/button';
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter } from '@/components/ui/sidebar';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
+import { useMemo } from 'react';
 
 // Componente customizado para o ícone de povoamento
 const DoubleShrimpIcon = ({ className }: { className?: string }) => (
@@ -73,17 +76,36 @@ const administrativeItems = [
   }
 ];
 export function AppSidebar() {
-  const {
-    user,
-    signOut
-  } = useAuth();
+  const { user, signOut } = useAuth();
+  const { data: profile } = useUserProfile();
+  const { data: permissions } = useOperatorPermissions();
   const navigate = useNavigate();
   const location = useLocation();
+
   const handleSignOut = async () => {
     await signOut();
     navigate('/auth');
   };
+
   const isActive = (path: string) => location.pathname === path;
+
+  // Filtrar itens baseado no tipo de usuário e permissões
+  const visibleOperationsItems = useMemo(() => {
+    if (profile?.user_type !== 'operator' || !permissions) {
+      return operationsItems;
+    }
+
+    return operationsItems.filter(item => {
+      if (item.label === 'Manejos') return permissions.can_access_manejos;
+      if (item.label === 'Despesca') return permissions.can_access_despesca;
+      if (item.label === 'Estoque') return permissions.can_access_estoque;
+      return false;
+    });
+  }, [profile, permissions]);
+
+  const showManagementSection = profile?.user_type !== 'operator';
+  const showAdministrativeSection = profile?.user_type !== 'operator';
+
   return <Sidebar collapsible="none" className="w-auto min-w-44">
       <SidebarHeader className="border-b border-border p-2">
         <div className="flex items-center justify-center my-[10px]">
@@ -113,71 +135,79 @@ export function AppSidebar() {
         <Separator className="my-1" />
 
         {/* Operações Diárias */}
-        <SidebarGroup>
-          <SidebarGroupLabel className="text-xs uppercase text-muted-foreground px-3">
-            Operações
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {operationsItems.map(item => (
-                <SidebarMenuItem key={item.path}>
-                  <SidebarMenuButton asChild isActive={isActive(item.path)}>
-                    <button onClick={() => navigate(item.path)} className={cn("w-full min-w-0 flex items-center justify-start gap-2 px-3 py-2 rounded-md text-sm transition-colors", isActive(item.path) ? "bg-primary text-primary-foreground" : "hover:bg-muted")}>
-                      <item.icon className="w-4 h-4 shrink-0" />
-                      <span className="flex-1 truncate text-left leading-tight">{item.label}</span>
-                    </button>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        <Separator className="my-1.5 opacity-100" />
+        {visibleOperationsItems.length > 0 && (
+          <>
+            <SidebarGroup>
+              <SidebarGroupLabel className="text-xs uppercase text-muted-foreground px-3">
+                Operações
+              </SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {visibleOperationsItems.map(item => (
+                    <SidebarMenuItem key={item.path}>
+                      <SidebarMenuButton asChild isActive={isActive(item.path)}>
+                        <button onClick={() => navigate(item.path)} className={cn("w-full min-w-0 flex items-center justify-start gap-2 px-3 py-2 rounded-md text-sm transition-colors", isActive(item.path) ? "bg-primary text-primary-foreground" : "hover:bg-muted")}>
+                          <item.icon className="w-4 h-4 shrink-0" />
+                          <span className="flex-1 truncate text-left leading-tight">{item.label}</span>
+                        </button>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+            <Separator className="my-1.5 opacity-100" />
+          </>
+        )}
 
         {/* Gestão e Monitoramento */}
-        <SidebarGroup>
-          <SidebarGroupLabel className="text-xs uppercase text-muted-foreground px-3">
-            Gestão
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {managementItems.map(item => (
-                <SidebarMenuItem key={item.path}>
-                  <SidebarMenuButton asChild isActive={isActive(item.path)}>
-                    <button onClick={() => navigate(item.path)} className={cn("w-full min-w-0 flex items-center justify-start gap-2 px-3 py-2 rounded-md text-sm transition-colors", isActive(item.path) ? "bg-primary text-primary-foreground" : "hover:bg-muted")}>
-                      <item.icon className="w-4 h-4 shrink-0" />
-                      <span className="flex-1 truncate text-left leading-tight">{item.label}</span>
-                    </button>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        <Separator className="my-1" />
+        {showManagementSection && (
+          <>
+            <SidebarGroup>
+              <SidebarGroupLabel className="text-xs uppercase text-muted-foreground px-3">
+                Gestão
+              </SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {managementItems.map(item => (
+                    <SidebarMenuItem key={item.path}>
+                      <SidebarMenuButton asChild isActive={isActive(item.path)}>
+                        <button onClick={() => navigate(item.path)} className={cn("w-full min-w-0 flex items-center justify-start gap-2 px-3 py-2 rounded-md text-sm transition-colors", isActive(item.path) ? "bg-primary text-primary-foreground" : "hover:bg-muted")}>
+                          <item.icon className="w-4 h-4 shrink-0" />
+                          <span className="flex-1 truncate text-left leading-tight">{item.label}</span>
+                        </button>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+            <Separator className="my-1" />
+          </>
+        )}
 
         {/* Administrativo */}
-        <SidebarGroup>
-          <SidebarGroupLabel className="text-xs uppercase text-muted-foreground px-3">
-            Administrativo
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {administrativeItems.map(item => (
-                <SidebarMenuItem key={item.path}>
-                <SidebarMenuButton asChild isActive={isActive(item.path)}>
-                  <button onClick={() => navigate(item.path)} className={cn("w-full min-w-0 flex items-center justify-start gap-2 px-3 py-2 rounded-md text-sm transition-colors", isActive(item.path) ? "bg-primary text-primary-foreground" : "hover:bg-muted")}>
-                    <item.icon className={item.path === '/farm' ? "w-5 h-5 shrink-0" : "w-4 h-4 shrink-0"} />
-                    <span className="flex-1 truncate text-left leading-tight">{item.label}</span>
-                  </button>
-                </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {showAdministrativeSection && (
+          <SidebarGroup>
+            <SidebarGroupLabel className="text-xs uppercase text-muted-foreground px-3">
+              Administrativo
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {administrativeItems.map(item => (
+                  <SidebarMenuItem key={item.path}>
+                    <SidebarMenuButton asChild isActive={isActive(item.path)}>
+                      <button onClick={() => navigate(item.path)} className={cn("w-full min-w-0 flex items-center justify-start gap-2 px-3 py-2 rounded-md text-sm transition-colors", isActive(item.path) ? "bg-primary text-primary-foreground" : "hover:bg-muted")}>
+                        <item.icon className={item.path === '/farm' ? "w-5 h-5 shrink-0" : "w-4 h-4 shrink-0"} />
+                        <span className="flex-1 truncate text-left leading-tight">{item.label}</span>
+                      </button>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
 
       

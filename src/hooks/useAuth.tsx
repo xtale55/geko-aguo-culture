@@ -28,7 +28,7 @@ export function useAuth() {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signUp = async (email: string, password: string, fullName: string, userType: 'farm_owner' | 'technician' = 'farm_owner') => {
+  const signUp = async (email: string, password: string, fullName: string, userType: 'farm_owner' | 'technician' | 'operator' = 'farm_owner') => {
     const redirectUrl = `${window.location.origin}/auth/confirm`;
     
     const { error } = await supabase.auth.signUp({

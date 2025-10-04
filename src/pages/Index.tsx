@@ -30,6 +30,11 @@ const Index = () => {
     return <TechnicianDashboard />;
   }
 
+  if (profile.user_type === 'operator') {
+    const OperatorDashboard = require('./OperatorDashboard').default;
+    return <OperatorDashboard />;
+  }
+
   return <Dashboard />;
 };
 

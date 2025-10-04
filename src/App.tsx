@@ -25,6 +25,7 @@ import Financial from "./pages/Financial";
 import PondHistory from "./pages/PondHistory";
 import OperationalCostsPage from "./pages/OperationalCosts";
 import NotFound from "./pages/NotFound";
+import AcceptInvite from "./pages/AcceptInvite";
 
 const queryClient = new QueryClient();
 
@@ -56,6 +57,7 @@ const App = () => (
           <Route path="/financial" element={<Financial />} />
           <Route path="/operational-costs" element={<OperationalCostsPage />} />
           <Route path="/pond-history/:pondId" element={<PondHistory />} />
+          <Route path="/accept-invite/:token" element={<AcceptInvite />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

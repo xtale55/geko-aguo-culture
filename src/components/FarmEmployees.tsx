@@ -25,6 +25,24 @@ const employeeSchema = z.object({
   role: z.enum(["Operador", "Técnico"], { required_error: "Tipo de funcionário é obrigatório" }),
   phone: z.string().optional(),
   email: z.string().email("Email inválido").optional().or(z.literal("")),
+  permissions: z.object({
+    manejos: z.boolean(),
+    despesca: z.boolean(),
+    estoque: z.boolean()
+  }).optional()
+}).refine((data) => {
+  // Se for Operador, email é obrigatório
+  if (data.role === "Operador" && !data.email) {
+    return false;
+  }
+  // Se for Operador, pelo menos uma permissão deve estar marcada
+  if (data.role === "Operador" && data.permissions) {
+    return data.permissions.manejos || data.permissions.despesca || data.permissions.estoque;
+  }
+  return true;
+}, {
+  message: "Operadores precisam de email e pelo menos uma permissão",
+  path: ["email"]
 });
 
 type EmployeeForm = z.infer<typeof employeeSchema>;
@@ -60,6 +78,11 @@ export function FarmEmployees({ farmId }: FarmEmployeesProps) {
       role: "Operador",
       phone: "",
       email: "",
+      permissions: {
+        manejos: false,
+        despesca: false,
+        estoque: false
+      }
     },
   });
 
@@ -82,25 +105,64 @@ export function FarmEmployees({ farmId }: FarmEmployeesProps) {
   // Create employee mutation
   const createEmployeeMutation = useMutation({
     mutationFn: async (employeeData: EmployeeForm) => {
-      const { data, error } = await supabase
+      const { data: employeeRecord, error } = await supabase
         .from("farm_employees")
         .insert({
           name: employeeData.name,
           role: employeeData.role,
-          department: "produção", // Default value for database compatibility
+          department: "produção",
           farm_id: farmId,
-          hire_date: new Date().toISOString().split('T')[0], // Default to today
-          status: "ativo", // Default status
+          hire_date: new Date().toISOString().split('T')[0],
+          status: "ativo",
           email: employeeData.email || null,
           phone: employeeData.phone || null,
-          salary: null, // No salary field anymore
-          notes: null, // No notes field anymore
+          salary: null,
+          notes: null,
         })
         .select()
         .single();
 
       if (error) throw error;
-      return data;
+
+      // Se for Operador, criar convite
+      if (employeeData.role === "Operador" && employeeData.email && employeeData.permissions) {
+        // Gerar token único
+        const token = crypto.randomUUID();
+        
+        // Buscar nome da fazenda
+        const { data: farm } = await supabase
+          .from('farms')
+          .select('name')
+          .eq('id', farmId)
+          .single();
+
+        // Criar convite
+        const { error: inviteError } = await supabase
+          .from('invitations')
+          .insert({
+            email: employeeData.email,
+            farm_id: farmId,
+            role: 'operador',
+            token,
+            permissions: employeeData.permissions,
+            invited_by: user?.id,
+            status: 'pending'
+          });
+
+        if (inviteError) throw inviteError;
+
+        // Enviar email via Edge Function
+        await supabase.functions.invoke('send-operator-invite', {
+          body: {
+            email: employeeData.email,
+            farmName: farm?.name || 'Fazenda',
+            token,
+            permissions: employeeData.permissions
+          }
+        });
+      }
+
+      return employeeRecord;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["farm-employees", farmId] });
@@ -340,7 +402,7 @@ export function FarmEmployees({ farmId }: FarmEmployeesProps) {
                     name="email"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Email</FormLabel>
+                        <FormLabel>Email {form.watch('role') === 'Operador' && <span className="text-red-500">*</span>}</FormLabel>
                         <FormControl>
                           <Input {...field} type="email" />
                         </FormControl>
@@ -349,6 +411,62 @@ export function FarmEmployees({ farmId }: FarmEmployeesProps) {
                     )}
                   />
                 </div>
+
+                {form.watch('role') === 'Operador' && (
+                  <div className="space-y-3 p-4 border rounded-md">
+                    <h4 className="font-medium text-sm">Permissões de Acesso</h4>
+                    <div className="space-y-2">
+                      <FormField
+                        control={form.control}
+                        name="permissions.manejos"
+                        render={({ field }) => (
+                          <div className="flex items-center space-x-2">
+                            <input
+                              type="checkbox"
+                              checked={field.value}
+                              onChange={field.onChange}
+                              className="rounded"
+                            />
+                            <label className="text-sm">Acesso a Manejos</label>
+                          </div>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="permissions.despesca"
+                        render={({ field }) => (
+                          <div className="flex items-center space-x-2">
+                            <input
+                              type="checkbox"
+                              checked={field.value}
+                              onChange={field.onChange}
+                              className="rounded"
+                            />
+                            <label className="text-sm">Acesso a Despesca</label>
+                          </div>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="permissions.estoque"
+                        render={({ field }) => (
+                          <div className="flex items-center space-x-2">
+                            <input
+                              type="checkbox"
+                              checked={field.value}
+                              onChange={field.onChange}
+                              className="rounded"
+                            />
+                            <label className="text-sm">Acesso a Estoque</label>
+                          </div>
+                        )}
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Selecione pelo menos uma permissão
+                    </p>
+                  </div>
+                )}
 
                 <Button type="submit" className="w-full">
                   {editingEmployee ? "Atualizar" : "Adicionar"}

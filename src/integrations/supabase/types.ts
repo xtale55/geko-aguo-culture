@@ -719,6 +719,7 @@ export type Database = {
           farm_id: string
           id: string
           invited_by: string
+          permissions: Json | null
           role: Database["public"]["Enums"]["app_role"]
           status: string
           token: string
@@ -730,6 +731,7 @@ export type Database = {
           farm_id: string
           id?: string
           invited_by: string
+          permissions?: Json | null
           role: Database["public"]["Enums"]["app_role"]
           status?: string
           token: string
@@ -741,6 +743,7 @@ export type Database = {
           farm_id?: string
           id?: string
           invited_by?: string
+          permissions?: Json | null
           role?: Database["public"]["Enums"]["app_role"]
           status?: string
           token?: string
@@ -887,6 +890,47 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      operator_permissions: {
+        Row: {
+          can_access_despesca: boolean | null
+          can_access_estoque: boolean | null
+          can_access_manejos: boolean | null
+          created_at: string | null
+          farm_id: string
+          id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          can_access_despesca?: boolean | null
+          can_access_estoque?: boolean | null
+          can_access_manejos?: boolean | null
+          created_at?: string | null
+          farm_id: string
+          id?: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          can_access_despesca?: boolean | null
+          can_access_estoque?: boolean | null
+          can_access_manejos?: boolean | null
+          created_at?: string | null
+          farm_id?: string
+          id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "operator_permissions_farm_id_fkey"
+            columns: ["farm_id"]
+            isOneToOne: false
+            referencedRelation: "farms"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       organization_members: {
         Row: {
@@ -1321,6 +1365,10 @@ export type Database = {
         Args: { farm_id_param: string; user_id_param: string }
         Returns: Database["public"]["Enums"]["app_role"]
       }
+      has_operator_permission: {
+        Args: { _farm_id: string; _permission: string; _user_id: string }
+        Returns: boolean
+      }
       process_invitation: {
         Args: { invitation_token: string }
         Returns: {
@@ -1336,7 +1384,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "tecnico" | "operador"
-      user_type: "farm_owner" | "technician"
+      user_type: "farm_owner" | "technician" | "operator"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1465,7 +1513,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "tecnico", "operador"],
-      user_type: ["farm_owner", "technician"],
+      user_type: ["farm_owner", "technician", "operator"],
     },
   },
 } as const

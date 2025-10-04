@@ -11,9 +11,8 @@ const DoubleShrimpIcon = ({ className }: { className?: string }) => (
   <div className={cn("relative flex items-center justify-center", className)}>
     {/* Círculo de fundo */}
     <div className="absolute inset-0 rounded-full border border-current opacity-50" />
-    {/* Dois camarões lado a lado */}
-    <div className="flex items-center gap-0.25 scale-[0.45]">
-      <Shrimp weight="fill" className="w-4 h-4" />
+    {/* Camarão centralizado */}
+    <div className="flex items-center justify-center scale-75">
       <Shrimp weight="fill" className="w-4 h-4" />
     </div>
   </div>

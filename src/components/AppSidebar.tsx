@@ -1,10 +1,24 @@
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Shrimp, SignOut, House, Waves, ForkKnife, Barn, ChartBar, CurrencyDollar, Truck } from '@phosphor-icons/react';
+import { Shrimp, SignOut, House, Waves, ForkKnife, Barn, ChartBar, CurrencyDollar, Truck, Farm } from '@phosphor-icons/react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter } from '@/components/ui/sidebar';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
+
+// Componente customizado para o ícone de povoamento
+const DoubleShrimpIcon = ({ className }: { className?: string }) => (
+  <div className={cn("relative flex items-center justify-center", className)}>
+    {/* Círculo de fundo */}
+    <div className="absolute inset-0 rounded-full border border-current opacity-50" />
+    {/* Dois camarões lado a lado */}
+    <div className="flex items-center gap-0.5 scale-[0.45]">
+      <Shrimp weight="fill" className="w-4 h-4" />
+      <Shrimp weight="fill" className="w-4 h-4" />
+    </div>
+  </div>
+);
+
 const dashboardItem = {
   path: '/dashboard',
   icon: House,
@@ -42,7 +56,7 @@ const managementItems = [
   },
   {
     path: '/stocking',
-    icon: Shrimp,
+    icon: DoubleShrimpIcon,
     label: 'Povoamento'
   }
 ];
@@ -55,7 +69,7 @@ const administrativeItems = [
   },
   {
     path: '/farm',
-    icon: Waves,
+    icon: Farm,
     label: 'Fazenda'
   }
 ];
@@ -154,12 +168,12 @@ export function AppSidebar() {
             <SidebarMenu>
               {administrativeItems.map(item => (
                 <SidebarMenuItem key={item.path}>
-                  <SidebarMenuButton asChild isActive={isActive(item.path)}>
-                    <button onClick={() => navigate(item.path)} className={cn("w-full min-w-0 flex items-center justify-start gap-2 px-3 py-2 rounded-md text-sm transition-colors", isActive(item.path) ? "bg-primary text-primary-foreground" : "hover:bg-muted")}>
-                      <item.icon className="w-4 h-4 shrink-0" />
-                      <span className="flex-1 truncate text-left leading-tight">{item.label}</span>
-                    </button>
-                  </SidebarMenuButton>
+                <SidebarMenuButton asChild isActive={isActive(item.path)}>
+                  <button onClick={() => navigate(item.path)} className={cn("w-full min-w-0 flex items-center justify-start gap-2 px-3 py-2 rounded-md text-sm transition-colors", isActive(item.path) ? "bg-primary text-primary-foreground" : "hover:bg-muted")}>
+                    <item.icon className={item.path === '/farm' ? "w-5 h-5 shrink-0" : "w-4 h-4 shrink-0"} />
+                    <span className="flex-1 truncate text-left leading-tight">{item.label}</span>
+                  </button>
+                </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>

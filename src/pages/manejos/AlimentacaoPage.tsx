@@ -585,7 +585,7 @@ export default function AlimentacaoPage() {
                         </div>
                         <div className="grid grid-cols-2 gap-4 text-sm text-muted-foreground">
                           <div className="space-y-1">
-                            <div>População: {pond.current_batch?.current_population?.toLocaleString()} camarões</div>
+                            <div>População: {pond.current_batch?.current_population?.toLocaleString()}</div>
                             <div>Biomassa: {pond.current_batch?.current_biomass?.toFixed(1) || '0.0'} kg</div>
                           </div>
                           {pond.current_batch?.latest_feeding && (

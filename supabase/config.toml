@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.invite-operator]
 verify_jwt = false
+
+[functions.delete-operator]
+verify_jwt = true

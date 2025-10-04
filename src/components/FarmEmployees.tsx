@@ -211,13 +211,27 @@ export function FarmEmployees({ farmId }: FarmEmployeesProps) {
 
   // Delete employee mutation
   const deleteEmployeeMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from("farm_employees")
-        .delete()
-        .eq("id", id);
-
-      if (error) throw error;
+    mutationFn: async (employee: Employee) => {
+      if (employee.role === "Operador" && employee.email) {
+        // Chamar Edge Function para exclusão total
+        const { data, error } = await supabase.functions.invoke('delete-operator', {
+          body: { 
+            email: employee.email,
+            farmId: farmId 
+          }
+        });
+        
+        if (error) throw new Error(error.message || 'Erro ao deletar operador');
+        if (data?.error) throw new Error(data.error);
+      } else {
+        // Técnico ou funcionário sem email: apenas remover de farm_employees
+        const { error } = await supabase
+          .from("farm_employees")
+          .delete()
+          .eq("id", employee.id);
+        
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["farm-employees", farmId] });
@@ -254,9 +268,19 @@ export function FarmEmployees({ farmId }: FarmEmployeesProps) {
     setIsDialogOpen(true);
   };
 
-  const handleDelete = (id: string) => {
-    if (confirm("Tem certeza que deseja remover este funcionário?")) {
-      deleteEmployeeMutation.mutate(id);
+  const handleDelete = (employee: Employee) => {
+    const isOperator = employee.role === "Operador";
+    
+    const confirmMessage = isOperator 
+      ? `⚠️ ATENÇÃO: Isso irá EXCLUIR PERMANENTEMENTE a conta de ${employee.name} (${employee.email}).\n\n` +
+        `• O usuário NÃO poderá mais fazer login\n` +
+        `• Todos os dados serão removidos do sistema\n` +
+        `• Esta ação NÃO pode ser desfeita\n\n` +
+        `Deseja continuar?`
+      : `Tem certeza que deseja remover ${employee.name} do quadro de funcionários?`;
+    
+    if (window.confirm(confirmMessage)) {
+      deleteEmployeeMutation.mutate(employee);
     }
   };
 
@@ -487,7 +511,7 @@ export function FarmEmployees({ farmId }: FarmEmployeesProps) {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => handleDelete(employee.id)}
+                      onClick={() => handleDelete(employee)}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

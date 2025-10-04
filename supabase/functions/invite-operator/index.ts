@@ -28,6 +28,20 @@ serve(async (req) => {
       }
     );
 
+    // Verificar se usuário já existe
+    const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
+    const existingUser = existingUsers.users?.find(u => u.email === email);
+
+    if (existingUser) {
+      console.error('❌ Email já cadastrado:', email);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Este email já está registrado no sistema. Se você excluiu este operador recentemente, aguarde alguns minutos e tente novamente.' 
+        }),
+        { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Buscar nome da fazenda
     const { data: farmData } = await supabaseAdmin
       .from('farms')

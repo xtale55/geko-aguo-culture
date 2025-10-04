@@ -1,11 +1,13 @@
 import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, ClipboardCheck, Info } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ArrowLeft, ClipboardCheck, Info, History } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useFarmsQuery } from '@/hooks/useSupabaseQuery';
 import { useActivePondBatches } from '@/hooks/useActivePondBatches';
 import { PondEvaluationCard } from '@/components/PondEvaluationCard';
+import { FeedingEvaluationHistory } from '@/components/FeedingEvaluationHistory';
 import { useUnevaluatedFeedings, useLastEvaluationTime, useTodayFeedingRecords } from '@/hooks/useTodayFeedingRecords';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -89,53 +91,75 @@ export default function AvaliacaoAlimentacaoPage() {
           </CardHeader>
         </Card>
 
-        {/* Loading State */}
-        {isLoading && (
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        {/* Tabs */}
+        <Tabs defaultValue="avaliar" className="space-y-6">
+          <TabsList className="grid w-full max-w-md grid-cols-2">
+            <TabsTrigger value="avaliar" className="flex items-center gap-2">
+              <ClipboardCheck className="h-4 w-4" />
+              Avaliar
+            </TabsTrigger>
+            <TabsTrigger value="historico" className="flex items-center gap-2">
+              <History className="h-4 w-4" />
+              Histórico
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Avaliar Tab */}
+          <TabsContent value="avaliar" className="space-y-4">
+            {/* Loading State */}
+            {isLoading && (
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Pond Cards Grid */}
+            {!isLoading && activePonds && activePonds.length > 0 && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {activePonds.map((pond) => {
+                  const latestWeight = biometryData?.[pond.pond_batch_id]?.average_weight;
+                  const currentBiomass = latestWeight 
+                    ? (pond.current_population * latestWeight) / 1000 
+                    : undefined;
+
+                  return (
+                    <PondEvaluationCardWithData
+                      key={pond.pond_batch_id}
+                      pondBatchId={pond.pond_batch_id}
+                      pondName={pond.pond_name}
+                      batchName={pond.batch_name}
+                      currentPopulation={pond.current_population}
+                      latestWeight={latestWeight}
+                      currentBiomass={currentBiomass}
+                    />
+                  );
+                })}
               </div>
-            </CardContent>
-          </Card>
-        )}
+            )}
 
-        {/* Pond Cards Grid */}
-        {!isLoading && activePonds && activePonds.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {activePonds.map((pond) => {
-              const latestWeight = biometryData?.[pond.pond_batch_id]?.average_weight;
-              const currentBiomass = latestWeight 
-                ? (pond.current_population * latestWeight) / 1000 
-                : undefined;
+            {/* Empty State */}
+            {!isLoading && (!activePonds || activePonds.length === 0) && (
+              <Card>
+                <CardContent className="p-6 text-center">
+                  <ClipboardCheck className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">Nenhum viveiro ativo</h3>
+                  <p className="text-muted-foreground">
+                    Não há viveiros ativos no momento para avaliar alimentação.
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
 
-              return (
-                <PondEvaluationCardWithData
-                  key={pond.pond_batch_id}
-                  pondBatchId={pond.pond_batch_id}
-                  pondName={pond.pond_name}
-                  batchName={pond.batch_name}
-                  currentPopulation={pond.current_population}
-                  latestWeight={latestWeight}
-                  currentBiomass={currentBiomass}
-                />
-              );
-            })}
-          </div>
-        )}
-
-        {/* Empty State */}
-        {!isLoading && (!activePonds || activePonds.length === 0) && (
-          <Card>
-            <CardContent className="p-6 text-center">
-              <ClipboardCheck className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Nenhum viveiro ativo</h3>
-              <p className="text-muted-foreground">
-                Não há viveiros ativos no momento para avaliar alimentação.
-              </p>
-            </CardContent>
-          </Card>
-        )}
+          {/* Histórico Tab */}
+          <TabsContent value="historico">
+            {farm?.id && <FeedingEvaluationHistory farmId={farm.id} />}
+          </TabsContent>
+        </Tabs>
       </div>
     </Layout>
   );

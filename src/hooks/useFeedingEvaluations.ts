@@ -24,8 +24,7 @@ export function useFeedingEvaluations(pondBatchId?: string) {
         .select('*')
         .eq('pond_batch_id', pondBatchId)
         .order('evaluation_date', { ascending: false })
-        .order('evaluation_time', { ascending: false })
-        .limit(10);
+        .order('evaluation_time', { ascending: false });
 
       if (error) throw error;
       return data || [];

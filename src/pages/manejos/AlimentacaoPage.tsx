@@ -589,9 +589,9 @@ export default function AlimentacaoPage() {
                             <div>Biomassa: {pond.current_batch?.current_biomass?.toFixed(1) || '0.0'} kg</div>
                           </div>
                           {pond.current_batch?.latest_feeding && (
-                            <div>
+                            <div className="text-center">
                               <div>Taxa de alimentação:</div>
-                              <div className="font-semibold text-base">{pond.current_batch.latest_feeding.feeding_percentage.toFixed(1)}%</div>
+                              <div className="font-medium text-sm">{pond.current_batch.latest_feeding.feeding_percentage.toFixed(1)}%</div>
                             </div>
                           )}
                         </div>

@@ -20,24 +20,6 @@ import { z } from "zod";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
-// Helper function to generate readable invite tokens
-const generateReadableToken = (employeeName: string, farmName: string): string => {
-  const normalize = (str: string) => {
-    return str
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '') // Remove acentos
-      .replace(/[^a-z0-9]/g, '') // Remove caracteres especiais
-      .trim();
-  };
-  
-  const nameSlug = normalize(employeeName);
-  const farmSlug = normalize(farmName);
-  const randomCode = Math.floor(1000 + Math.random() * 9000); // 1000-9999
-  
-  return `${nameSlug}-${farmSlug}-${randomCode}`;
-};
-
 const employeeSchema = z.object({
   name: z.string().min(1, "Nome é obrigatório"),
   role: z.enum(["Operador", "Técnico"], { required_error: "Tipo de funcionário é obrigatório" }),
@@ -88,8 +70,6 @@ export function FarmEmployees({ farmId }: FarmEmployeesProps) {
   const queryClient = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
-  const [inviteLinkUrl, setInviteLinkUrl] = useState("");
-  const [showInviteLinkModal, setShowInviteLinkModal] = useState(false);
 
   const form = useForm<EmployeeForm>({
     resolver: zodResolver(employeeSchema),
@@ -144,40 +124,27 @@ export function FarmEmployees({ farmId }: FarmEmployeesProps) {
 
       if (error) throw error;
 
-      // Se for Operador, criar convite
+      // Se for Operador, enviar convite por email via Edge Function
       if (employeeData.role === "Operador" && employeeData.email && employeeData.permissions) {
-        // Buscar nome da fazenda para gerar token legível
-        const { data: farmData } = await supabase
-          .from('farms')
-          .select('name')
-          .eq('id', farmId)
-          .single();
-
-        // Gerar token legível
-        const token = generateReadableToken(
-          employeeData.name, 
-          farmData?.name || 'fazenda'
-        );
-
-        // Criar convite
-        const { error: inviteError } = await supabase
-          .from('invitations')
-          .insert({
+        const { error: inviteError } = await supabase.functions.invoke('invite-operator', {
+          body: {
             email: employeeData.email,
-            farm_id: farmId,
-            role: 'operador',
-            token,
-            permissions: employeeData.permissions,
-            invited_by: user?.id,
-            status: 'pending'
-          });
+            fullName: employeeData.name,
+            farmId: farmId,
+            permissions: employeeData.permissions
+          }
+        });
 
-        if (inviteError) throw inviteError;
+        if (inviteError) {
+          console.error('Erro ao enviar convite:', inviteError);
+          throw new Error('Erro ao enviar convite: ' + inviteError.message);
+        }
 
-        // Armazenar link e abrir modal
-        const inviteUrl = `${window.location.origin}/accept-invite/${token}`;
-        setInviteLinkUrl(inviteUrl);
-        setShowInviteLinkModal(true);
+        // Mostrar toast de sucesso
+        toast({
+          title: "Convite Enviado!",
+          description: `Email de convite enviado para ${employeeData.email}`,
+        });
       }
 
       return employeeRecord;
@@ -494,61 +461,6 @@ export function FarmEmployees({ farmId }: FarmEmployeesProps) {
           </DialogContent>
         </Dialog>
       </div>
-
-      {/* Invite Link Modal */}
-      <Dialog open={showInviteLinkModal} onOpenChange={setShowInviteLinkModal}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Link de Convite Gerado</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              Envie este link para o operador aceitar o convite:
-            </p>
-            <div className="space-y-2">
-              <Input
-                value={inviteLinkUrl}
-                readOnly
-                onClick={(e) => e.currentTarget.select()}
-                className="font-mono text-xs"
-              />
-            </div>
-            <div className="flex gap-2">
-              <Button
-                onClick={async () => {
-                  try {
-                    await navigator.clipboard.writeText(inviteLinkUrl);
-                    toast({
-                      title: "Link copiado!",
-                      description: "O link foi copiado para a área de transferência.",
-                    });
-                  } catch (err) {
-                    // Selecionar texto se falhar ao copiar
-                    const input = document.querySelector('input[readonly]') as HTMLInputElement;
-                    if (input) {
-                      input.select();
-                      toast({
-                        title: "Copie o link manualmente",
-                        description: "Use Ctrl+C (ou Cmd+C no Mac) para copiar o link selecionado.",
-                      });
-                    }
-                  }
-                }}
-                className="flex-1"
-              >
-                Copiar Link
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => setShowInviteLinkModal(false)}
-                className="flex-1"
-              >
-                Fechar
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {/* Employees List */}
       <div className="grid gap-4">

@@ -5,6 +5,20 @@ import { Button } from '@/components/ui/button';
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter } from '@/components/ui/sidebar';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
+
+// Componente customizado para o ícone de povoamento
+const DoubleShrimpIcon = ({ className }: { className?: string }) => (
+  <div className={cn("relative flex items-center justify-center", className)}>
+    {/* Círculo de fundo */}
+    <div className="absolute inset-0 rounded-full border border-current opacity-50" />
+    {/* Dois camarões lado a lado */}
+    <div className="flex items-center gap-0.5 scale-[0.45]">
+      <Shrimp weight="fill" className="w-4 h-4" />
+      <Shrimp weight="fill" className="w-4 h-4" />
+    </div>
+  </div>
+);
+
 const dashboardItem = {
   path: '/dashboard',
   icon: House,
@@ -42,7 +56,7 @@ const managementItems = [
   },
   {
     path: '/stocking',
-    icon: Shrimp,
+    icon: DoubleShrimpIcon,
     label: 'Povoamento'
   }
 ];

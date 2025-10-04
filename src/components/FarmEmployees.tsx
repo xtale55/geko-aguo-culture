@@ -70,6 +70,8 @@ export function FarmEmployees({ farmId }: FarmEmployeesProps) {
   const queryClient = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
+  const [inviteLinkUrl, setInviteLinkUrl] = useState("");
+  const [showInviteLinkModal, setShowInviteLinkModal] = useState(false);
 
   const form = useForm<EmployeeForm>({
     resolver: zodResolver(employeeSchema),
@@ -144,14 +146,10 @@ export function FarmEmployees({ farmId }: FarmEmployeesProps) {
 
         if (inviteError) throw inviteError;
 
-        // Copiar link para clipboard
+        // Armazenar link e abrir modal
         const inviteUrl = `${window.location.origin}/accept-invite/${token}`;
-        await navigator.clipboard.writeText(inviteUrl);
-        
-        toast({
-          title: "Link de convite copiado!",
-          description: `Envie este link para ${employeeData.email} aceitar o convite.`,
-        });
+        setInviteLinkUrl(inviteUrl);
+        setShowInviteLinkModal(true);
       }
 
       return employeeRecord;
@@ -468,6 +466,61 @@ export function FarmEmployees({ farmId }: FarmEmployeesProps) {
           </DialogContent>
         </Dialog>
       </div>
+
+      {/* Invite Link Modal */}
+      <Dialog open={showInviteLinkModal} onOpenChange={setShowInviteLinkModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Link de Convite Gerado</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Envie este link para o operador aceitar o convite:
+            </p>
+            <div className="space-y-2">
+              <Input
+                value={inviteLinkUrl}
+                readOnly
+                onClick={(e) => e.currentTarget.select()}
+                className="font-mono text-xs"
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(inviteLinkUrl);
+                    toast({
+                      title: "Link copiado!",
+                      description: "O link foi copiado para a área de transferência.",
+                    });
+                  } catch (err) {
+                    // Selecionar texto se falhar ao copiar
+                    const input = document.querySelector('input[readonly]') as HTMLInputElement;
+                    if (input) {
+                      input.select();
+                      toast({
+                        title: "Copie o link manualmente",
+                        description: "Use Ctrl+C (ou Cmd+C no Mac) para copiar o link selecionado.",
+                      });
+                    }
+                  }
+                }}
+                className="flex-1"
+              >
+                Copiar Link
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setShowInviteLinkModal(false)}
+                className="flex-1"
+              >
+                Fechar
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Employees List */}
       <div className="grid gap-4">

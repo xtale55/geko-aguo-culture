@@ -12,7 +12,7 @@ const DoubleShrimpIcon = ({ className }: { className?: string }) => (
     {/* Círculo de fundo */}
     <div className="absolute inset-0 rounded-full border border-current opacity-50" />
     {/* Dois camarões lado a lado */}
-    <div className="flex items-center gap-0.5 scale-[0.45]">
+    <div className="flex items-center gap-0.25 scale-[0.45]">
       <Shrimp weight="fill" className="w-4 h-4" />
       <Shrimp weight="fill" className="w-4 h-4" />
     </div>

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ClipboardCheck, Users, Weight, TrendingUp, Clock, CheckCircle, AlertTriangle, History } from 'lucide-react';
+import { ClipboardCheck, Users, Weight, TrendingUp, Clock, History } from 'lucide-react';
 import { FeedingEvaluationModal } from '@/components/FeedingEvaluationModal';
 import { FeedingEvaluationHistoryDialog } from '@/components/FeedingEvaluationHistoryDialog';
 
@@ -52,11 +52,6 @@ export function PondEvaluationCard({
               <CardTitle className="text-lg">{pondName}</CardTitle>
               <p className="text-sm text-muted-foreground mt-1">{batchName}</p>
             </div>
-            {hasPendingEvaluations && (
-              <Badge variant="destructive" className="ml-2">
-                {unevaluatedFeedings.length} pendente{unevaluatedFeedings.length > 1 ? 's' : ''}
-              </Badge>
-            )}
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -98,30 +93,12 @@ export function PondEvaluationCard({
             )}
           </div>
 
-          {/* Status Indicators */}
-          {(hasPendingEvaluations || lastEvaluationTime) && (
-            <div className="space-y-2 pt-2 border-t">
-              {hasPendingEvaluations && (
-                <div className="flex items-center gap-2 text-sm text-orange-600">
-                  <AlertTriangle className="h-4 w-4" />
-                  <span>Alimentações aguardando avaliação</span>
-                </div>
-              )}
-              {lastEvaluationTime && (
-                <div className="flex items-center gap-2 text-sm text-green-600">
-                  <CheckCircle className="h-4 w-4" />
-                  <span>Última avaliação: {lastEvaluationTime}</span>
-                </div>
-              )}
-            </div>
-          )}
-
           {/* Action Buttons */}
           <div className="flex gap-2">
             <Button 
               onClick={() => setIsModalOpen(true)} 
               className="flex-1"
-              variant={hasPendingEvaluations ? "default" : "outline"}
+              variant="outline"
             >
               <ClipboardCheck className="mr-2 h-4 w-4" />
               Avaliar Alimentação

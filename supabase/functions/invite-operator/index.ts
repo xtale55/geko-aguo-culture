@@ -88,21 +88,7 @@ serve(async (req) => {
       // Não falhar a operação por causa disso
     }
 
-    // Criar permissões de operador (para quando o usuário aceitar)
-    const { error: permError } = await supabaseAdmin
-      .from('operator_permissions')
-      .insert({
-        user_id: inviteData.user.id,
-        farm_id: farmId,
-        can_access_manejos: permissions?.manejos || false,
-        can_access_despesca: permissions?.despesca || false,
-        can_access_estoque: permissions?.estoque || false
-      });
-
-    if (permError) {
-      console.error('⚠️ Aviso: Erro ao criar permissões:', permError);
-      // Não falhar a operação por causa disso
-    }
+    // As permissões serão criadas automaticamente no primeiro login do operador
 
     return new Response(
       JSON.stringify({ 

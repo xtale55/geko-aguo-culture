@@ -293,9 +293,6 @@ export function FeedingEvaluationModal({
             <TabsTrigger value="registered" disabled={unevaluatedFeedings.length === 0}>
               <FileText className="mr-2 h-4 w-4" />
               Alimentação Registrada
-              {unevaluatedFeedings.length > 0 && (
-                <Badge variant="secondary" className="ml-2">{unevaluatedFeedings.length}</Badge>
-              )}
             </TabsTrigger>
             <TabsTrigger value="manual">
               <Clock className="mr-2 h-4 w-4" />

@@ -27,6 +27,7 @@ interface WaterQualityRecord {
   pond_id: string;
   pond_name: string;
   measurement_date: string;
+  measurement_time?: string;
   oxygen_level: number | null;
   temperature: number | null;
   ph_level: number | null;
@@ -48,6 +49,8 @@ export function WaterQualityTab() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedPond, setSelectedPond] = useState<string>('');
   const [recordToDelete, setRecordToDelete] = useState<WaterQualityRecord | null>(null);
+  const [measurementHour, setMeasurementHour] = useState('06');
+  const [measurementMinute, setMeasurementMinute] = useState('00');
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -131,9 +134,12 @@ export function WaterQualityTab() {
     setSubmitting(true);
 
     try {
+      const measurementTime = `${measurementHour}:${measurementMinute}:00`;
+      
       const record = {
         pond_id: selectedPond,
         measurement_date: formData.get('measurement_date') as string,
+        measurement_time: measurementTime,
         oxygen_level: formData.get('oxygen_level') ? parseFloat(formData.get('oxygen_level') as string) : null,
         temperature: formData.get('temperature') ? parseFloat(formData.get('temperature') as string) : null,
         ph_level: formData.get('ph_level') ? parseFloat(formData.get('ph_level') as string) : null,
@@ -370,6 +376,37 @@ export function WaterQualityTab() {
                     defaultValue={getCurrentDateForInput()}
                     required
                   />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="measurement-hour" className="text-xs text-muted-foreground">Hora</Label>
+                    <Select value={measurementHour} onValueChange={setMeasurementHour}>
+                      <SelectTrigger id="measurement-hour">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-[200px]">
+                        {Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0')).map((hour) => (
+                          <SelectItem key={hour} value={hour}>
+                            {hour}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="measurement-minute" className="text-xs text-muted-foreground">Minuto</Label>
+                    <Select value={measurementMinute} onValueChange={setMeasurementMinute}>
+                      <SelectTrigger id="measurement-minute">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="00">00</SelectItem>
+                        <SelectItem value="15">15</SelectItem>
+                        <SelectItem value="30">30</SelectItem>
+                        <SelectItem value="45">45</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               </div>
 

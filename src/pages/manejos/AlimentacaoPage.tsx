@@ -583,38 +583,53 @@ export default function AlimentacaoPage() {
                             {pond.current_batch?.batch_name}
                           </Badge>
                         </div>
-                        <div className="grid grid-cols-2 gap-4 text-sm text-muted-foreground">
-                          <div className="space-y-1">
-                            <div>População: {pond.current_batch?.current_population?.toLocaleString()}</div>
-                            <div>Biomassa: {pond.current_batch?.current_biomass?.toFixed(1) || '0.0'} kg</div>
-                          </div>
-                          {pond.current_batch?.latest_feeding && (
-                            <div className="text-center">
-                              <div>Taxa de alimentação:</div>
-                              <div className="font-medium text-sm">{pond.current_batch.latest_feeding.feeding_percentage.toFixed(1)}%</div>
-                            </div>
-                          )}
-                        </div>
                       </CardHeader>
                       
                       <CardContent className="space-y-4">
                         {/* Feeding Configuration Summary */}
                         {pond.current_batch?.latest_feeding && (
-                          <div className="space-y-3">
-                            <div className="bg-slate-50 rounded-lg p-4 space-y-3">
-                              <div className="flex justify-between items-center">
-                                <span className="text-sm text-muted-foreground">Por refeição (planejado):</span>
-                                <span className="text-lg font-bold">{(pond.current_batch.latest_feeding.planned_per_meal / 1000).toFixed(1)} kg</span>
+                          <div className="space-y-4">
+                            {/* Main Metrics - 2 Column Grid */}
+                            <div className="bg-gradient-to-br from-blue-50 to-slate-50 rounded-lg p-6">
+                              <div className="grid grid-cols-2 gap-6">
+                                <div className="text-center">
+                                  <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">
+                                    Ração Diária
+                                  </div>
+                                  <div className="text-3xl font-bold text-blue-600">
+                                    {(pond.current_batch.latest_feeding.planned_total_daily / 1000).toFixed(1)} kg
+                                  </div>
+                                </div>
+                                <div className="text-center">
+                                  <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">
+                                    Por Refeição
+                                  </div>
+                                  <div className="text-3xl font-bold text-blue-600">
+                                    {(pond.current_batch.latest_feeding.planned_per_meal / 1000).toFixed(1)} kg
+                                  </div>
+                                </div>
                               </div>
-                              <div className="flex justify-between items-center">
-                                <span className="text-sm text-muted-foreground">Total diário (planejado):</span>
-                                <span className="text-lg font-bold">{(pond.current_batch.latest_feeding.planned_total_daily / 1000).toFixed(1)} kg</span>
+                            </div>
+
+                            {/* Secondary Metrics - 2 Column Grid */}
+                            <div className="grid grid-cols-2 gap-4 px-2">
+                              <div className="text-center">
+                                <div className="text-xs text-muted-foreground mb-1">Taxa de Alimentação</div>
+                                <div className="text-lg font-semibold">
+                                  {pond.current_batch.latest_feeding.feeding_percentage.toFixed(1)}%
+                                </div>
+                              </div>
+                              <div className="text-center">
+                                <div className="text-xs text-muted-foreground mb-1">Arraçoamentos</div>
+                                <div className="text-lg font-semibold">
+                                  {pond.current_batch.latest_feeding.meals_per_day}/dia
+                                </div>
                               </div>
                             </div>
                             
                             {/* Daily Progress */}
-                            <div className="space-y-2">
-                              <div className="flex justify-between text-sm">
+                            <div className="space-y-2 pt-2 border-t">
+                              <div className="flex justify-between text-sm font-medium">
                                 <span>Refeições Hoje</span>
                                 <span>
                                   {pond.current_batch.latest_feeding.meals_completed}/

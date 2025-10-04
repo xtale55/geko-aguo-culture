@@ -597,7 +597,7 @@ export default function AlimentacaoPage() {
                           <div className="text-xs text-muted-foreground">
                             <span className="font-medium">Biomassa:</span>{' '}
                             {pond.current_batch?.current_biomass 
-                              ? `${(pond.current_batch.current_biomass / 1000).toFixed(1)} kg`
+                              ? `${pond.current_batch.current_biomass.toFixed(1)} kg`
                               : 'N/A'}
                           </div>
                         </div>
